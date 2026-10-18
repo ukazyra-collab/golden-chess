@@ -5411,7 +5411,9 @@ var BoardView = (function () {
           if (st.type === 'email_change') {
             // the same account, now with an email: nothing to reload
             return refreshMe().then(function () {
-              st.busy = false; st.acct = { email: (me && me.email) || st.email, guest: false }; st.step = 'signed'; render();
+              st.busy = false;
+              if (!me || me.guest) { st.code = ''; st.err = T('signInFailed'); render(); return; } // the account didn't change after all
+              st.acct = { email: me.email || st.email, guest: false }; st.step = 'signed'; render();
               toast(T('progressSaved')); renderAll();
             });
           }
@@ -5807,7 +5809,10 @@ var BoardView = (function () {
     if (note) {
       // the page was reloaded after signing in to another account, or after signing out
       save('notice', null);
-      ensureNet().then(function () { toast(note === 'signedOut' ? T('signedOutToast') : T('signedInAs', { email: (me && me.email) || '' })); }, function () { /* offline */ });
+      ensureNet().then(function () {
+        if (note === 'signedOut') toast(T('signedOutToast'));
+        else toast(me && !me.guest ? T('signedInAs', { email: me.email || '' }) : T('signInFailed'));
+      }, function () { /* offline */ });
     }
     var fromLink = authReturn();
     if (join) { joinGame(join); return; }
