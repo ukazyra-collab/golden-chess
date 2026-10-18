@@ -1,0 +1,9 @@
+node_modules/
+dist/
+vendor/*.tgz
+vendor/sf/
+vendor/package/
+vendor/fontsource-*/
+test/shots/
+test/calib/
+*.log

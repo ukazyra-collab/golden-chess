@@ -1,0 +1,6 @@
+# Golden Chess — Supabase project config (deployed through the GitHub integration: push to main)
+project_id = "wduoqpoqbtpkrgbcsegg"
+
+[functions.play]
+# the function verifies the user's access token itself (works with both legacy and new JWT signing keys)
+verify_jwt = false
