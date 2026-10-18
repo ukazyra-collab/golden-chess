@@ -89,12 +89,14 @@ function b64u(s: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 const AUTH = { code: 'auth' };
-const verified = new Map<string, { sub: string; exp: number }>();
-async function userId(token: string): Promise<{ sub: string; how: string }> {
+type Caller = { sub: string; guest: boolean | null; how: string };
+const verified = new Map<string, { sub: string; exp: number; guest: boolean | null }>();
+// guest: an anonymous account (no email or Google login yet); null when the token doesn't say
+async function userId(token: string): Promise<Caller> {
   if (!token) throw AUTH;
   const hit = verified.get(token);
   if (hit) {
-    if (hit.exp * 1000 > Date.now()) return { sub: hit.sub, how: 'cached' };
+    if (hit.exp * 1000 > Date.now()) return { sub: hit.sub, guest: hit.guest, how: 'cached' };
     verified.delete(token);
     throw AUTH;
   }
@@ -122,9 +124,10 @@ async function userId(token: string): Promise<{ sub: string; how: string }> {
     if (!u || u.id !== claims.sub) throw AUTH;
     how = 'auth-server';
   }
+  const guest = typeof claims.is_anonymous === 'boolean' ? claims.is_anonymous : null;
   if (verified.size >= 5000) verified.delete(verified.keys().next().value as string);
-  verified.set(token, { sub: claims.sub, exp: claims.exp });
-  return { sub: claims.sub, how };
+  verified.set(token, { sub: claims.sub, exp: claims.exp, guest });
+  return { sub: claims.sub, guest, how };
 }
 
 // ---- HTTP
@@ -144,7 +147,7 @@ Deno.serve(async (req) => {
   delete body.token; delete body.via;
   let tAuth = 0, how = 'none';
   const ta = performance.now();
-  const authP = userId(token).then((r) => { how = r.how; return r.sub; }).finally(() => { tAuth = performance.now() - ta; });
+  const authP = userId(token).then((r) => { how = r.how; return { sub: r.sub, guest: r.guest }; }).finally(() => { tAuth = performance.now() - ta; });
   const acc = { db: 0, n: 0 };
   let status: number, out: unknown;
   if (!pgRepo || !(await pgReady)) {

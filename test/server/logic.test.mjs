@@ -15,10 +15,11 @@ const now = () => T;
 const A = PG ? 'aaaaaaaa-0000-4000-8000-000000000001' : 'alice';
 const B = PG ? 'bbbbbbbb-0000-4000-8000-000000000002' : 'bob';
 const C = PG ? 'cccccccc-0000-4000-8000-000000000003' : 'carol';
+const D = PG ? 'dddddddd-0000-4000-8000-000000000004' : 'dave';
 let repo, inspect, cleanup = async () => {};
 if (PG) {
   const { setupPg } = await import('./pg-harness.mjs');
-  ({ repo, inspect, cleanup } = await setupPg([A, B, C]));
+  ({ repo, inspect, cleanup } = await setupPg([A, B, C, D]));
 } else {
   const m = createMemoryRepo(now);
   repo = m.repo;
@@ -241,6 +242,25 @@ check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.erro
     [r.body.error, Date.now() - t1]);
   r = await call(A, { action: 'move', game: g8.id, uci: 'g1f3', ply: 9 }); // far ahead: no waiting
   check('far-ahead ply refused at once', r.body.error === 'stale');
+}
+
+// accounts: the token says whether the caller is still a guest (anonymous sign-in) or has an email login
+{
+  const prof = async (u) => (await inspect.profiles()).find((p) => p.id === u);
+  const as = (sub, guest, body) => logic.handle(Promise.resolve({ sub, guest }), body);
+  check('profiles start as guests', (await prof(A)).is_guest === true);
+  let h = await as(A, true, { action: 'hello' });
+  check('guest token: still a guest', h.status === 200 && h.body.profile.is_guest === true && (await prof(A)).is_guest === true, h.body);
+  const ratingsBefore = JSON.stringify(h.body.ratings);
+  h = await as(A, false, { action: 'hello' });
+  check('email added: no longer a guest, same profile and ratings', h.body.profile && h.body.profile.id === A && h.body.profile.is_guest === false &&
+    (await prof(A)).is_guest === false && JSON.stringify(h.body.ratings) === ratingsBefore, h.body);
+  h = await logic.handle(Promise.resolve(A), { action: 'hello' });
+  check('a token that does not say leaves it alone', h.body.profile.is_guest === false);
+  h = await as(D, false, { action: 'hello' });
+  check('signing up with an email: a registered profile from the start', h.body.profile && h.body.profile.is_guest === false && (await prof(D)).is_guest === false, h.body);
+  h = await as(A, false, { action: 'move', game: 'x', uci: 'e2e4', ply: 0 });
+  check('moves work with the new caller shape', h.body.error === 'no_game', h.body);
 }
 
 // leaderboard

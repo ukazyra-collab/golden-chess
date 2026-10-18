@@ -352,6 +352,24 @@ svg { display: block; }
 .lb-g { color: var(--muted); font-size: 12px; text-align: right; }
 @media (prefers-reduced-motion: reduce) { .seekbar i { animation-duration: 3s; } }
 
+/* ---- account ---- */
+.acct-form { display: flex; flex-direction: column; gap: 10px; }
+.acct-input { width: 100%; height: 48px; box-sizing: border-box; border-radius: 12px; border: 1px solid var(--line); background: var(--ground); color: var(--bone); padding: 0 14px; font: 600 16px var(--f-ui); }
+.acct-input:focus { outline: 2px solid var(--gold-hi); outline-offset: 1px; }
+.acct-input:disabled { opacity: .6; }
+.acct-input.code { height: 58px; font-size: 26px; font-weight: 800; letter-spacing: .3em; text-indent: .3em; text-align: center; font-variant-numeric: tabular-nums; }
+.acct-who { font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
+.acct-who b { font-weight: 800; }
+.acct-or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12.5px; }
+.acct-or::before, .acct-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.acct-line { font-size: 13px; flex-wrap: nowrap; justify-content: space-between; }
+.acct-line span { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; line-height: 1.4; }
+.acct-line .sbtn, .acct-line .linkbtn { flex: none; align-self: center; }
+.acct-email { font-weight: 700; }
+.acct-nudge { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.acct-nudge .linkbtn { color: var(--bone); text-decoration: underline; text-underline-offset: 3px; }
+.acct-input.code::placeholder { color: var(--muted); opacity: .45; }
+
 @media (max-height: 640px) {
   :root { --top-h: 44px; --bar-h: 42px; --strip-h: 30px; --ctl-h: 50px; }
   .avatar { width: 32px; height: 32px; } .clock { height: 34px; } .gbtn, .nbtn { height: 42px; }

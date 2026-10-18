@@ -27,7 +27,7 @@ Play: https://ukazyra-collab.github.io/golden-chess/ (bot, two players on one de
 - Each state change is broadcast on a private Realtime channel `g:<game id>`; clients also poll as a fallback. Own moves are shown at once and confirmed by the server; a rejected move rolls back.
 - A flag falls on the server: the client that sees a clock at zero asks the server to settle it (`claim`). A player who doesn't make a first move within 30 s gets the game aborted.
 - Matchmaking pairs the closest rating with the same time control and rated/casual choice. Invites are links (`?join=<id>`); a third person opening one watches.
-- Anonymous accounts (Supabase anonymous sign-in); a random name you can change.
+- Accounts: everyone starts as a guest (Supabase anonymous sign-in) with a random name they can change. **Save progress** adds an email to that same account (`updateUser({ email })` + a 6-digit code, `verifyOtp` type `email_change`), so the name, ratings and games stay; on another device the same email signs in (`signInWithOtp` + code, type `email`). The email also carries a one-tap link for the same device. The server marks a profile registered (`profiles.is_guest = false`) from the token's `is_anonymous` claim. Sign out leaves a fresh guest. Email templates and the Auth settings they need: `supabase/emails/README.md`. Google sign-in is wired (`linkIdentity` for guests) behind `googleAuth` in `build.js`.
 - Latency: the function talks to Postgres directly (postgres.js over `SUPABASE_DB_URL`, REST API as a fallback), runs in the database's region (`?forceFunctionRegion=eu-central-1`), and clients send CORS-simple requests (text/plain body with the token inside), so no preflight round trip. Every response carries a `Server-Timing` header (auth, db, total).
 
 ## Tests
@@ -38,6 +38,7 @@ Play: https://ukazyra-collab.github.io/golden-chess/ (bot, two players on one de
 - `node test/server/logic.test.mjs` — server: pairing, invites, legality, clocks, flags, aborts, draws, rematch, ratings, concurrent writes; `PG=1` runs the same tests on real Postgres (PGlite) through postgres.js with the production migration (dev deps in `test/server/package.json`)
 - `DENO=<path to deno> node test/server/edge-local.mjs` — the production `index.ts` under Deno against PGlite, with a fake JWKS (ES256 tokens) and a fake Realtime endpoint
 - `python3 test/online_e2e.py` — two browsers play each other through `test/server/mock-server.mjs` (same server logic, in-memory store, SSE instead of Realtime): pairing, moves, premoves, golden move, clock sync, draw offer, reload, dropped realtime, flag, rating change, rematch, abort, invite link, spectator
+- `python3 test/account_e2e.py` — accounts through the mock server's stand-in for Supabase Auth (codes land in an outbox): a guest saves a rating to an email, a second device signs in and is the same player, sign out, wrong code, resend limit, switching accounts, refused during a live game, expired link
 - `python3 test/targeted.py`, `python3 test/review_test.py`, `python3 test/stress.py <seed> <games>` — offline UI flows, review, randomized input with a per-frame consistency monitor
 
 ## Deploy

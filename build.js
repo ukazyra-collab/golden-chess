@@ -15,6 +15,8 @@ const ONLINE = {
   key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkdW9xcG9xYnRwa3JnYmNzZWdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzMjg2MTQsImV4cCI6MjEwNzkwNDYxNH0.3kvc1Mk9DoO-9FIswh2Tch_yGMfRt1Q1T_YSnTGnkto',
   fn: 'play',
   region: 'eu-central-1',
+  otpLength: 6, // digits in the email sign-in code (Supabase: Authentication > Sign In / Providers > Email > Email OTP length)
+  googleAuth: false, // "Continue with Google": switch on once the Google provider is set up (supabase/emails/README.md)
 };
 const SITE = 'https://ukazyra-collab.github.io/golden-chess/';
 

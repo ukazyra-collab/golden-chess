@@ -58,7 +58,20 @@
       r_agreement: 'by agreement', gameTaken: 'This game has already started, you are watching it', noGame: 'Game not found',
       stillPlaying: 'Your online game is still running. Starting another game leaves it, and your clock keeps ticking.',
       reconnecting: 'Reconnecting\u2026', connected: 'Online', disconnected: 'Left the game', leaderboard: 'Top players', lbEmpty: 'No rated games yet. Be the first.',
-      gamesN: '{n} games', casualNote: 'Casual game: ratings don\u2019t change.', onlineElsewhere: 'Online games and ratings:'
+      gamesN: '{n} games', casualNote: 'Casual game: ratings don\u2019t change.', onlineElsewhere: 'Online games and ratings:',
+      account: 'Account', signIn: 'Sign in', emailLabel: 'Email', sendCode: 'Send code', sending: 'Sending', manage: 'Manage',
+      signInSub: 'Enter your email to keep your name, rating and games, or to sign in to your account on this device. We\u2019ll send you a code.',
+      codeTitle: 'Enter the code', codeSub: 'We sent a code to {email}. Type it here, or open the link from the email on this device.',
+      existingNote: 'This email already has an account. You\u2019ll switch to it; this guest\u2019s games and rating stay behind.',
+      confirm: 'Confirm', checking: 'Checking', resend: 'Send again', resendIn: 'Send again in {s} s', otherEmail: 'Use a different email',
+      signedInAs: 'Signed in as {email}', signedSub: 'Your name, rating and games are saved to this account. Sign in with this email on any device.',
+      signOut: 'Sign out', signedOutToast: 'Signed out. You\u2019re playing as a new guest.', progressSaved: 'Progress saved',
+      emailInvalid: 'Enter a valid email address', codeWrong: 'That code is wrong or has expired', tooMany: 'Too many tries. Wait a minute and try again.',
+      sendFailed: 'Couldn\u2019t send the email. Try again later.', finishFirst: 'Finish your online game first',
+      linkExpired: 'That sign-in link has expired. Ask for a new code.', signInFailed: 'Couldn\u2019t sign in. Try again.',
+      continueGoogle: 'Continue with Google', or: 'or', googleExists: 'This Google account already has a player. Signing in to it\u2026',
+      guestNote: 'Guest: your rating is kept on this device only.', saveProgress: 'Save progress',
+      guestRatingNote: 'Your rating is kept on this device only. Add your email to keep it.'
     },
     ru: {
       newGame: 'Новая партия', rules: 'Правила', settings: 'Настройки', menu: 'Меню партии', prev: 'Предыдущий ход', next: 'Следующий ход',
@@ -108,7 +121,20 @@
       r_agreement: 'по соглашению', gameTaken: 'Партия уже началась, вы смотрите её как зритель', noGame: 'Партия не найдена',
       stillPlaying: 'Ваша онлайн-партия ещё идёт. Если начать другую, часы в ней продолжат идти.',
       reconnecting: 'Переподключение…', connected: 'В игре', disconnected: 'Вышел из игры', leaderboard: 'Лучшие игроки', lbEmpty: 'Рейтинговых партий ещё нет. Будь первым.',
-      gamesN: 'партий: {n}', casualNote: 'Партия без рейтинга: рейтинг не меняется.', onlineElsewhere: 'Онлайн-партии и рейтинг:'
+      gamesN: 'партий: {n}', casualNote: 'Партия без рейтинга: рейтинг не меняется.', onlineElsewhere: 'Онлайн-партии и рейтинг:',
+      account: 'Аккаунт', signIn: 'Войти', emailLabel: 'Почта', sendCode: 'Получить код', sending: 'Отправляем', manage: 'Управление',
+      signInSub: 'Введите почту, чтобы сохранить имя, рейтинг и партии или войти в свой аккаунт на этом устройстве. Мы пришлём код.',
+      codeTitle: 'Введите код', codeSub: 'Код отправлен на {email}. Введите его здесь или откройте ссылку из письма на этом устройстве.',
+      existingNote: 'У этой почты уже есть аккаунт. Вы перейдёте в него, а партии и рейтинг этого гостя останутся у гостя.',
+      confirm: 'Подтвердить', checking: 'Проверяем', resend: 'Отправить ещё раз', resendIn: 'Ещё раз через {s} с', otherEmail: 'Другая почта',
+      signedInAs: 'Вы вошли как {email}', signedSub: 'Имя, рейтинг и партии сохранены в аккаунте. Входите с этой почтой на любом устройстве.',
+      signOut: 'Выйти', signedOutToast: 'Вы вышли. Теперь вы играете как новый гость.', progressSaved: 'Прогресс сохранён',
+      emailInvalid: 'Введите корректную почту', codeWrong: 'Код неверный или устарел', tooMany: 'Слишком много попыток. Подождите минуту и попробуйте снова.',
+      sendFailed: 'Не удалось отправить письмо. Попробуйте позже.', finishFirst: 'Сначала доиграйте онлайн-партию',
+      linkExpired: 'Ссылка для входа устарела. Запросите новый код.', signInFailed: 'Не удалось войти. Попробуйте ещё раз.',
+      continueGoogle: 'Войти через Google', or: 'или', googleExists: 'Этот Google-аккаунт уже привязан к игроку. Входим в него…',
+      guestNote: 'Гость: рейтинг хранится только на этом устройстве.', saveProgress: 'Сохранить прогресс',
+      guestRatingNote: 'Рейтинг хранится только на этом устройстве. Добавьте почту, чтобы не потерять его.'
     }
   };
   var settings = Object.assign({ sound: true, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
@@ -1271,6 +1297,12 @@
           });
           card.appendChild(rl);
         } else if (st && !st.rated && st.status === 'over') card.appendChild(h('div', { class: 'dlg-note' }, esc(T('casualNote'))));
+        if (st && st.rated && st.status === 'over' && !spectating() && me && me.guest) {
+          var nudge = h('div', { class: 'dlg-note acct-nudge', id: 'acct-nudge' }, '<span>' + esc(T('guestRatingNote')) + '</span>');
+          var sp = h('button', { type: 'button', class: 'linkbtn', id: 'btn-save-progress' }, esc(T('saveProgress')));
+          sp.addEventListener('click', function () { showAccount(showOver); });
+          nudge.appendChild(sp); card.appendChild(nudge);
+        }
         if (!spectating()) {
           var rm = rematchState();
           var rb = h('button', { class: 'primary', type: 'button' }, esc(rm.label)); rb.disabled = rm.disabled;
@@ -1385,6 +1417,20 @@
       var fl = h('div', { class: 'field' }); fl.appendChild(h('div', { class: 'lbl' }, esc(T('language'))));
       fl.appendChild(seg([{ v: 'en', label: 'English' }, { v: 'ru', label: 'Русский' }], lang, function (v) { lang = settings.lang = v; saveSettings(); applyLang(); showSettings(); }));
       card.appendChild(fl);
+      if (NETCFG) {
+        var fac = h('div', { class: 'field' }), al = h('div', { class: 'prof-line acct-line', id: 'acct-line' });
+        fac.appendChild(h('div', { class: 'lbl' }, esc(T('account')))); fac.appendChild(al); card.appendChild(fac);
+        var drawAcct = function () {
+          var signed = !!(me && !me.guest && me.email);
+          al.innerHTML = '';
+          al.appendChild(h('span', { class: signed ? 'acct-email' : 'muted' }, esc(signed ? me.email : T('guestNote'))));
+          var ab = h('button', { type: 'button', class: 'sbtn', id: 'btn-account' }, esc(signed ? T('manage') : T('signIn')));
+          ab.addEventListener('click', function () { showAccount(showSettings); });
+          al.appendChild(ab);
+        };
+        drawAcct();
+        if (!me && hasNetSession()) ensureNet().then(function () { if (al.isConnected) drawAcct(); }, function () { /* offline */ });
+      }
       card.appendChild(h('div', { class: 'credit' }, esc(T('credit'))));
       var row = h('div', { class: 'row-btns' }), d = h('button', { class: 'primary', type: 'button' }, esc(T('done')));
       d.addEventListener('click', closeDialog); row.appendChild(d); card.appendChild(row);
@@ -1575,7 +1621,8 @@
   function SupaNet(cfg) {
     var self = this;
     this.cfg = cfg; this.uid = null; this.token = null;
-    this.sb = window.supabase.createClient(cfg.url, cfg.key, { auth: { storageKey: 'goldenchess.auth' + profileSuffix, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+    // detectSessionInUrl: coming back from the link in a sign-in email signs this browser in
+    this.sb = window.supabase.createClient(cfg.url, cfg.key, { auth: { storageKey: 'goldenchess.auth' + profileSuffix, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' } });
     this.sb.auth.onAuthStateChange(function (ev, session) {
       if (!session) return;
       self.token = session.access_token; self.uid = session.user.id;
@@ -1599,6 +1646,25 @@
       return postJson(self.cfg.url + '/functions/v1/' + (self.cfg.fn || 'play') + '?forceFunctionRegion=' + encodeURIComponent(self.cfg.region || 'eu-central-1'),
         Object.assign({ action: action, token: tok }, body || {}));
     });
+  };
+  // ---- account (Supabase Auth): a guest links an email to the same account; on another device the email signs in
+  function authRedirect() { return location.origin + location.pathname + (profileSuffix ? '?p=' + profileSuffix : ''); }
+  function authFail(r) { if (r && r.error) { var e = new Error(r.error.message || 'auth'); e.code = r.error.code || ''; e.status = r.error.status; throw e; } return r && r.data; }
+  SupaNet.prototype.account = function () {
+    return this.sb.auth.getSession().then(function (r) {
+      var u = r.data && r.data.session && r.data.session.user;
+      return u ? { uid: u.id, email: u.email || null, guest: !!u.is_anonymous } : null;
+    });
+  };
+  SupaNet.prototype.linkEmail = function (email) { return this.sb.auth.updateUser({ email: email }, { emailRedirectTo: authRedirect() }).then(authFail); };
+  SupaNet.prototype.signInEmail = function (email, create) {
+    return this.sb.auth.signInWithOtp({ email: email, options: { shouldCreateUser: !!create, emailRedirectTo: authRedirect() } }).then(authFail);
+  };
+  SupaNet.prototype.verifyCode = function (email, code, type) { return this.sb.auth.verifyOtp({ email: email, token: code, type: type }).then(authFail); };
+  SupaNet.prototype.signOut = function () { return this.sb.auth.signOut({ scope: 'local' }).then(authFail); };
+  SupaNet.prototype.google = function (link) {
+    var o = { provider: 'google', options: { redirectTo: authRedirect() } };
+    return (link ? this.sb.auth.linkIdentity(o) : this.sb.auth.signInWithOAuth(o)).then(authFail);
   };
   SupaNet.prototype.read = function (id) {
     return this.sb.from('games').select('*').eq('id', id).maybeSingle().then(function (r) { if (r.error) throw r.error; return r.data; });
@@ -1628,6 +1694,26 @@
   MockNet.prototype.ready = function () { return Promise.resolve(); };
   MockNet.prototype.call = function (action, body) { return postJson(this.base + '/play', Object.assign({ action: action, token: this.uid }, body || {})); };
   MockNet.prototype.read = function (id) { return this.call('game', { game: id }).then(function (r) { return r.game; }); };
+  // the same account API against the test server's stand-in for Supabase Auth (codes land in its outbox)
+  MockNet.prototype.authCall = function (body) {
+    return postJson(this.base + '/auth', Object.assign({ token: this.uid }, body)).catch(function (e) { e.code = e.data && e.data.error || e.code; throw e; });
+  };
+  MockNet.prototype.account = function () { return this.authCall({ op: 'whoami' }); };
+  MockNet.prototype.linkEmail = function (email) { return this.authCall({ op: 'link', email: email }); };
+  MockNet.prototype.signInEmail = function (email, create) { return this.authCall({ op: 'signin', email: email, create: !!create }); };
+  MockNet.prototype.verifyCode = function (email, code, type) {
+    var self = this;
+    return this.authCall({ op: 'verify', email: email, code: code, type: type }).then(function (r) {
+      if (r.uid && r.uid !== self.uid) { self.uid = r.uid; try { localStorage.setItem('goldenchess.mockuid' + profileSuffix, r.uid); } catch (e) { /* ignore */ } }
+      return r;
+    });
+  };
+  MockNet.prototype.signOut = function () {
+    this.uid = 'u' + Math.random().toString(36).slice(2, 10);
+    try { localStorage.setItem('goldenchess.mockuid' + profileSuffix, this.uid); } catch (e) { /* ignore */ }
+    return Promise.resolve();
+  };
+  MockNet.prototype.google = function () { return Promise.reject(new Error('unsupported')); };
   MockNet.prototype.sub = function (topic, h) {
     var base = this.base, uid = this.uid;
     var es = new EventSource(base + '/events?topic=' + encodeURIComponent(topic) + '&uid=' + encodeURIComponent(uid));
@@ -1647,8 +1733,9 @@
     if (!NETCFG) return Promise.reject(new Error('offline'));
     if (netReady) return netReady;
     try { if (!net) net = NETCFG.mock != null ? new MockNet(NETCFG) : new SupaNet(NETCFG); } catch (e) { return Promise.reject(e); }
-    netReady = net.ready().then(function () { return net.call('hello'); }).then(function (r) {
-      me = { uid: net.uid, profile: r.profile, ratings: {} };
+    netReady = net.ready().then(function () { return Promise.all([net.call('hello'), net.account().catch(function () { return null; })]); }).then(function (rr) {
+      var r = rr[0], a = rr[1];
+      me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest };
       (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; });
       if (!userSub) userSub = net.sub('u:' + net.uid, { event: function (ev, p) { if (ev === 'paired' && p && p.game && lobby) onPaired(p.game); } });
       return r;
@@ -1657,8 +1744,12 @@
     return netReady;
   }
   function refreshMe() {
-    if (!net || !me) return;
-    net.call('hello').then(function (r) { me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; }); }, function () { /* ignore */ });
+    if (!net || !me) return Promise.resolve();
+    return Promise.all([net.call('hello'), net.account().catch(function () { return null; })]).then(function (rr) {
+      var r = rr[0], a = rr[1];
+      me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; });
+      if (a) { me.email = a.email || null; me.guest = a.guest; }
+    }, function () { /* ignore */ });
   }
   function setUrl(key, val) {
     try {
@@ -1786,6 +1877,174 @@
       load(pool);
     });
   }
+  // ---- account: a guest keeps their progress by adding an email to the same account; on another device the
+  // same email signs in to it. Sign-in codes come by email (the email also has a link that does the same).
+  var OTP_LEN = (NETCFG && NETCFG.otpLength) || 6;
+  function authMsg(e) {
+    var c = String((e && (e.code || (e.data && e.data.error) || e.message)) || '');
+    if (/rate|too_many|over_/i.test(c) || (e && e.status === 429)) return T('tooMany');
+    if (/otp|token|expired|invalid_credentials/i.test(c)) return T('codeWrong');
+    if (/email.*(invalid|format)|validation/i.test(c)) return T('emailInvalid');
+    if (/not_authorized|sending|smtp/i.test(c) || (e && e.status >= 500)) return T('sendFailed');
+    return T('netError');
+  }
+  function liveOnlineGame() { return !!(game && game.online && game.status === 'playing' && !spectating()); }
+  function hasProgress() { return !!me && Object.keys(me.ratings).some(function (p) { return me.ratings[p].games > 0; }); }
+  function boldVar(key, name, value) { var v = {}; v[name] = '\u0000'; return esc(T(key, v)).replace('\u0000', '<b>' + esc(value) + '</b>'); }
+  // back: reopens the dialog the player came from once they are done here
+  function showAccount(back) {
+    var st = { step: 'loading', email: '', code: '', type: '', existing: false, err: '', busy: false, sentAt: 0, acct: null };
+    var timer = 0, again = null;
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'account';
+      currentDialog.onClose = function () { clearInterval(timer); };
+      render();
+      ensureNet().then(function () { return net.account(); }).then(function (a) {
+        st.acct = a; st.step = a && !a.guest ? 'signed' : 'form'; render();
+      }, function () { st.step = 'form'; st.err = T('netError'); render(); });
+
+      function btn(cls, label, fn, id) { var b = h('button', { class: cls, type: 'button' }, esc(label)); if (id) b.id = id; b.addEventListener('click', fn); return b; }
+      function row(btns) { var r = h('div', { class: 'row-btns' }); btns.forEach(function (b) { r.appendChild(b); }); return r; }
+      function done() { closeDialog(); if (back) back(); }
+      function focus(el) { setTimeout(function () { if (el.isConnected && !el.disabled) try { el.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 30); }
+      // the "send again" countdown (only that button changes, so typing in the code field is never disturbed)
+      function tick() {
+        if (!again || !again.isConnected) { clearInterval(timer); return; }
+        var left = Math.max(0, 60 - Math.floor((Date.now() - st.sentAt) / 1000));
+        again.textContent = left ? T('resendIn', { s: left }) : T('resend');
+        again.disabled = left > 0 || st.busy;
+        if (!left) clearInterval(timer);
+      }
+      function render() {
+        if (!card.isConnected) return;
+        card.innerHTML = ''; again = null;
+        var title = st.step === 'signed' ? T('account') : st.step === 'code' ? T('codeTitle') : T('signIn');
+        card.appendChild(h('div', { class: 'dlg-title' }, esc(title)));
+        if (st.step === 'loading') { card.appendChild(h('div', { class: 'muted' }, esc(T('connecting')) + '…')); return; }
+        var err = st.err ? h('div', { class: 'err', id: 'acct-err', role: 'alert' }, esc(st.err)) : null;
+        if (st.step === 'signed') {
+          card.appendChild(h('div', { class: 'acct-who', id: 'acct-who' }, boldVar('signedInAs', 'email', st.acct.email || '')));
+          card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('signedSub'))));
+          if (err) card.appendChild(err);
+          var so = btn('secondary danger', T('signOut'), signOut, 'btn-signout'); so.disabled = st.busy;
+          card.appendChild(row([so, btn('primary', T('done'), done, 'btn-acct-done')]));
+          return;
+        }
+        if (st.step === 'form') {
+          card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('signInSub'))));
+          var form = h('form', { class: 'acct-form', novalidate: '' });
+          var inp = h('input', { type: 'email', class: 'acct-input', id: 'acct-email', name: 'email', autocomplete: 'email', inputmode: 'email',
+            autocapitalize: 'off', spellcheck: 'false', placeholder: 'you@example.com', 'aria-label': T('emailLabel') });
+          inp.value = st.email;
+          form.appendChild(inp);
+          if (err) form.appendChild(err);
+          var go = h('button', { type: 'submit', class: 'primary', id: 'btn-send-code' }, esc(st.busy ? T('sending') + '…' : T('sendCode')));
+          go.disabled = st.busy;
+          form.appendChild(row([btn('secondary', T('cancel'), closeDialog), go]));
+          form.addEventListener('submit', function (e) { e.preventDefault(); sendCode(inp.value); });
+          card.appendChild(form);
+          if (NETCFG && NETCFG.googleAuth) {
+            card.appendChild(h('div', { class: 'acct-or' }, esc(T('or'))));
+            var gb = btn('secondary', T('continueGoogle'), google, 'btn-google'); gb.disabled = st.busy;
+            card.appendChild(row([gb]));
+          }
+          if (!st.busy) focus(inp);
+          return;
+        }
+        // the code from the email
+        card.appendChild(h('div', { class: 'dlg-sub' }, boldVar('codeSub', 'email', st.email)));
+        if (st.existing) card.appendChild(h('div', { class: 'dlg-note', id: 'acct-existing' }, esc(T('existingNote'))));
+        var cinp = h('input', { type: 'text', class: 'acct-input code', id: 'acct-code', name: 'code', inputmode: 'numeric', pattern: '[0-9]*',
+          autocomplete: 'one-time-code', maxlength: '10', spellcheck: 'false', placeholder: new Array(OTP_LEN + 1).join('\u2022'), 'aria-label': T('codeTitle') });
+        cinp.value = st.code;
+        cinp.disabled = st.busy;
+        cinp.addEventListener('input', function () {
+          var v = cinp.value.replace(/\D/g, '');
+          if (v !== cinp.value) cinp.value = v;
+          st.code = v;
+          if (v.length === OTP_LEN) verify(v);
+        });
+        card.appendChild(cinp);
+        if (err) card.appendChild(err);
+        again = btn('secondary', T('resend'), function () { sendCode(st.email); }, 'btn-resend');
+        var ok = btn('primary', st.busy ? T('checking') + '…' : T('confirm'), function () { verify(cinp.value.replace(/\D/g, '')); }, 'btn-verify');
+        ok.disabled = st.busy;
+        card.appendChild(row([again, ok]));
+        card.appendChild(btn('linkbtn', T('otherEmail'), function () { st.step = 'form'; st.err = ''; st.code = ''; clearInterval(timer); render(); }, 'btn-other-email'));
+        tick();
+        if (!st.busy) focus(cinp);
+      }
+      function sendCode(email) {
+        email = String(email || '').trim();
+        if (st.busy) return;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { st.email = email; st.err = T('emailInvalid'); render(); return; }
+        st.busy = true; st.err = ''; st.email = email; render();
+        ensureNet().then(function () { return net.account(); }).then(function (a) {
+          if (a && a.guest) {
+            // a guest: the email is added to this same account, so the name, rating and games stay
+            return net.linkEmail(email).then(function () { return { type: 'email_change', existing: false }; }, function (e) {
+              if (!/email_exists|already.*(registered|exists)/i.test(String(e && (e.code || e.message)))) throw e;
+              // the email has its own account: sign in to that one instead
+              if (liveOnlineGame()) { var f = new Error('finish'); f.code = 'finish'; throw f; }
+              return net.signInEmail(email, false).then(function () { return { type: 'email', existing: hasProgress() }; });
+            });
+          }
+          return net.signInEmail(email, true).then(function () { return { type: 'email', existing: false }; });
+        }).then(function (r) {
+          st.busy = false; st.step = 'code'; st.type = r.type; st.existing = r.existing; st.sentAt = Date.now(); st.code = ''; render();
+          clearInterval(timer); timer = setInterval(tick, 1000);
+        }, function (e) { st.busy = false; st.err = e && e.code === 'finish' ? T('finishFirst') : authMsg(e); render(); });
+      }
+      function verify(code) {
+        if (st.busy || code.length < 6) return;
+        st.busy = true; st.err = ''; st.code = code; render();
+        net.verifyCode(st.email, code, st.type).then(function () {
+          clearInterval(timer);
+          if (st.type === 'email_change') {
+            // the same account, now with an email: nothing to reload
+            return refreshMe().then(function () {
+              st.busy = false; st.acct = { email: (me && me.email) || st.email, guest: false }; st.step = 'signed'; render();
+              toast(T('progressSaved')); renderAll();
+            });
+          }
+          // another account: start over as that player
+          save('online', null); save('notice', 'signedIn');
+          location.reload();
+        }).catch(function (e) { st.busy = false; st.code = ''; st.err = authMsg(e); render(); });
+      }
+      function signOut() {
+        if (liveOnlineGame()) { st.err = T('finishFirst'); render(); return; }
+        st.busy = true; render();
+        net.signOut().then(function () { save('online', null); save('notice', 'signedOut'); location.reload(); },
+          function (e) { st.busy = false; st.err = authMsg(e); render(); });
+      }
+      function google() {
+        if (st.busy) return;
+        st.busy = true; st.err = ''; render();
+        // a guest links Google to the same account; otherwise Google signs in (the page leaves for Google here)
+        ensureNet().then(function () { return net.account(); }).then(function (a) { return net.google(!!(a && a.guest)); })
+          .catch(function (e) { st.busy = false; st.err = authMsg(e); render(); });
+      }
+    });
+  }
+  // Back from the link in a sign-in email (or from Google): supabase-js has already taken the session (or the
+  // error) from the address. Tidy the address and say what happened.
+  function authReturn() {
+    var hsh = location.hash || '';
+    if (!/(access_token|error_code|error_description)=/.test(hsh)) return false;
+    var q;
+    try { q = new URLSearchParams(hsh.replace(/^#/, '')); } catch (e) { return false; }
+    var err = q.get('error_code') || q.get('error'), desc = q.get('error_description') || '', type = q.get('type') || '';
+    ensureNet().then(function () {
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ }
+      if (err === 'identity_already_exists' && net.google) { toast(T('googleExists')); net.google(false).catch(function () { /* ignore */ }); return; }
+      if (err) toast(/expired|invalid/i.test(err + ' ' + desc) ? T('linkExpired') : T('signInFailed'));
+      else if (me && !me.guest) toast(type === 'email_change' ? T('progressSaved') : T('signedInAs', { email: me.email || '' }));
+      renderAll();
+    }, function () { toast(T('netError')); });
+    return true;
+  }
+
   // online part of the New game dialog
   function onlineFields(s) {
     var wrap = h('div', { class: 'online-fields' }), prof = h('div', { class: 'prof' }), failed = false;
@@ -1810,6 +2069,14 @@
         var ch = h('button', { type: 'button', class: 'linkbtn', id: 'btn-rename' }, esc(T('change')));
         ch.addEventListener('click', function () { renderProf(true); });
         line.appendChild(ch); prof.appendChild(line);
+        var al = h('div', { class: 'prof-line acct-line', id: 'acct-online' });
+        if (me.guest) {
+          al.appendChild(h('span', { class: 'muted' }, esc(T('guestNote'))));
+          var sv = h('button', { type: 'button', class: 'linkbtn', id: 'btn-save-online' }, esc(T('saveProgress')));
+          sv.addEventListener('click', function () { showAccount(function () { lastSetup = s; showNewGame(); }); });
+          al.appendChild(sv);
+        } else al.appendChild(h('span', { class: 'muted acct-email' }, esc(me.email || '')));
+        prof.appendChild(al);
         return;
       }
       var form = h('form', { class: 'prof-edit' });
@@ -2128,10 +2395,16 @@
   document.addEventListener('visibilitychange', function () { if (!document.hidden && online) resyncOnline(); });
   function bootOnline() {
     if (!NETCFG) return;
-    var join = urlQ.get('join'), gid = urlQ.get('game'), saved = load('online', null);
+    var join = urlQ.get('join'), gid = urlQ.get('game'), saved = load('online', null), note = load('notice', null);
+    if (note) {
+      // the page was reloaded after signing in to another account, or after signing out
+      save('notice', null);
+      ensureNet().then(function () { toast(note === 'signedOut' ? T('signedOutToast') : T('signedInAs', { email: (me && me.email) || '' })); }, function () { /* offline */ });
+    }
+    var fromLink = authReturn();
     if (join) { joinGame(join); return; }
     if (gid) { openOnlineGame(gid); return; }
-    if ((saved && saved.id) || hasNetSession()) {
+    if (fromLink || note || (saved && saved.id) || hasNetSession()) {
       ensureNet().then(function (r) {
         if (r.live && r.live.status === 'playing') openOnlineGame(r.live.id);
         else if (saved && saved.id) save('online', null);
@@ -2169,6 +2442,7 @@
     get goldenArmed() { return goldenArmed; }, get selected() { return selected; }, get dialogOpen() { return !!currentDialog; }, closeDialog: closeDialog,
     get dialogKind() { return currentDialog ? currentDialog.dataset.kind || '' : null; },
     get online() { return online; }, get me() { return me; }, get lobby() { return lobby; }, startSeek: startSeek, startInvite: startInvite,
-    onlineAction: onlineAction, showNewGame: showNewGame, serverNow: serverNow, cancelPremoves: cancelPremoves
+    onlineAction: onlineAction, showNewGame: showNewGame, serverNow: serverNow, cancelPremoves: cancelPremoves,
+    showAccount: showAccount, showSettings: showSettings, showOver: showOver
   };
 })();

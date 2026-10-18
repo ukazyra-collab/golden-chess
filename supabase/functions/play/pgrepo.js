@@ -31,13 +31,16 @@ export function createPgRepo(sql) {
     async getProfile(uid) {
       return first(await sql`select to_jsonb(p) as j from public.profiles p where p.id = ${uid}`);
     },
-    async insertProfile(uid, name) {
+    async insertProfile(uid, name, guest = true) {
       try {
-        return first(await sql`insert into public.profiles as p (id, username) values (${uid}, ${name}) returning to_jsonb(p) as j`);
+        return first(await sql`insert into public.profiles as p (id, username, is_guest) values (${uid}, ${name}, ${!!guest}) returning to_jsonb(p) as j`);
       } catch (e) {
         if (e && e.code === '23505') return null; // name taken or profile already there
         throw e;
       }
+    },
+    async setGuest(uid, guest) {
+      return first(await sql`update public.profiles p set is_guest = ${!!guest} where p.id = ${uid} returning to_jsonb(p) as j`);
     },
     async renameProfile(uid, name) {
       try {

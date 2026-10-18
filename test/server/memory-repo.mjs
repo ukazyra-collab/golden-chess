@@ -26,13 +26,14 @@ export function createMemoryRepo(now) {
     async setGameFields(id, patch) { const g = db.games.get(id); if (!g) return null; Object.assign(g, clone(patch)); return clone(g); },
     async insertGame(row) { return insertGame(row); },
     async getProfile(uid) { return clone(db.profiles.get(uid) || null); },
-    async insertProfile(uid, name) {
+    async insertProfile(uid, name, guest = true) {
       if (db.profiles.has(uid)) return null;
       for (const p of db.profiles.values()) if (p.username.toLowerCase() === name.toLowerCase()) return null;
-      const p = { id: uid, username: name, is_guest: true, created_at: iso(now()) };
+      const p = { id: uid, username: name, is_guest: !!guest, created_at: iso(now()) };
       db.profiles.set(uid, p);
       return clone(p);
     },
+    async setGuest(uid, guest) { const p = db.profiles.get(uid); if (!p) return null; p.is_guest = !!guest; return clone(p); },
     async renameProfile(uid, name) {
       for (const p of db.profiles.values()) if (p.id !== uid && p.username.toLowerCase() === name.toLowerCase()) return { taken: true };
       const p = db.profiles.get(uid);

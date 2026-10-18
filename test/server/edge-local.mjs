@@ -27,10 +27,10 @@ const pgPort = pgServer.server ? pgServer.server.address().port : pgServer.port;
 const { publicKey, privateKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
 const jwk = Object.assign(publicKey.export({ format: 'jwk' }), { kid: 'k1', alg: 'ES256', use: 'sig' });
 const b64u = (b) => Buffer.from(b).toString('base64url');
-function token(sub) {
+function token(sub, extra) {
   const now = Math.floor(Date.now() / 1000);
   const head = b64u(JSON.stringify({ alg: 'ES256', typ: 'JWT', kid: 'k1' }));
-  const body = b64u(JSON.stringify({ sub, role: 'authenticated', aud: 'authenticated', iat: now, exp: now + 3600, iss: ISS(), is_anonymous: true }));
+  const body = b64u(JSON.stringify(Object.assign({ sub, role: 'authenticated', aud: 'authenticated', iat: now, exp: now + 3600, iss: ISS(), is_anonymous: true }, extra || {})));
   const sig = crypto.sign('sha256', Buffer.from(head + '.' + body), { key: privateKey, dsaEncoding: 'ieee-p1363' });
   return head + '.' + body + '.' + b64u(sig);
 }
@@ -136,6 +136,11 @@ try {
   check('legacy symmetric token checked by the auth server', r.status === 200 && r.body.profile && r.body.profile.id === B && /desc="auth-server"/.test(r.timing), r);
   r = await call(legacyTok(A), { action: 'hello' });
   check('legacy token the auth server rejects is refused', r.status === 401, r);
+  // the guest added an email: Supabase issues tokens with is_anonymous false for the same user
+  check('profiles start as guests', (await pg.query('select is_guest from public.profiles where id = $1', [A])).rows[0].is_guest === true);
+  r = await call(token(A, { is_anonymous: false, email: 'a@example.com', iat: Math.floor(Date.now() / 1000) + 1 }), { action: 'hello' });
+  check('token without the guest mark: profile becomes registered, same name', r.status === 200 && r.body.profile.is_guest === false && r.body.profile.id === A, r.body);
+  check('registered in the database', (await pg.query('select is_guest from public.profiles where id = $1', [A])).rows[0].is_guest === false);
 } finally {
   deno.kill();
   fake.close();

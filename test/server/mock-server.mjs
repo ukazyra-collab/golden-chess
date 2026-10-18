@@ -1,8 +1,10 @@
 // Local stand-in for the Supabase backend: the same game logic (supabase/functions/play/logic.js) over an
-// in-memory store, Server-Sent Events instead of Realtime, and a few test hooks under /admin.
+// in-memory store, Server-Sent Events instead of Realtime, a small stand-in for Supabase Auth's email codes
+// (/auth; the codes land in an outbox), and a few test hooks under /admin.
 // Usage: node test/server/mock-server.mjs [port]   (serves dist/mock/index.html at /)
 import http from 'node:http';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -40,6 +42,45 @@ function presence(topic) {
 }
 
 const logic = createLogic({ repo, broadcast, GC, now });
+
+// ---- "Supabase Auth": a guest links an email (same account), or an email signs in (existing or new account).
+// Same answers as the real service: 422 email_exists / otp_disabled, 403 otp_expired, 429 when a code is
+// requested again within a minute.
+const accounts = { emailOf: new Map(), uidOf: new Map(), pending: new Map(), lastSent: new Map(), outbox: [] };
+const OTP_TTL = 10 * 60000, RESEND_MS = 60000;
+function sendCode(email, uid, type) {
+  const t = now();
+  if (t - (accounts.lastSent.get(email) ?? -Infinity) < RESEND_MS) return { status: 429, body: { error: 'over_email_send_rate_limit' } };
+  const code = String(100000 + crypto.randomInt(900000));
+  accounts.pending.set(email, { code, uid, type, at: t });
+  accounts.lastSent.set(email, t);
+  accounts.outbox.push({ to: email, code, type, at: t });
+  return { status: 200, body: { ok: true } };
+}
+function authOp(b) {
+  const uid = typeof b.token === 'string' && b.token ? b.token : null;
+  if (!uid) return { status: 401, body: { error: 'no_authorization' } };
+  if (b.op === 'whoami') { const e = accounts.emailOf.get(uid) || null; return { status: 200, body: { uid, email: e, guest: !e } }; }
+  const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : '';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { status: 400, body: { error: 'validation_failed' } };
+  const owner = accounts.uidOf.get(email);
+  if (b.op === 'link') { // updateUser({ email }) for a guest
+    if (owner && owner !== uid) return { status: 422, body: { error: 'email_exists' } };
+    return sendCode(email, uid, 'email_change');
+  }
+  if (b.op === 'signin') { // signInWithOtp({ email, options: { shouldCreateUser } })
+    if (!owner && !b.create) return { status: 422, body: { error: 'otp_disabled' } };
+    return sendCode(email, owner || 'u' + crypto.randomUUID().slice(0, 8), 'email');
+  }
+  if (b.op === 'verify') { // verifyOtp({ email, token, type })
+    const p = accounts.pending.get(email), type = b.type === 'email_change' ? 'email_change' : 'email';
+    if (!p || p.code !== String(b.code) || p.type !== type || now() - p.at > OTP_TTL || (type === 'email_change' && p.uid !== uid)) return { status: 403, body: { error: 'otp_expired' } };
+    accounts.pending.delete(email);
+    accounts.emailOf.set(p.uid, email); accounts.uidOf.set(email, p.uid);
+    return { status: 200, body: { uid: p.uid, email } };
+  }
+  return { status: 400, body: { error: 'bad_op' } };
+}
 const page = () => fs.readFileSync(path.join(ROOT, 'dist/mock/index.html'));
 
 function readBody(req) {
@@ -70,13 +111,19 @@ const server = http.createServer(async (req, res) => {
     // same contract as the edge function: token in the Authorization header or in the body
     const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || (typeof body.token === 'string' ? body.token : '');
     delete body.token; delete body.via;
-    const auth = token ? Promise.resolve(token) : Promise.reject({ code: 'auth' });
+    const auth = token ? Promise.resolve({ sub: token, guest: !accounts.emailOf.has(token) }) : Promise.reject({ code: 'auth' });
     const delay = +(process.env.MOCK_LATENCY || 0) + extraLatency;
     if (delay) await new Promise((r) => setTimeout(r, delay / 2));
     const { status, body: out } = await logic.handle(auth, body);
     if (delay) await new Promise((r) => setTimeout(r, delay / 2));
     res.writeHead(status, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(out));
+    return;
+  }
+  if (req.method === 'POST' && u.pathname === '/auth') {
+    const { status, body } = authOp(await readBody(req));
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(body));
     return;
   }
   // peer-to-peer broadcast (Realtime "m:<game>" topic): only players of that game may send, never to themselves
@@ -101,6 +148,8 @@ const server = http.createServer(async (req, res) => {
     else if (b.op === 'game') out = clone(db.games.get(b.game) || null);
     else if (b.op === 'games') out = [...db.games.values()].map(clone);
     else if (b.op === 'ratings') out = [...db.ratings.values()].map(clone);
+    else if (b.op === 'profiles') out = [...db.profiles.values()].map(clone);
+    else if (b.op === 'outbox') out = accounts.outbox.filter((m) => !b.to || m.to === b.to);
     else if (b.op === 'setclock') {
       const g = db.games.get(b.game);
       // keep the running side's clock running: restart its turn now
@@ -108,7 +157,12 @@ const server = http.createServer(async (req, res) => {
       if (g.moves.length >= 2) g.turn_started_at = iso(now());
       await broadcast('g:' + g.id, 'state', Object.assign(clone(g), { now: now() }));
       out = clone(g);
-    } else if (b.op === 'reset') { for (const k of Object.keys(db)) db[k].clear(); shift = 0; dropBroadcasts = false; dropPeer = false; }
+    } else if (b.op === 'reset') {
+      for (const k of Object.keys(db)) db[k].clear();
+      for (const k of ['emailOf', 'uidOf', 'pending', 'lastSent']) accounts[k].clear();
+      accounts.outbox.length = 0;
+      shift = 0; dropBroadcasts = false; dropPeer = false;
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(out));
     return;

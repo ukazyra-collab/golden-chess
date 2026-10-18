@@ -172,13 +172,16 @@ export function createLogic(opts) {
   // ---- actions ----
   const A = {};
 
-  A.hello = async (uid) => {
+  A.hello = async (uid, b, caller) => {
+    const guest = caller && typeof caller.guest === 'boolean' ? caller.guest : null; // null: the token doesn't say
     let prof = await repo.getProfile(uid);
     for (let i = 0; !prof && i < 8; i++) {
       const name = ADJ[Math.floor(rnd() * ADJ.length)] + NOUN[Math.floor(rnd() * NOUN.length)] + Math.floor(rnd() * (i < 4 ? 100 : 10000));
-      prof = (await repo.insertProfile(uid, name)) || (await repo.getProfile(uid));
+      prof = (await repo.insertProfile(uid, name, guest !== false)) || (await repo.getProfile(uid));
     }
     if (!prof) throw new Fail('profile');
+    // a guest who has since saved the account with an email (or Google) login
+    if (guest !== null && prof.is_guest !== guest) prof = (await repo.setGuest(uid, guest)) || Object.assign(prof, { is_guest: guest });
     const [ratings, live] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid)]);
     return { profile: prof, ratings: ratings || [], live: live || null, now: now() };
   };
@@ -243,8 +246,10 @@ export function createLogic(opts) {
   A.game = async (uid, b) => ({ game: view(await game(b.game)) });
 
   A.move = async (_, b, auth) => {
-    const [uid, g0] = await Promise.all([auth, game(b.game)]);
-    let g = g0;
+    const read = game(b.game); // the game is read while the token is checked
+    read.catch(() => {});
+    const uid = await auth; // an auth failure wins over any game error
+    let g = await read;
     const color = colorOf(g, uid);
     // The player may have seen the opponent's move peer-to-peer (Realtime) before the server committed it,
     // and answered at once (often a premove). Give that move a moment to land instead of refusing as stale.
@@ -334,14 +339,18 @@ export function createLogic(opts) {
     return { pool, rows: (await repo.top(pool, 30)) || [] };
   };
 
-  // auth: a promise of the caller's user id (resolved lazily so `move` can overlap it with the game read)
+  // auth: a promise of the caller, either a user id or { sub, guest } (resolved lazily so `move` can overlap
+  // it with the game read)
   async function handle(authPromise, body) {
-    authPromise.catch(() => {}); // rejections are handled where it's awaited
+    const caller = authPromise.then((a) => (a && typeof a === 'object' ? a : { sub: a, guest: null }));
+    caller.catch(() => {}); // rejections are handled where it's awaited
     try {
       const b = body && typeof body === 'object' ? body : {};
       const fn = Object.prototype.hasOwnProperty.call(A, b.action) ? A[b.action] : null;
       if (!fn) throw new Fail('bad_action');
-      const out = b.action === 'move' ? await fn(null, b, authPromise) : await fn(await authPromise, b);
+      let out;
+      if (b.action === 'move') out = await fn(null, b, caller.then((c) => c.sub));
+      else { const c = await caller; out = await fn(c.sub, b, c); }
       return { status: 200, body: out };
     } catch (e) {
       if (e instanceof Fail) {
