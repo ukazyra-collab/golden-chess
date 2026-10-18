@@ -4927,7 +4927,7 @@ var BoardView = (function () {
   // server; the opponent's moves arrive as full game states (broadcast, with polling as a fallback).
   var NETCFG = window.GC_ONLINE || null;
   var ONLINE_TCS = ['1+0', '2+1', '3+0', '3+2', '5+0', '5+3', '10+0', '10+5', '15+10'];
-  var FIRST_MOVE_MS = 30000, CLAIM_GRACE = 300;
+  var FIRST_MOVE_MS = 30000, CLAIM_GRACE = 300, PEER_TTL = 4000;
   var net = null, netReady = null, me = null, userSub = null;
   var online = null;   // the open online game: { id, s, color, pending, sub, connected, lastEvent, oppHere, ... }
   var lobby = null;    // seeking or inviting: { kind, tc, rated, t0, timer, tick, gameId, sub }
@@ -4945,9 +4945,11 @@ var BoardView = (function () {
     bestRtt += 25; // old samples age out
     if (rtt <= bestRtt) { bestRtt = rtt; clockOffset = srv + rtt / 2 - t1; }
   }
-  function postJson(url, headers, body) {
+  // A CORS "simple" request (text/plain body, no custom headers; the token travels in the body), so the
+  // browser never waits for a preflight round trip before a move.
+  function postJson(url, body) {
     var t0 = Date.now();
-    return fetch(url, { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, headers), body: JSON.stringify(body) }).then(function (r) {
+    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify(body) }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
         noteTime(j && (j.now || (j.game && j.game.now)), t0, Date.now());
         if (!r.ok || (j && j.error)) { var e = new Error((j && j.error) || 'http_' + r.status); e.data = j; e.status = r.status; throw e; }
@@ -4980,22 +4982,27 @@ var BoardView = (function () {
     var self = this;
     return this.sb.auth.getSession().then(function (r) {
       var tok = r.data && r.data.session ? r.data.session.access_token : self.token;
-      return postJson(self.cfg.url + '/functions/v1/' + (self.cfg.fn || 'play'),
-        { Authorization: 'Bearer ' + tok, apikey: self.cfg.key, 'x-region': self.cfg.region || 'eu-central-1' }, Object.assign({ action: action }, body || {}));
+      // run next to the database (without this the call lands in the region nearest the player)
+      return postJson(self.cfg.url + '/functions/v1/' + (self.cfg.fn || 'play') + '?forceFunctionRegion=' + encodeURIComponent(self.cfg.region || 'eu-central-1'),
+        Object.assign({ action: action, token: tok }, body || {}));
     });
   };
   SupaNet.prototype.read = function (id) {
     return this.sb.from('games').select('*').eq('id', id).maybeSingle().then(function (r) { if (r.error) throw r.error; return r.data; });
   };
   SupaNet.prototype.sub = function (topic, h) {
-    var sb = this.sb, ch = sb.channel(topic, { config: { private: true, presence: { key: this.uid || 'x' } } });
-    ['state', 'paired'].forEach(function (ev) { ch.on('broadcast', { event: ev }, function (m) { if (h.event) h.event(ev, m.payload); }); });
+    var sb = this.sb, ch = sb.channel(topic, { config: { private: true, presence: { key: this.uid || 'x' }, broadcast: { self: false } } });
+    ['state', 'paired', 'move'].forEach(function (ev) { ch.on('broadcast', { event: ev }, function (m) { if (h.event) h.event(ev, m.payload); }); });
     if (h.presence) ch.on('presence', { event: 'sync' }, function () { h.presence(Object.keys(ch.presenceState())); });
     ch.subscribe(function (status) {
       if (status === 'SUBSCRIBED' && h.presence) { try { ch.track({ at: Date.now() }); } catch (e) { /* ignore */ } }
       if (h.status) h.status(status);
     });
-    return { close: function () { try { sb.removeChannel(ch); } catch (e) { /* ignore */ } } };
+    return {
+      close: function () { try { sb.removeChannel(ch); } catch (e) { /* ignore */ } },
+      // fire-and-forget; only players of the game may send on its "m:" topic (database policy)
+      send: function (ev, payload) { try { var p = ch.send({ type: 'broadcast', event: ev, payload: payload }); if (p && p.catch) p.catch(function () { /* ignore */ }); } catch (e) { /* ignore */ } }
+    };
   };
   // ... or the local test server (same API, Server-Sent Events instead of Realtime)
   function MockNet(cfg) {
@@ -5006,14 +5013,20 @@ var BoardView = (function () {
   }
   MockNet.hasSession = function () { try { return !!localStorage.getItem('goldenchess.mockuid' + profileSuffix); } catch (e) { return false; } };
   MockNet.prototype.ready = function () { return Promise.resolve(); };
-  MockNet.prototype.call = function (action, body) { return postJson(this.base + '/play', { Authorization: 'Bearer ' + this.uid }, Object.assign({ action: action }, body || {})); };
+  MockNet.prototype.call = function (action, body) { return postJson(this.base + '/play', Object.assign({ action: action, token: this.uid }, body || {})); };
   MockNet.prototype.read = function (id) { return this.call('game', { game: id }).then(function (r) { return r.game; }); };
   MockNet.prototype.sub = function (topic, h) {
-    var es = new EventSource(this.base + '/events?topic=' + encodeURIComponent(topic) + '&uid=' + encodeURIComponent(this.uid));
+    var base = this.base, uid = this.uid;
+    var es = new EventSource(base + '/events?topic=' + encodeURIComponent(topic) + '&uid=' + encodeURIComponent(uid));
     es.onopen = function () { if (h.status) h.status('SUBSCRIBED'); };
     es.onerror = function () { if (h.status) h.status('CHANNEL_ERROR'); };
     es.onmessage = function (e) { var d = JSON.parse(e.data); if (d.event === 'presence') { if (h.presence) h.presence(d.payload); } else if (h.event) h.event(d.event, d.payload); };
-    return { close: function () { es.close(); } };
+    return {
+      close: function () { es.close(); },
+      send: function (ev, payload) {
+        fetch(base + '/peer', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ topic: topic, event: ev, payload: payload, token: uid }) }).catch(function () { /* ignore */ });
+      }
+    };
   };
 
   function hasNetSession() { return NETCFG ? (NETCFG.mock != null ? MockNet : SupaNet).hasSession() : false; }
@@ -5214,6 +5227,8 @@ var BoardView = (function () {
   function leaveOnline() {
     if (!online) return;
     if (online.sub) online.sub.close();
+    if (online.peer) online.peer.close();
+    clearTimeout(online.peerCheck);
     online = null;
     save('online', null);
     setUrl(null);
@@ -5263,7 +5278,7 @@ var BoardView = (function () {
     closeDialog();
     var color = s.white_id === me.uid ? 0 : s.black_id === me.uid ? 1 : -1;
     var o = online = { id: s.id, s: null, color: color, pending: null, sub: null, connected: false, lastEvent: perf(), oppHere: null,
-      claimBusy: false, claimNext: 0, reading: false, firstSec: -1 };
+      claimBusy: false, claimNext: 0, reading: false, firstSec: -1, peer: null, peerMoves: [] };
     game = buildOnlineGame(s, color);
     view = game.records.length;
     setGoldenArmed(false);
@@ -5276,6 +5291,8 @@ var BoardView = (function () {
       status: function (st) { if (online !== o) return; var was = o.connected; o.connected = st === 'SUBSCRIBED'; if (o.connected && !was) resyncOnline(); },
       presence: function (keys) { if (online !== o || color < 0) return; o.oppHere = keys.indexOf(opp) >= 0; renderBars(); }
     });
+    // moves straight from the other player (shown at once; the server's state on g: stays the authority)
+    o.peer = net.sub('m:' + s.id, { event: function (ev, p) { if (ev === 'move' && online === o) onPeerMove(p); } });
     onServerState(s, { force: true, initial: true });
     if (game.status === 'playing') Sound.play('start');
     save('online', { id: s.id });
@@ -5292,12 +5309,23 @@ var BoardView = (function () {
     online.pending = null;
   }
   // bring the local game in line with a server state
+  // a local move the server hasn't confirmed yet: ours on its way, or the opponent's seen peer-to-peer
+  function unconfirmed(ply, uci) {
+    var o = online, i;
+    if (o.pending && o.pending.ply === ply && o.pending.uci === uci) return true;
+    for (i = 0; i < o.peerMoves.length; i++) { var x = o.peerMoves[i]; if (x.ply === ply && x.uci === uci && perf() - x.at < PEER_TTL) return true; }
+    return false;
+  }
   function reconcileMoves(s, opts) {
-    var srv = s.moves || [], recs = game.records, n = recs.length, k = 0;
+    var srv = s.moves || [], recs = game.records, n = recs.length, k = 0, i;
     while (k < srv.length && k < n && srv[k] === recs[k].uci) k++;
+    online.peerMoves = online.peerMoves.filter(function (x) { return x.ply >= srv.length; });
     if (k < n) {
-      // we have moves the server doesn't: fine only for our one move still on its way
-      if (k === srv.length && n - k === 1 && online.pending && !opts.authoritative && s.status === 'playing') return;
+      // we have moves the server doesn't: fine while each is still unconfirmed (not refused, not too old)
+      if (k === srv.length && !opts.authoritative && s.status === 'playing') {
+        for (i = k; i < n && unconfirmed(i, recs[i].uci); i++) { /* check all */ }
+        if (i === n) return;
+      }
       rebuildOnline(s); return;
     }
     if (srv.length === n) return;
@@ -5352,7 +5380,24 @@ var BoardView = (function () {
   function sendMove(rec) {
     var p = { ply: game.records.length - 1, uci: rec.uci, tries: 0 };
     online.pending = p;
+    if (online.peer && online.peer.send) online.peer.send('move', { ply: p.ply, uci: p.uci });
     pushMove(online, p);
+  }
+  // the opponent's move, straight from their browser: show it now, let the server confirm it
+  function onPeerMove(p) {
+    var o = online;
+    if (!o || !game || !game.online || game.status !== 'playing' || !p || typeof p.uci !== 'string' || p.ply !== game.records.length) return;
+    if (o.color >= 0 && game.pos.side === o.color) return; // only the opponent's move can arrive this way
+    var m = game.pos.moveFromUci(p.uci);
+    if (!m) return;
+    o.peerMoves.push({ ply: p.ply, uci: p.uci, at: perf() });
+    o.lastEvent = perf();
+    commit(m, false, 'opp');
+    // if the server never confirms it (the move was refused or the opponent's request was lost), resync
+    clearTimeout(o.peerCheck);
+    o.peerCheck = setTimeout(function () {
+      if (online === o && o.s && o.s.moves.length <= p.ply && game.records.length > o.s.moves.length) resyncOnline();
+    }, PEER_TTL + 300);
   }
   function pushMove(o, p) {
     if (online !== o || o.pending !== p) return;

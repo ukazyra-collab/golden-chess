@@ -106,18 +106,34 @@ async function broadcast(topic: string, event: string, payload: unknown) {
 // deno-lint-ignore no-explicit-any
 const background = (p: Promise<unknown>) => { const rt = (globalThis as any).EdgeRuntime; if (rt && rt.waitUntil) rt.waitUntil(p); else p.catch(() => {}); };
 
-async function userId(token: string): Promise<string> {
+// A player sends the same access token (valid for an hour) with every move: verify it once per isolate,
+// then only check its expiry. Verification itself measured 60-150 ms per call in production.
+const verified = new Map<string, { sub: string; exp: number }>();
+async function userId(token: string): Promise<{ sub: string; how: string }> {
   if (!token) throw { code: 'auth' };
+  const hit = verified.get(token);
+  if (hit) {
+    if (hit.exp * 1000 > Date.now() + 1000) return { sub: hit.sub, how: 'cached' };
+    verified.delete(token);
+    throw { code: 'auth' };
+  }
+  let sub = '', exp = 0;
   // deno-lint-ignore no-explicit-any
   const auth = db.auth as any;
   if (typeof auth.getClaims === 'function') {
     const { data, error } = await auth.getClaims(token);
-    if (!error && data && data.claims && data.claims.sub) return data.claims.sub;
-    throw { code: 'auth' };
+    if (error || !data || !data.claims || !data.claims.sub) throw { code: 'auth' };
+    sub = data.claims.sub; exp = +data.claims.exp || 0;
+  } else {
+    const { data, error } = await db.auth.getUser(token);
+    if (error || !data || !data.user) throw { code: 'auth' };
+    sub = data.user.id;
   }
-  const { data, error } = await db.auth.getUser(token);
-  if (error || !data || !data.user) throw { code: 'auth' };
-  return data.user.id;
+  if (exp) {
+    if (verified.size >= 5000) verified.delete(verified.keys().next().value as string);
+    verified.set(token, { sub, exp });
+  }
+  return { sub, how: 'verified' };
 }
 
 const HEADERS = { ...CORS, 'Content-Type': 'application/json', 'Timing-Allow-Origin': '*', 'Access-Control-Expose-Headers': 'Server-Timing' };
@@ -134,14 +150,14 @@ Deno.serve(async (req) => {
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '') || (typeof body.token === 'string' ? body.token : '');
   delete body.token;
   const acc = { db: 0, n: 0 };
-  let tAuth = 0;
+  let tAuth = 0, how = '';
   const ta = performance.now();
-  const authP = userId(token).finally(() => { tAuth = performance.now() - ta; });
+  const authP = userId(token).then((r) => { how = r.how; return r.sub; }).finally(() => { tAuth = performance.now() - ta; });
   const usePg = !!pgRepo && body.via !== 'rest' && Date.now() > pgDownUntil && (await pgOk);
   delete body.via;
   const logic = createLogic({ repo: timed(usePg ? pgRepo : restRepo, acc, usePg), broadcast, GC, background });
   const { status, body: out } = await logic.handle(authP, body);
   const total = performance.now() - t0;
-  const timing = `body;dur=${tBody.toFixed(1)}, auth;dur=${tAuth.toFixed(1)}, db;dur=${acc.db.toFixed(1)};desc="${acc.n}x ${usePg ? 'pg' : 'rest'}", total;dur=${total.toFixed(1)}` + (cold ? ', cold;dur=0' : '');
+  const timing = `body;dur=${tBody.toFixed(1)}, auth;dur=${tAuth.toFixed(1)};desc="${how}", db;dur=${acc.db.toFixed(1)};desc="${acc.n}x ${usePg ? 'pg' : 'rest'}", total;dur=${total.toFixed(1)}` + (cold ? ', cold;dur=0' : '');
   return new Response(JSON.stringify(out), { status, headers: { ...HEADERS, 'Server-Timing': timing } });
 });

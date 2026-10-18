@@ -116,12 +116,51 @@ async def main():
             last = await A.evaluate('__gc.game.records[5].san')
             ok('premove was Nf6', last == 'Nf6', last)
 
+            # ---- 3b. peer moves: the opponent sees a move before the (slow) server confirms it,
+            #          and a premove answering it goes through even if it reaches the server first
+            admin('latency', ms=900)
+            await Bl.evaluate('''(() => { window.__minRec = 1e9; clearInterval(window.__mt); const n0 = __gc.game.records.length;
+                window.__mt = setInterval(() => { const n = __gc.game.records.length; if (n > n0) window.__minRec = Math.min(window.__minRec, n); }, 2); })()''')
+            await click_move(Bl, 'f8', 'c5')  # white to move: premove Bc5
+            t0 = time.time()
+            await click_move(W, 'd2', 'd3')
+            seen = await wait_for(Bl, '__gc.game.records.length >= 7', 3000, step=10)
+            dt = time.time() - t0
+            ok('opponent sees the move at once (peer), not after the 900 ms server round trip', seen and dt < 0.6, round(dt, 3))
+            print('     peer delivery took', round(dt, 3), 's (incl. test polling)', flush=True)
+            ok('premove answered instantly', await wait_for(Bl, '__gc.game.records.length === 8', 1000, step=10))
+            ok('both moves confirmed by the server in order', await synced(8, 8000))
+            ok('no rollback flicker while waiting for the server', await Bl.evaluate('window.__minRec') >= 7, await Bl.evaluate('window.__minRec'))
+            await Bl.evaluate('clearInterval(window.__mt)')
+            admin('latency', ms=0)
+            last2 = await A.evaluate('__gc.game.records.slice(6).map(r => r.san).join(" ")')
+            ok('server order d3 then Bc5', last2 == 'd3 Bc5', last2)
+
+            # ---- 3c. peer messages lost: the server broadcast still delivers
+            admin('droppeer', on=True)
+            await click_move(W, 'c2', 'c3')
+            ok('move delivered by the server without the peer path', await synced(9, 6000))
+            admin('droppeer', on=False)
+
+            # ---- 3d. a forged peer move the server never gets is rolled back
+            wuid = await W.evaluate('__gc.me.uid'); gid0 = await W.evaluate('__gc.online.id')
+            req = urllib.request.Request(BASE + 'peer', data=json.dumps(dict(topic='m:' + gid0, event='move', payload=dict(ply=9, uci='a7a6'), token=await Bl.evaluate('__gc.me.uid'))).encode(), method='POST')
+            urllib.request.urlopen(req, timeout=5).read()
+            ok('forged peer move shown first', await wait_for(W, '__gc.game.records.length === 10', 2000))
+            ok('then rolled back when the server never confirms it', await wait_for(W, '__gc.game.records.length === 9', 9000))
+            req = urllib.request.Request(BASE + 'peer', data=json.dumps(dict(topic='m:' + gid0, event='move', payload=dict(ply=9, uci='a7a6'), token='stranger')).encode(), method='POST')
+            try: code = urllib.request.urlopen(req, timeout=5).status
+            except urllib.error.HTTPError as e: code = e.code
+            ok('a non-player cannot send on the peer topic', code == 403, code)
+            r = await settle(W); ok('board consistent after rollback', r == [], r)
+            await click_move(Bl, 'a7', 'a6'); ok('game continues normally', await synced(10))
+
             # ---- 4. golden move online
             gm = await W.evaluate('''(() => { const g = __gc.game, ms = g.legal.filter(m => m & GC.F_GOLDEN); const m = ms.find(m => (m & 127) === 2 /* c1 bishop */) || ms[0];
                 __gc.setGoldenArmed(true); return [m & 127, (m >> 7) & 127]; })()''')
             await W.evaluate(f'__gc.tryMove({gm[0]}, {gm[1]}, false)')
-            ok('golden move synced', await synced(7))
-            gs = await Bl.evaluate('__gc.game.records[6].san')
+            ok('golden move synced', await synced(11))
+            gs = await Bl.evaluate('__gc.game.records[10].san')
             ok('opponent sees the golden move', '★' in gs, gs)
             ok('golden right consumed on both', await A.evaluate('__gc.game.pos.goldenAvailable(%d)' % 0) == False and await B.evaluate('__gc.game.pos.goldenAvailable(0)') == False)
 
@@ -134,15 +173,15 @@ async def main():
             # ---- 6. reload mid-game resumes
             before = await fen(B)
             await B.reload(); await B.evaluate(HELPERS)
-            ok('reload resumes the game', await wait_for(B, '__gc.online && __gc.game.records.length === 7', 8000))
+            ok('reload resumes the game', await wait_for(B, '__gc.online && __gc.game.records.length === 11', 8000))
             ok('same position after reload', await fen(B) == before)
 
             # ---- 7. realtime drops: polling still delivers the move
             admin('drop', on=True)
             await click_move(Bl, 'h7', 'h6')
-            ok('move delivered without realtime (polling)', await wait_for(W, '__gc.game.records.length === 8', 16000))
+            ok('move delivered without realtime (polling)', await wait_for(W, '__gc.game.records.length === 12', 16000))
             admin('drop', on=False)
-            ok('consistent after polling', await synced(8))
+            ok('consistent after polling', await synced(12))
 
             # ---- 8. flag: white's clock nearly out
             gid = await A.evaluate('__gc.online.id')

@@ -113,6 +113,17 @@ try {
   const t = [];
   for (let i = 0; i < 5; i++) { const s = Date.now(); r = await call(ta, { action: 'game', game: gid }); t.push(Date.now() - s); }
   console.log('local round trips (ms):', t.join(' '), '| last Server-Timing:', r.timing);
+  check('token verified once, then served from the cache', /auth;dur=[\d.]+;desc="cached"/.test(r.timing), r.timing);
+  // an expired token is refused even if it was cached
+  const now = Math.floor(Date.now() / 1000);
+  const head = b64u(JSON.stringify({ alg: 'ES256', typ: 'JWT', kid: 'k1' }));
+  const body = b64u(JSON.stringify({ sub: A, role: 'authenticated', iat: now - 7200, exp: now - 3600 }));
+  const expired = head + '.' + body + '.' + b64u(crypto.sign('sha256', Buffer.from(head + '.' + body), { key: privateKey, dsaEncoding: 'ieee-p1363' }));
+  r = await call(expired, { action: 'hello' });
+  check('expired token refused', r.status === 401, r);
+  const forged = head + '.' + b64u(JSON.stringify({ sub: B, role: 'authenticated', exp: now + 3600 })) + '.' + b64u(Buffer.alloc(64, 1));
+  r = await call(forged, { action: 'hello' });
+  check('forged signature refused', r.status === 401, r);
 } finally {
   deno.kill();
   fake.close();
