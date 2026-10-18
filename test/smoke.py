@@ -1,6 +1,6 @@
 import asyncio, json, sys, time
 from playwright.async_api import async_playwright
-URL = 'file:///home/claude/golden-chess/dist/preview.html'
+URL = 'file:///home/claude/golden-chess/dist/preview.html#game'
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()

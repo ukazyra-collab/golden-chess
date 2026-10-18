@@ -1,7 +1,7 @@
 # Renders the link-preview image (dist/web/og.png, 1200x630) from the real app with a golden move on the board.
 import asyncio, glob, os
 from playwright.async_api import async_playwright
-URL = 'file:///home/claude/golden-chess/dist/preview.html'
+URL = 'file:///home/claude/golden-chess/dist/preview.html#game'
 FD = glob.glob('/home/claude/golden-chess/vendor/fontsource-*/package/files')
 def font_css():
     css = ''

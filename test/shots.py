@@ -1,6 +1,6 @@
 import asyncio, glob, os
 from playwright.async_api import async_playwright
-URL = 'file:///home/claude/golden-chess/dist/preview.html'
+URL = 'file:///home/claude/golden-chess/dist/preview.html#game'
 HELPERS = open('/home/claude/golden-chess/test/helpers.js').read()
 FD = glob.glob('/home/claude/golden-chess/vendor/fontsource-*/package/files')
 def font_css():
@@ -25,7 +25,7 @@ async def setup(ctx):
     return page
 MOVES = ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4', 'f8c5', 'c2c3', 'g8f6', 'd2d4', 'e5d4', 'c3d4', 'c5b4', 'b1c3', 'f6e4', 'e1g1', 'b4c3', 'b2c3', 'c6a5*']
 async def scene(page, lang='en', armed=False):
-    await page.evaluate(f"localStorage.clear(); __gc.settings.lang='{lang}';")
+    await page.evaluate(f"localStorage.clear(); __gc.settings.lang='{lang}'; localStorage.setItem('goldenchess.settings', JSON.stringify(__gc.settings));")
     await page.evaluate(HELPERS)
     await page.evaluate("__gc.closeDialog(); __gc.startGame({mode:'bot', level:5, color:'w', tc:'5+0'})")
     await page.evaluate("""(mv) => { const g = __gc.game; const t = performance.now(); g.clock = null; for (const u of mv) { const m = g.pos.moveFromUci(u); g.play(m, t); } g.clock = {t:[251400, 236100], since: performance.now()}; g.records.forEach(r => r.clock = g.clock.t.slice()); __gc.gotoPly(g.records.length - 1); __gc.gotoPly(g.records.length); }""", MOVES)
@@ -42,9 +42,10 @@ async def main():
         ctx = await b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, has_touch=True)
         page = await setup(ctx); await page.goto(URL); await page.wait_for_timeout(500)
         await scene(page, armed=True); await page.screenshot(path='test/shots/v_phone_golden.png')
-        await page.evaluate("__gc.setGoldenArmed(false)"); await page.click('#btn-new'); await page.wait_for_timeout(200)
-        await page.screenshot(path='test/shots/v_phone_new.png')
-        await page.evaluate("__gc.closeDialog()"); await page.click('#btn-rules'); await page.wait_for_timeout(200)
+        await page.evaluate("__gc.setGoldenArmed(false)"); await page.click('#btn-back'); await page.wait_for_timeout(300)
+        await page.screenshot(path='test/shots/v_phone_new.png')  # the Play tab, with the game to continue
+        await page.click('#btn-resume'); await page.wait_for_timeout(200)
+        await page.click('#btn-rules'); await page.wait_for_timeout(200)
         await page.screenshot(path='test/shots/v_phone_rules.png')
         await page.evaluate("__gc.closeDialog(); __gc.game.end('1-0','checkmate'); 0"); await page.wait_for_timeout(100)
         await page.evaluate("document.querySelectorAll('.veil').forEach(v => v.remove())")

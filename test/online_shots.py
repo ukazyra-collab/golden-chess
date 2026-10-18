@@ -32,12 +32,29 @@ async def main(lang):
                 await pg.reload(); await pg.evaluate(HELPERS)
                 return pg
             A = await page(390, 844, True); B = await page(1280, 820)
-            await A.click('#btn-new'); await A.click('#opt-online')
-            await A.wait_for_selector('#my-name'); await A.click('#opt-otc32')
-            await A.wait_for_timeout(300); await A.screenshot(path=OUT + f'on_{lang}_lobby_phone.png')
-            await A.click('#btn-seek'); await A.wait_for_timeout(1300)
+            async def until(pg, js, n=100):
+                for _ in range(n):
+                    if await pg.evaluate(js): return True
+                    await pg.wait_for_timeout(50)
+                return False
+            async def sign_in(pg, email, name, shot=None):
+                await until(pg, '__gc.curView === "signin" && !!document.getElementById("acct-email")')
+                if shot: await pg.wait_for_timeout(300); await pg.screenshot(path=OUT + f'on_{lang}_signin_{shot}.png')
+                await pg.fill('#acct-email', email); await pg.click('#btn-send-code')
+                await until(pg, '!!document.getElementById("acct-code")')
+                if shot: await pg.wait_for_timeout(200); await pg.screenshot(path=OUT + f'on_{lang}_code_{shot}.png')
+                await pg.fill('#acct-code', admin('outbox', to=email)[-1]['code'])
+                await until(pg, '!!document.getElementById("acct-name")')
+                if shot: await pg.wait_for_timeout(200); await pg.screenshot(path=OUT + f'on_{lang}_name_{shot}.png')
+                await pg.fill('#acct-name', name); await pg.click('#btn-name')
+            await A.wait_for_timeout(300); await A.screenshot(path=OUT + f'on_{lang}_play_phone.png')
+            await A.click('#play-tc'); await A.wait_for_timeout(200)
+            await A.screenshot(path=OUT + f'on_{lang}_tc_phone.png')
+            await A.click('#tc-3-2'); await A.click('#btn-start')
+            await sign_in(A, 'anna@example.com', 'Anna', 'phone')
+            await A.wait_for_timeout(1300)
             await A.screenshot(path=OUT + f'on_{lang}_searching_phone.png')
-            await B.click('#btn-new'); await B.click('#opt-online'); await B.wait_for_selector('#my-name'); await B.click('#opt-otc32'); await B.click('#btn-seek')
+            await B.click('#btn-start'); await sign_in(B, 'boris@example.com', 'Boris', 'desktop')
             for pg in (A, B):
                 for _ in range(100):
                     if await pg.evaluate('!!__gc.online'): break
@@ -60,9 +77,16 @@ async def main(lang):
             await A.wait_for_timeout(1200)
             await A.screenshot(path=OUT + f'on_{lang}_over_phone.png')
             await B.screenshot(path=OUT + f'on_{lang}_over_desktop.png')
-            await B.evaluate('__gc.closeDialog()'); await B.click('#btn-new'); await B.click('#opt-online'); await B.wait_for_selector('#my-name')
-            await B.click('#btn-invite'); await B.wait_for_timeout(900)
+            await B.evaluate('__gc.closeDialog()'); await B.click('#rail [data-nav=play]'); await B.wait_for_timeout(300)
+            await B.screenshot(path=OUT + f'on_{lang}_play_desktop.png')
+            await B.click('#btn-friend'); await B.wait_for_timeout(900)
             await B.screenshot(path=OUT + f'on_{lang}_invite_desktop.png')
+            await B.evaluate('__gc.closeDialog()')
+            for v in ('ratings', 'profile'):
+                await B.click(f'#rail [data-nav={v}]'); await B.wait_for_timeout(600)
+                await B.screenshot(path=OUT + f'on_{lang}_{v}_desktop.png')
+                await A.evaluate(f'__gc.go("{v}")'); await A.wait_for_timeout(600)
+                await A.screenshot(path=OUT + f'on_{lang}_{v}_phone.png')
             await br.close()
     finally:
         srv.terminate()

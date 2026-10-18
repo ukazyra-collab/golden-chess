@@ -25,7 +25,7 @@ let css = '';
 for (const [k, svg] of Object.entries(pieces)) css += `.p-${k}{background-image:url("data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}")}\n`;
 const core = rd('src/core.js'), engine = rd('src/engine.js');
 const workerSrc = [core, engine, rd('src/worker.js')].join('\n;\n');
-const mainSrc = [core, engine, rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/ui/app.js')].join('\n;\n');
+const mainSrc = [core, engine, rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/ui/learn.js'), rd('src/ui/app.js')].join('\n;\n');
 const supa = rd('vendor/supabase-js-2.117.2.umd.js');
 for (const [name, src] of [['worker', workerSrc], ['main', mainSrc], ['supabase', supa]]) if (/<\/script/i.test(src)) throw new Error(name + ' contains </script');
 

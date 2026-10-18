@@ -5,7 +5,7 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(); ctx = await b.new_context(viewport={'width': 390, 'height': 844}); page = await ctx.new_page()
         await page.route('**/fonts.googleapis.com/**', lambda r: r.fulfill(status=200, body='', content_type='text/css'))
-        await page.goto('file:///home/claude/golden-chess/dist/preview.html'); await page.evaluate(HELPERS); await page.wait_for_timeout(300)
+        await page.goto('file:///home/claude/golden-chess/dist/preview.html#game'); await page.evaluate(HELPERS); await page.wait_for_timeout(300)
         fails = 0
         for delay in [0, 10, 30, 60, 90, 120, 150, 200]:
             await page.evaluate("__gc.closeDialog(); __gc.settings.autoQueen = true; __gc.startGame({mode:'local', level:1, color:'w', tc:'none'}, {fen:'7k/P7/8/8/8/8/8/K7 w - - 0 1 -'})")

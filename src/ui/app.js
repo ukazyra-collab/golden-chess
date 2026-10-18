@@ -71,15 +71,52 @@
       linkExpired: 'That sign-in link has expired. Ask for a new code.', signInFailed: 'Couldn\u2019t sign in. Try again.',
       continueGoogle: 'Continue with Google', or: 'or', googleExists: 'This Google account already has a player. Signing in to it\u2026',
       guestNote: 'Guest: your rating is kept on this device only.', saveProgress: 'Save progress',
-      guestRatingNote: 'Your rating is kept on this device only. Add your email to keep it.'
+      guestRatingNote: 'Your rating is kept on this device only. Add your email to keep it.',
+      back: 'Back', navPlay: 'Play', navLearn: 'Learn', navRatings: 'Ratings', navProfile: 'Profile',
+      startGame: 'Start Game', playFriend: 'Play a Friend', playFriendSub: 'Send a link, the game starts when they open it',
+      playBot: 'Play a Bot', playBotSub: 'Eight levels, from 600 to 2500 Elo', passPlay: 'Two Players', passPlaySub: 'Take turns on one device',
+      more: 'More', gameOn: 'Your game is on', returnBtn: 'Return', continueGame: 'Continue your game', cont: 'Continue', vsName: 'vs {name}',
+      signInToRate: 'Sign in to play online and get a rating', ratingIn: '{pool} rating: {r}', botSetupTitle: 'Play a bot',
+      signInTitle: 'Sign in to play', signInPageSub: 'It\u2019s free, with no password: we email you a code. Your rating and games stay with your account on any device.',
+      practise: 'Just practising?', playTheBot: 'Play the bot without an account',
+      nameTitle: 'Choose your name', nameSub: 'Opponents and the ratings will see it. You can change it later.', signedInTitle: 'You\u2019re signed in',
+      yourRating: 'Your rating', wdl: '{w} wins, {d} draws, {l} losses', provisional: 'provisional', noGamesYet: 'no games yet',
+      profileGuest: 'Guest', profileSignedOut: 'Sign in to play online. Your rating and games are saved to your account.', howItWorks: 'How the golden move works',
+      learnTitle: 'One move that changes the game',
+      learnLead: 'Golden Chess is regular chess with one extra move for each player: once per game, teleport your queen, rook, bishop or knight to any empty square.',
+      heroCap1: 'White still has the golden move. Black\u2019s queen stands right in front of the king.',
+      heroCap2: '<b>Golden move:</b> the rook teleports to e1 and pins the queen to the king.', heroCap3: 'The king steps aside, and the queen is lost.',
+      ruleH: 'The rule', r1T: 'Any empty square',
+      r1P: 'A queen, rook, bishop or knight. No captures, and never a check: gold dots show where this rook can go, red crosses mark squares that would give check.',
+      r2T: 'It can block a check', r2P: 'Teleport a piece into the line of a check. Your own king must be safe afterwards.',
+      r2Cap0: 'Black is about to give check.', r2Cap1: 'The queen checks along the diagonal. In normal chess, that is mate.', r2Cap2: 'The <b>golden move</b> blocks it: the queen lands on g2, protected by the king.',
+      r3T: 'Once per game, for each side', r3P: 'It replaces your normal move. While the star is lit, it\u2019s still in your hand.', inHand: 'still in hand', usedUp: 'used',
+      whyH: 'Why it changes chess',
+      u1N: '220', u1T: 'options each turn while a golden move is unused, instead of about 30',
+      u2N: '+130', u2T: 'Elo: what holding the golden move is worth, in our engine games',
+      u3N: '9 of 10', u3T: 'games where both sides use it, most often around move 20',
+      u4N: '0', u4T: 'new pieces to learn: everything you know about chess still works',
+      vs960: 'Chess960 shuffles the starting position so memorized openings stop working. Golden Chess keeps the classic board and adds a threat that hangs over the whole game.',
+      tryH: 'Try it', tryLead: 'In each position one golden move does it. Tap a glowing piece, then a gold dot.',
+      p1Prompt: 'Black checks from d1. In normal chess this is mate. Find the golden move that saves you.',
+      p1Good: 'Saved. The block on f1 is protected by your king, and it hits the queen on d1.',
+      p1Hint: 'Put a piece between the queen and your king, on a square your king protects.',
+      p2Prompt: 'Win Black\u2019s queen with one golden move.',
+      p2Good: 'The bishop lands on the long diagonal, protected, and pins the queen to the king. The queen is lost.',
+      p2Hint: 'Line the bishop up with the queen and the king, on a square you protect.',
+      p3Prompt: 'Black\u2019s pawn is one step from queening. Stop it, then win the race.',
+      p3Good: 'The knight stops the pawn for good, and your h-pawn walks in to queen.',
+      p3Hint: 'The knight can stand on the queening square or guard it.',
+      badMove: 'Not this one. Look again.', showAnswer: 'Show answer', nextPuzzle: 'Next', tryAgain: 'Try again', puzzleHint: 'Hint',
+      allSolved: 'All solved. Now try it in a real game.', rulesH: 'All the rules', premoveRule: 'You can queue the golden move as a premove too.', playNow: 'Play now'
     },
     ru: {
       newGame: 'Новая партия', rules: 'Правила', settings: 'Настройки', menu: 'Меню партии', prev: 'Предыдущий ход', next: 'Следующий ход',
-      golden: 'Золотой ход', goldenOnce: 'один раз за партию', goldenPick: 'выбери ферзя, ладью, слона или коня', goldenTap: 'коснись золотой точки',
+      golden: 'Золотой ход', goldenOnce: 'один раз за партию', goldenPick: 'выберите ферзя, ладью, слона или коня', goldenTap: 'коснитесь золотой точки',
       goldenOn: 'Золотой ход включён', goldenUsedT: 'Золотой ход сделан', goldenUsedOn: '{san} на {n}-м ходу', goldenQueued: 'поставлен премувом',
       goldenWhiteOnce: 'Белые: один раз за партию', goldenBlackOnce: 'Чёрные: один раз за партию',
-      goldenOnly: 'Золотой ход делают только ферзь, ладья, слон или конь', goldenGone: 'Твой золотой ход уже сделан',
-      goldenArmedToast: 'Золотой ход: выбери фигуру, затем золотую точку', goldenPlayed: '{side}: золотой ход {san}',
+      goldenOnly: 'Золотой ход делают только ферзь, ладья, слон или конь', goldenGone: 'Ваш золотой ход уже сделан',
+      goldenArmedToast: 'Золотой ход: выберите фигуру, затем золотую точку', goldenPlayed: '{side}: золотой ход {san}',
       you: 'Вы', bot: 'Golden Bot', white: 'Белые', black: 'Чёрные', level: 'Уровень {n}',
       lv1: 'Новичок', lv2: 'Любитель', lv3: 'Клубный игрок', lv4: 'Сильный клубный', lv5: 'Эксперт', lv6: 'Мастер', lv7: 'Гроссмейстер', lv8: 'Максимум',
       opponent: 'Соперник', computer: 'Компьютер', twoPlayers: 'Двое на одном устройстве', playAs: 'Играть за', random: 'Случайно',
@@ -90,37 +127,37 @@
       youWon: 'Вы победили', youLost: 'Вы проиграли', draw: 'Ничья', whiteWon: 'Белые победили', blackWon: 'Чёрные победили',
       r_checkmate: 'мат', r_resign: 'сдача', r_timeout: 'время вышло', r_stalemate: 'Пат', r_repetition: 'Троекратное повторение',
       r_fifty: 'Правило 50 ходов', r_insufficient: 'Недостаточно материала', 'r_timeout-insufficient': 'Время вышло, но у соперника не хватает материала для мата', r_abort: 'Партия прервана',
-      premoveCancelled: 'Премув отменён', pgnCopied: 'PGN скопирован', pgnManual: 'Скопируй PGN ниже',
+      premoveCancelled: 'Премув отменён', pgnCopied: 'PGN скопирован', pgnManual: 'Скопируйте PGN ниже',
       movesEmpty: 'Здесь будут ходы. Золотые ходы отмечены звездой.', movesEmptyShort: 'Здесь будут ходы', yourMove: 'Ваш ход', botThinking: 'Golden Bot думает', whiteMove: 'Ход белых', blackMove: 'Ход чёрных',
       best: 'Лучший', depth: 'глубина {n}', mateIn: 'мат в {n}', mated: 'мат', noMoves: 'Нет ходов', analysisStarting: 'Движок думает',
       sound: 'Звук', animation: 'Анимация', animFast: 'Быстро', animNormal: 'Обычно', animOff: 'Выкл', boardTheme: 'Доска', thSlate: 'Сланец', thWalnut: 'Орех', thMarble: 'Мрамор',
       coords: 'Координаты', autoQueen: 'Всегда превращать в ферзя', premoves: 'Премувы', language: 'Язык', done: 'Готово',
       rulesTitle: 'Золотой ход', rulesIntro: 'Обычные шахматы, плюс у каждого игрока один золотой ход за партию.',
-      rule1: 'Телепортируй ферзя, ладью, слона или коня на любое пустое поле.',
+      rule1: 'Перенесите ферзя, ладью, слона или коня на любое пустое поле.',
       rule2: 'Без взятия и без шаха: после золотого хода король соперника не должен быть под шахом.',
-      rule3: 'Им можно закрыться от шаха ладьи, слона или ферзя. Твой король после хода должен быть в безопасности.',
+      rule3: 'Им можно закрыться от шаха ладьи, слона или ферзя. Ваш король после хода должен быть в безопасности.',
       rule4: 'Это полноценный ход вместо обычного. Король и пешки так ходить не могут.',
       rule5: 'Остальное — обычные шахматы: рокировка, взятие на проходе, превращение. Ладья после золотого хода теряет право на рокировку.',
-      howto: 'Нажми <b>Золотой ход</b> (или G), выбери фигуру и коснись золотой точки. Работает и как премув.',
+      howto: 'Нажмите <b>Золотой ход</b> (или G), выберите фигуру и коснитесь золотой точки. Работает и как премув.',
       credit: 'Фигуры: набор cburnett, Colin M. L. Burnett (GPL / BSD). Движок, правила и звуки сделаны для Golden Chess.',
       movesPlayed: 'Ходов', goldenBy: 'Золотые ходы', none: 'нет', vsBot: 'против Golden Bot, уровень {n}', passPlay: 'Двое игроков', unlimited: 'без часов',
-      viewing: 'Просмотр хода {n}. Коснись доски, чтобы вернуться к партии.',
+      viewing: 'Просмотр хода {n}. Коснитесь доски, чтобы вернуться к партии.',
       variation: 'Вариант', backToGame: 'Вернуться к партии', review: 'Разбор партии', analyzeOn: 'Показать движок', reviewing: 'Разбор партии: {i} из {n}',
       accuracy: 'Точность', estElo: 'Оценка Elo', played: 'сыграно', bestWas: 'лучше было', c_best: 'Лучший ход', c_excellent: 'Отлично', c_good: 'Хорошо',
       c_inaccuracy: 'Неточность', c_mistake: 'Ошибка', c_blunder: 'Зевок', goldenTag: 'золотой', tooShort: 'мало ходов для оценки',
-      reviewHint: 'Коснись графика или листай ходы. Можно двигать фигуры и пробовать свои варианты.',
+      reviewHint: 'Коснитесь графика или листайте ходы. Можно двигать фигуры и пробовать свои варианты.',
       eloApprox: '\u2248{n} Elo',
       online: 'Онлайн', findOpp: 'Найти соперника', invite: 'Пригласить друга', searching: 'Ищем соперника', rated: 'На рейтинг', casual: 'Без рейтинга',
       playingAs: 'Ваше имя:', change: 'Изменить', save: 'Сохранить', nameTaken: 'Это имя занято', badName: 'Нужно 2–20 букв, цифр, пробелов, _ или -',
-      inviteSub: 'Отправь ссылку другу. Партия начнётся, когда он её откроет.', copyLink: 'Скопировать', linkCopied: 'Ссылка скопирована', share: 'Поделиться',
-      shareText: 'Сыграем в Golden Chess', waitingFriend: 'Ждём друга', connecting: 'Подключение', netError: 'Нет связи с сервером. Проверь интернет и попробуй ещё раз.',
+      inviteSub: 'Отправьте ссылку другу. Партия начнётся, когда он её откроет.', copyLink: 'Скопировать', linkCopied: 'Ссылка скопирована', share: 'Поделиться',
+      shareText: 'Сыграем в Golden Chess', waitingFriend: 'Ждём друга', connecting: 'Подключение', netError: 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.',
       oppMove: 'Ход соперника', offerDraw: 'Предложить ничью', drawOffered: 'Ничья предложена', drawDeclined: 'Ничью отклонили', oppOffersDraw: '{name} предлагает ничью',
       acceptDraw: 'Согласиться на ничью', declineDraw: 'Отклонить ничью', accept: 'Принять', decline: 'Отклонить', rematchSent: 'Реванш предложен', acceptRematch: 'Принять реванш',
       oppWantsRematch: '{name} хочет реванш', newOpponent: 'Новый соперник', ratingWord: 'Рейтинг', bullet: 'Пуля', blitz: 'Блиц', rapid: 'Рапид',
       ratedLine: '{pool} на рейтинг', casualLine: '{pool} без рейтинга', yourRating: 'Ваш рейтинг ({pool}): {r}', firstMove: '{side}: первый ход — {s} с',
       r_agreement: 'по соглашению', gameTaken: 'Партия уже началась, вы смотрите её как зритель', noGame: 'Партия не найдена',
       stillPlaying: 'Ваша онлайн-партия ещё идёт. Если начать другую, часы в ней продолжат идти.',
-      reconnecting: 'Переподключение…', connected: 'В игре', disconnected: 'Вышел из игры', leaderboard: 'Лучшие игроки', lbEmpty: 'Рейтинговых партий ещё нет. Будь первым.',
+      reconnecting: 'Переподключение…', connected: 'В игре', disconnected: 'Вышел из игры', leaderboard: 'Лучшие игроки', lbEmpty: 'Рейтинговых партий ещё нет. Будьте первым.',
       gamesN: 'партий: {n}', casualNote: 'Партия без рейтинга: рейтинг не меняется.', onlineElsewhere: 'Онлайн-партии и рейтинг:',
       account: 'Аккаунт', signIn: 'Войти', emailLabel: 'Почта', sendCode: 'Получить код', sending: 'Отправляем', manage: 'Управление',
       signInSub: 'Введите почту, чтобы сохранить имя, рейтинг и партии или войти в свой аккаунт на этом устройстве. Мы пришлём код.',
@@ -134,7 +171,44 @@
       linkExpired: 'Ссылка для входа устарела. Запросите новый код.', signInFailed: 'Не удалось войти. Попробуйте ещё раз.',
       continueGoogle: 'Войти через Google', or: 'или', googleExists: 'Этот Google-аккаунт уже привязан к игроку. Входим в него…',
       guestNote: 'Гость: рейтинг хранится только на этом устройстве.', saveProgress: 'Сохранить прогресс',
-      guestRatingNote: 'Рейтинг хранится только на этом устройстве. Добавьте почту, чтобы не потерять его.'
+      guestRatingNote: 'Рейтинг хранится только на этом устройстве. Добавьте почту, чтобы не потерять его.',
+      back: 'Назад', navPlay: 'Играть', navLearn: 'Обучение', navRatings: 'Рейтинг', navProfile: 'Профиль',
+      startGame: 'Начать игру', playFriend: 'Сыграть с другом', playFriendSub: 'Отправьте ссылку, игра начнётся, когда друг её откроет',
+      playBot: 'Сыграть с ботом', playBotSub: 'Восемь уровней, от 600 до 2500 Elo', passPlay: 'Вдвоём', passPlaySub: 'По очереди на одном устройстве',
+      more: 'Ещё', gameOn: 'Ваша партия идёт', returnBtn: 'Вернуться', continueGame: 'Продолжить партию', cont: 'Продолжить', vsName: 'против {name}',
+      signInToRate: 'Войдите, чтобы играть онлайн и получить рейтинг', ratingIn: 'Рейтинг ({pool}): {r}', botSetupTitle: 'Игра с ботом',
+      signInTitle: 'Войдите, чтобы играть', signInPageSub: 'Бесплатно и без пароля: пришлём код на почту. Рейтинг и партии сохранятся в аккаунте на любом устройстве.',
+      practise: 'Просто потренироваться?', playTheBot: 'Сыграйте с ботом без аккаунта',
+      nameTitle: 'Выберите имя', nameSub: 'Его увидят соперники и таблица рейтинга. Поменять можно потом.', signedInTitle: 'Вы вошли',
+      yourRating: 'Ваш рейтинг', wdl: 'побед {w}, ничьих {d}, поражений {l}', provisional: 'предварительный', noGamesYet: 'партий ещё нет',
+      profileGuest: 'Гость', profileSignedOut: 'Войдите, чтобы играть онлайн. Рейтинг и партии сохранятся в аккаунте.', howItWorks: 'Как работает золотой ход',
+      learnTitle: 'Один ход, который меняет партию',
+      learnLead: 'Golden Chess — это обычные шахматы, но у каждого игрока есть один золотой ход за партию: перенести ферзя, ладью, слона или коня на любое пустое поле.',
+      heroCap1: 'У белых остался золотой ход. Чёрный ферзь стоит прямо перед своим королём.',
+      heroCap2: '<b>Золотой ход:</b> ладья переносится на e1 и связывает ферзя с королём.', heroCap3: 'Король уходит в сторону, и ферзь потерян.',
+      ruleH: 'Правило', r1T: 'Любое пустое поле',
+      r1P: 'Ферзь, ладья, слон или конь. Без взятия и никогда с шахом: золотые точки показывают, куда может перенестись ладья, красные крестики — поля, где был бы шах.',
+      r2T: 'Им можно закрыться от шаха', r2P: 'Поставьте фигуру на линию шаха. Ваш король после хода должен быть в безопасности.',
+      r2Cap0: 'Чёрные сейчас дадут шах.', r2Cap1: 'Ферзь даёт шах по диагонали. В обычных шахматах это мат.', r2Cap2: '<b>Золотой ход</b> закрывает шах: ферзь встаёт на g2 под защитой короля.',
+      r3T: 'Один раз за партию у каждого', r3P: 'Он заменяет обычный ход. Пока звезда горит, ход у вас в запасе.', inHand: 'в запасе', usedUp: 'использован',
+      whyH: 'Чем это меняет шахматы',
+      u1N: '220', u1T: 'вариантов на каждый ход, пока золотой ход не потрачен, вместо примерно 30',
+      u2N: '+130', u2T: 'Elo — столько стоит золотой ход в запасе, по нашим партиям движка',
+      u3N: '9 из 10', u3T: 'партий, где его используют обе стороны, чаще всего около 20-го хода',
+      u4N: '0', u4T: 'новых фигур: всё, что вы знаете о шахматах, продолжает работать',
+      vs960: 'Шахматы Фишера (960) перемешивают стартовую расстановку, чтобы заученные дебюты перестали работать. Golden Chess оставляет классическую доску и добавляет угрозу, которая висит над всей партией.',
+      tryH: 'Попробуйте', tryLead: 'В каждой позиции всё решает один золотой ход. Коснитесь светящейся фигуры, затем золотой точки.',
+      p1Prompt: 'Чёрные дают шах ферзём с d1. В обычных шахматах это мат. Найдите золотой ход, который спасает.',
+      p1Good: 'Спасены. Фигура на f1 под защитой короля и сама бьёт ферзя на d1.',
+      p1Hint: 'Поставьте фигуру между ферзём и королём — на поле, которое защищает король.',
+      p2Prompt: 'Выиграйте чёрного ферзя одним золотым ходом.',
+      p2Good: 'Слон встал на большую диагональ под защитой и связал ферзя с королём. Ферзь пропадает.',
+      p2Hint: 'Поставьте слона на одну линию с ферзём и королём, на поле под вашей защитой.',
+      p3Prompt: 'Чёрная пешка в шаге от превращения. Остановите её — и выиграйте гонку.',
+      p3Good: 'Конь остановил пешку, а ваша пешка h проходит в ферзи.',
+      p3Hint: 'Конь может встать на поле превращения или держать его под ударом.',
+      badMove: 'Не то. Посмотрите ещё раз.', showAnswer: 'Показать ответ', nextPuzzle: 'Дальше', tryAgain: 'Ещё раз', puzzleHint: 'Подсказка',
+      allSolved: 'Все решены. Теперь попробуйте в настоящей партии.', rulesH: 'Все правила', premoveRule: 'Золотой ход можно поставить и премувом.', playNow: 'Играть'
     }
   };
   var settings = Object.assign({ sound: true, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
@@ -170,7 +244,7 @@
     this.status = 'playing'; this.result = null; this.reason = null;
     this.legal = this.pos.legalMoves(true);
   }
-  Game.prototype.running = function () { return !!this.clock && this.status === 'playing' && this.records.length >= 2; };
+  Game.prototype.running = function () { return !!this.clock && this.status === 'playing' && this.records.length >= 2 && !this.paused; };
   Game.prototype.timeLeft = function (color, now) {
     if (!this.clock) return Infinity;
     var t = this.clock.t[color];
@@ -200,6 +274,7 @@
   // Apply a legal move. Returns the record, or null if the mover's flag had already fallen.
   Game.prototype.play = function (m, now) {
     if (this.status !== 'playing') return null;
+    this.idle = false;
     var us = this.pos.side;
     if (this.running()) {
       var left = this.clock.t[us] - (now - this.clock.since);
@@ -914,6 +989,7 @@
     board.setOrientation(orient);
     board.sync(game.pos.board, []);
     Sound.play('start');
+    go('game');
     renderAll(); persist();
     if (setup.mode === 'bot' && game.pos.side !== human) requestBot();
   }
@@ -1218,22 +1294,17 @@
     return wrap;
   }
 
-  function showNewGame() {
-    var s = Object.assign({ otc: '3+2', rated: true }, lastSetup);
-    if (s.mode === 'online' && !NETCFG) s.mode = 'bot';
-    if (ONLINE_TCS.indexOf(s.otc) < 0) s.otc = '3+2';
+  // "New game" anywhere leads to the Play tab
+  function showNewGame() { closeDialog(); go('play'); }
+  // bot setup (Play a Bot) and two players on one device
+  function showBotSetup() {
+    var s = Object.assign({}, lastSetup, { mode: 'bot' });
+    if (TCS.indexOf(s.tc) < 0) s.tc = '5+0';
     openDialog(function (card) {
-      currentDialog.dataset.kind = 'new';
-      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('newGame'))));
-      if (game && game.online && game.status === 'playing' && !spectating()) card.appendChild(h('div', { class: 'dlg-note warn' }, esc(T('stillPlaying'))));
-      var f1 = h('div', { class: 'field' }); f1.appendChild(h('div', { class: 'lbl' }, esc(T('opponent'))));
-      var botFields = h('div', { class: 'field' });
-      var modes = [{ v: 'bot', label: T('computer') }];
-      if (NETCFG) modes.push({ v: 'online', label: T('online') });
-      modes.push({ v: 'local', label: T('twoPlayers') });
-      f1.appendChild(seg(modes, s.mode, function (v) { s.mode = v; sync(); }));
-      card.appendChild(f1);
-      botFields.appendChild(h('label', { for: 'lvl-range' }, esc(T('strength'))));
+      currentDialog.dataset.kind = 'bot';
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('botSetupTitle'))));
+      var lv = h('div', { class: 'field' });
+      lv.appendChild(h('label', { for: 'lvl-range' }, esc(T('strength'))));
       var lvRow = h('div', { class: 'lvl' });
       var range = h('input', { type: 'range', min: '1', max: '8', step: '1', id: 'lvl-range', value: String(s.level) });
       var out = h('output', { for: 'lvl-range', id: 'lvl-out' });
@@ -1244,35 +1315,38 @@
         rec.textContent = st ? T('record', { n: s.level, w: st.w, d: st.d, l: st.l }) : T('recordNone', { n: s.level });
       }
       range.addEventListener('input', function () { s.level = +range.value; upd(); });
-      lvRow.appendChild(range); lvRow.appendChild(out); botFields.appendChild(lvRow); botFields.appendChild(rec); upd();
-      card.appendChild(botFields);
-      var colorField = h('div', { class: 'field' });
-      colorField.appendChild(h('div', { class: 'lbl' }, esc(T('playAs'))));
-      colorField.appendChild(seg([{ v: 'w', label: T('white') }, { v: 'r', label: T('random') }, { v: 'b', label: T('black') }], s.color, function (v) { s.color = v; }));
-      card.appendChild(colorField);
-      var f3 = h('div', { class: 'field' }); f3.appendChild(h('div', { class: 'lbl' }, esc(T('timeControl'))));
-      f3.appendChild(seg(TCS.map(function (t) { return { v: t, label: t === 'none' ? T('noClock') : t, id: 'tc' + t }; }), s.tc, function (v) { s.tc = v; }, 'tc'));
-      card.appendChild(f3);
-      var onF = NETCFG ? onlineFields(s) : null;
-      if (onF) card.appendChild(onF);
-      else if (window.GC_SITE) card.appendChild(h('div', { class: 'dlg-note' }, esc(T('onlineElsewhere')) + ' <a class="site-link" href="' + esc(window.GC_SITE) + '" target="_blank" rel="noopener">' + esc(window.GC_SITE.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>'));
-      var row = h('div', { class: 'row-btns' });
-      var go = h('button', { class: 'primary', id: 'btn-play', type: 'button' }, esc(T('play')));
-      go.addEventListener('click', function () { lastSetup = s; save('setup', s); closeDialog(); startGame(s); });
-      row.appendChild(go);
-      var seekB = h('button', { class: 'primary', id: 'btn-seek', type: 'button' }, esc(T('findOpp')));
-      seekB.addEventListener('click', function () { lastSetup = s; save('setup', s); startSeek(s.otc, s.rated); });
-      var invB = h('button', { class: 'secondary', id: 'btn-invite', type: 'button' }, esc(T('invite')));
-      invB.addEventListener('click', function () { lastSetup = s; save('setup', s); startInvite(s.otc, s.rated); });
-      if (onF) { row.appendChild(seekB); row.appendChild(invB); }
-      card.appendChild(row);
-      function sync() {
-        var on = s.mode === 'online';
-        botFields.hidden = s.mode !== 'bot'; colorField.hidden = s.mode !== 'bot'; f3.hidden = on; go.hidden = on;
-        if (onF) { onF.hidden = !on; seekB.hidden = !on; invB.hidden = !on; if (on) onF.activate(); }
-      }
-      sync();
+      lvRow.appendChild(range); lvRow.appendChild(out); lv.appendChild(lvRow); lv.appendChild(rec); upd();
+      card.appendChild(lv);
+      var cf = h('div', { class: 'field' }); cf.appendChild(h('div', { class: 'lbl' }, esc(T('playAs'))));
+      cf.appendChild(seg([{ v: 'w', label: T('white') }, { v: 'r', label: T('random') }, { v: 'b', label: T('black') }], s.color, function (v) { s.color = v; }));
+      card.appendChild(cf);
+      card.appendChild(tcField(s));
+      card.appendChild(playRow(s));
     });
+  }
+  function showLocalSetup() {
+    var s = Object.assign({}, lastSetup, { mode: 'local' });
+    if (TCS.indexOf(s.tc) < 0) s.tc = '5+0';
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'local';
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('twoPlayers'))));
+      card.appendChild(tcField(s));
+      card.appendChild(playRow(s));
+    });
+  }
+  function tcField(s) {
+    var f = h('div', { class: 'field' }); f.appendChild(h('div', { class: 'lbl' }, esc(T('timeControl'))));
+    f.appendChild(seg(TCS.map(function (t) { return { v: t, label: t === 'none' ? T('noClock') : t, id: 'tc' + t }; }), s.tc, function (v) { s.tc = v; }, 'tc'));
+    return f;
+  }
+  function playRow(s) {
+    var row = h('div', { class: 'row-btns' });
+    var go2 = h('button', { class: 'primary', id: 'btn-play', type: 'button' }, esc(T('play')));
+    go2.addEventListener('click', function () { lastSetup = Object.assign({}, lastSetup, s); save('setup', lastSetup); closeDialog(); startGame(s); });
+    var c = h('button', { class: 'secondary', type: 'button' }, esc(T('cancel')));
+    c.addEventListener('click', closeDialog);
+    row.appendChild(c); row.appendChild(go2);
+    return row;
   }
 
   function showOver() {
@@ -1397,44 +1471,35 @@
 
   function showSettings() {
     openDialog(function (card) {
+      currentDialog.dataset.kind = 'settings';
       card.appendChild(h('div', { class: 'dlg-title' }, esc(T('settings'))));
-      function sw(label, key, onChange, id) {
-        var row = h('div', { class: 'toggle-row' }), lab = h('span', { id: id + '-l' }); lab.textContent = label;
-        var b = h('button', { class: 'sw', type: 'button', role: 'switch', id: id, 'aria-labelledby': id + '-l', 'aria-checked': String(!!settings[key]) });
-        b.addEventListener('click', function () { settings[key] = !settings[key]; b.setAttribute('aria-checked', String(settings[key])); saveSettings(); if (onChange) onChange(); });
-        row.appendChild(lab); row.appendChild(b); card.appendChild(row);
-      }
-      sw(T('sound'), 'sound', function () { Sound.setEnabled(settings.sound); if (settings.sound) { Sound.unlock(); Sound.play('move'); } }, 'set-sound');
-      var fa = h('div', { class: 'field' }); fa.appendChild(h('div', { class: 'lbl' }, esc(T('animation'))));
-      fa.appendChild(seg([{ v: 'fast', label: T('animFast'), id: 'anfast' }, { v: 'normal', label: T('animNormal'), id: 'annormal' }, { v: 'off', label: T('animOff'), id: 'anoff' }], settings.anim, function (v) { settings.anim = v; applySettings(); saveSettings(); }));
-      card.appendChild(fa);
-      var fb = h('div', { class: 'field' }); fb.appendChild(h('div', { class: 'lbl' }, esc(T('boardTheme'))));
-      fb.appendChild(seg([{ v: 'slate', label: T('thSlate') }, { v: 'walnut', label: T('thWalnut') }, { v: 'marble', label: T('thMarble') }], settings.board, function (v) { settings.board = v; applySettings(); saveSettings(); }));
-      card.appendChild(fb);
-      sw(T('coords'), 'coords', applySettings, 'set-coords');
-      sw(T('premoves'), 'premoves', function () { if (!settings.premoves) cancelPremoves(false); }, 'set-pre');
-      sw(T('autoQueen'), 'autoQueen', null, 'set-aq');
-      var fl = h('div', { class: 'field' }); fl.appendChild(h('div', { class: 'lbl' }, esc(T('language'))));
-      fl.appendChild(seg([{ v: 'en', label: 'English' }, { v: 'ru', label: 'Русский' }], lang, function (v) { lang = settings.lang = v; saveSettings(); applyLang(); showSettings(); }));
-      card.appendChild(fl);
-      if (NETCFG) {
-        var fac = h('div', { class: 'field' }), al = h('div', { class: 'prof-line acct-line', id: 'acct-line' });
-        fac.appendChild(h('div', { class: 'lbl' }, esc(T('account')))); fac.appendChild(al); card.appendChild(fac);
-        var drawAcct = function () {
-          var signed = !!(me && !me.guest && me.email);
-          al.innerHTML = '';
-          al.appendChild(h('span', { class: signed ? 'acct-email' : 'muted' }, esc(signed ? me.email : T('guestNote'))));
-          var ab = h('button', { type: 'button', class: 'sbtn', id: 'btn-account' }, esc(signed ? T('manage') : T('signIn')));
-          ab.addEventListener('click', function () { showAccount(showSettings); });
-          al.appendChild(ab);
-        };
-        drawAcct();
-        if (!me && hasNetSession()) ensureNet().then(function () { if (al.isConnected) drawAcct(); }, function () { /* offline */ });
-      }
+      buildSettings(card, showSettings);
       card.appendChild(h('div', { class: 'credit' }, esc(T('credit'))));
       var row = h('div', { class: 'row-btns' }), d = h('button', { class: 'primary', type: 'button' }, esc(T('done')));
       d.addEventListener('click', closeDialog); row.appendChild(d); card.appendChild(row);
     });
+  }
+  // the settings controls, in the dialog and on the Profile tab; redraw() rebuilds the host after a language change
+  function buildSettings(card, redraw) {
+    function sw(label, key, onChange, id) {
+      var row = h('div', { class: 'toggle-row' }), lab = h('span', { id: id + '-l' }); lab.textContent = label;
+      var b = h('button', { class: 'sw', type: 'button', role: 'switch', id: id, 'aria-labelledby': id + '-l', 'aria-checked': String(!!settings[key]) });
+      b.addEventListener('click', function () { settings[key] = !settings[key]; b.setAttribute('aria-checked', String(settings[key])); saveSettings(); if (onChange) onChange(); });
+      row.appendChild(lab); row.appendChild(b); card.appendChild(row);
+    }
+    sw(T('sound'), 'sound', function () { Sound.setEnabled(settings.sound); if (settings.sound) { Sound.unlock(); Sound.play('move'); } }, 'set-sound');
+    var fa = h('div', { class: 'field' }); fa.appendChild(h('div', { class: 'lbl' }, esc(T('animation'))));
+    fa.appendChild(seg([{ v: 'fast', label: T('animFast'), id: 'anfast' }, { v: 'normal', label: T('animNormal'), id: 'annormal' }, { v: 'off', label: T('animOff'), id: 'anoff' }], settings.anim, function (v) { settings.anim = v; applySettings(); saveSettings(); }));
+    card.appendChild(fa);
+    var fb = h('div', { class: 'field' }); fb.appendChild(h('div', { class: 'lbl' }, esc(T('boardTheme'))));
+    fb.appendChild(seg([{ v: 'slate', label: T('thSlate') }, { v: 'walnut', label: T('thWalnut') }, { v: 'marble', label: T('thMarble') }], settings.board, function (v) { settings.board = v; applySettings(); saveSettings(); }));
+    card.appendChild(fb);
+    sw(T('coords'), 'coords', applySettings, 'set-coords');
+    sw(T('premoves'), 'premoves', function () { if (!settings.premoves) cancelPremoves(false); }, 'set-pre');
+    sw(T('autoQueen'), 'autoQueen', null, 'set-aq');
+    var fl = h('div', { class: 'field' }); fl.appendChild(h('div', { class: 'lbl' }, esc(T('language'))));
+    fl.appendChild(seg([{ v: 'en', label: 'English' }, { v: 'ru', label: 'Русский' }], lang, function (v) { lang = settings.lang = v; saveSettings(); applyLang(); if (redraw) redraw(); }));
+    card.appendChild(fl);
   }
 
   function showRules() {
@@ -1489,7 +1554,7 @@
   // ------------------------------------------------------------------ settings, layout, persistence
   function saveSettings() { save('settings', settings); }
   function applySettings() {
-    app.dataset.board = settings.board;
+    $('shell').dataset.board = settings.board;
     board.speed = settings.anim === 'off' ? 0 : settings.anim === 'fast' ? 0.6 : 1;
     board.setCoords(settings.coords);
     Sound.setEnabled(settings.sound);
@@ -1499,8 +1564,10 @@
     document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = T(el.dataset.i18n); });
     document.querySelectorAll('[data-i18n-aria]').forEach(function (el) { el.setAttribute('aria-label', T(el.dataset.i18nAria)); });
     if (game) renderAll();
+    if (typeof renderNav === 'function' && curView) { renderNav(); if (curView !== 'game') refreshView(); }
   }
   function layout() {
+    if (app.hidden) return; // the game view is measured when it is shown
     var cs = getComputedStyle(app), padL = parseFloat(cs.paddingLeft) || 16, padR = parseFloat(cs.paddingRight) || 16;
     var W = app.clientWidth - padL - padR, H = app.clientHeight - (parseFloat(cs.paddingBottom) || 0);
     var wide = app.clientWidth >= 860 && app.clientWidth > app.clientHeight * 1.05;
@@ -1538,7 +1605,8 @@
   $('btn-prev').addEventListener('click', function () { navStep(-1); });
   $('btn-next').addEventListener('click', function () { navStep(1); });
   $('btn-menu').addEventListener('click', showMenu);
-  $('btn-new').addEventListener('click', showNewGame);
+  $('btn-new').addEventListener('click', function () { go('play'); });
+  $('btn-back').addEventListener('click', function () { go('play'); });
   $('btn-settings').addEventListener('click', showSettings);
   $('btn-rules').addEventListener('click', showRules);
   function onMoveClick(e) {
@@ -1564,11 +1632,12 @@
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
     if (e.key === 'Escape') {
       if (currentDialog) { closeDialog(); return; }
+      if (curView !== 'game') return;
       if (goldenArmed) setGoldenArmed(false);
       else if (premoves.length) cancelPremoves(false);
       select(-1); return;
     }
-    if (currentDialog || !game) return;
+    if (currentDialog || !game || curView !== 'game') return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); navStep(-1); }
     else if (e.key === 'ArrowRight') { e.preventDefault(); navStep(1); }
     else if (e.key === 'Home') gotoPly(0);
@@ -1666,6 +1735,16 @@
     var o = { provider: 'google', options: { redirectTo: authRedirect() } };
     return (link ? this.sb.auth.linkIdentity(o) : this.sb.auth.signInWithOAuth(o)).then(authFail);
   };
+  // the leaderboard: public data, read with the public key (no account needed)
+  SupaNet.prototype.top = function (pool) {
+    return this.sb.from('ratings').select('user_id, rating, rd, games, wins, draws, losses, profiles(username)').eq('pool', pool).gt('games', 0)
+      .order('rating', { ascending: false }).limit(50).then(function (r) {
+        if (r.error) throw r.error;
+        return (r.data || []).map(function (x) {
+          return { uid: x.user_id, name: (x.profiles && x.profiles.username) || '?', rating: Math.round(x.rating), rd: Math.round(x.rd), games: x.games, wins: x.wins, draws: x.draws, losses: x.losses };
+        });
+      });
+  };
   SupaNet.prototype.read = function (id) {
     return this.sb.from('games').select('*').eq('id', id).maybeSingle().then(function (r) { if (r.error) throw r.error; return r.data; });
   };
@@ -1714,6 +1793,7 @@
     return Promise.resolve();
   };
   MockNet.prototype.google = function () { return Promise.reject(new Error('unsupported')); };
+  MockNet.prototype.top = function (pool) { return this.call('top', { pool: pool }).then(function (r) { return r.rows || []; }); };
   MockNet.prototype.sub = function (topic, h) {
     var base = this.base, uid = this.uid;
     var es = new EventSource(base + '/events?topic=' + encodeURIComponent(topic) + '&uid=' + encodeURIComponent(uid));
@@ -1729,10 +1809,12 @@
   };
 
   function hasNetSession() { return NETCFG ? (NETCFG.mock != null ? MockNet : SupaNet).hasSession() : false; }
+  // the transport without signing in (public reads)
+  function getClient() { if (!net && NETCFG) net = NETCFG.mock != null ? new MockNet(NETCFG) : new SupaNet(NETCFG); return net; }
   function ensureNet() {
     if (!NETCFG) return Promise.reject(new Error('offline'));
     if (netReady) return netReady;
-    try { if (!net) net = NETCFG.mock != null ? new MockNet(NETCFG) : new SupaNet(NETCFG); } catch (e) { return Promise.reject(e); }
+    try { getClient(); } catch (e) { return Promise.reject(e); }
     netReady = net.ready().then(function () { return Promise.all([net.call('hello'), net.account().catch(function () { return null; })]); }).then(function (rr) {
       var r = rr[0], a = rr[1];
       me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest };
@@ -1825,7 +1907,7 @@
     openDialog(function (card) {
       currentDialog.dataset.kind = 'lobby';
       currentDialog.onClose = function () { if (lobby === L) cancelLobby(); };
-      var meta = L.tc + ', ' + (L.rated ? T('rated') : T('casual')).toLowerCase();
+      var meta = tcLabel(L.tc) + ', ' + (L.rated ? T('rated') : T('casual')).toLowerCase();
       if (L.kind === 'seek') {
         card.appendChild(h('div', { class: 'dlg-title' }, esc(T('searching'))));
         var sub = h('div', { class: 'dlg-sub', id: 'seek-sub' }); card.appendChild(sub);
@@ -1855,28 +1937,6 @@
       row.appendChild(c); card.appendChild(row);
     });
   }
-  function showLeaderboard(pool) {
-    openDialog(function (card) {
-      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('leaderboard'))));
-      var tabs = h('div'), list = h('div', { class: 'lb' });
-      function load(p) {
-        list.innerHTML = '<div class="muted">' + esc(T('connecting')) + '…</div>';
-        ensureNet().then(function () { return net.call('top', { pool: p }); }).then(function (r) {
-          if (!list.isConnected) return;
-          if (!r.rows.length) { list.innerHTML = '<div class="muted">' + esc(T('lbEmpty')) + '</div>'; return; }
-          list.innerHTML = r.rows.map(function (x, i) {
-            var mine = me && me.profile && x.name === me.profile.username;
-            return '<div class="lb-row' + (mine ? ' me' : '') + '"><span class="lb-n">' + (i + 1) + '</span><span class="lb-name">' + esc(x.name) + '</span><span class="lb-r">' + x.rating + (x.rd > 110 ? '?' : '') + '</span><span class="lb-g">' + esc(T('gamesN', { n: x.games })) + '</span></div>';
-          }).join('');
-        }, function () { if (list.isConnected) list.innerHTML = '<div class="muted">' + esc(T('netError')) + '</div>'; });
-      }
-      tabs.appendChild(seg(['bullet', 'blitz', 'rapid'].map(function (p) { return { v: p, label: T(p), id: 'lb' + p }; }), pool, load));
-      card.appendChild(tabs); card.appendChild(list);
-      var row = h('div', { class: 'row-btns' }), d = h('button', { class: 'primary', type: 'button' }, esc(T('done')));
-      d.addEventListener('click', closeDialog); row.appendChild(d); card.appendChild(row);
-      load(pool);
-    });
-  }
   // ---- account: a guest keeps their progress by adding an email to the same account; on another device the
   // same email signs in to it. Sign-in codes come by email (the email also has a link that does the same).
   var OTP_LEN = (NETCFG && NETCFG.otpLength) || 6;
@@ -1891,218 +1951,212 @@
   function liveOnlineGame() { return !!(game && game.online && game.status === 'playing' && !spectating()); }
   function hasProgress() { return !!me && Object.keys(me.ratings).some(function (p) { return me.ratings[p].games > 0; }); }
   function boldVar(key, name, value) { var v = {}; v[name] = '\u0000'; return esc(T(key, v)).replace('\u0000', '<b>' + esc(value) + '</b>'); }
+  // The account dialog (save progress, sign out) and the sign-in page share one flow.
   // back: reopens the dialog the player came from once they are done here
   function showAccount(back) {
-    var st = { step: 'loading', email: '', code: '', type: '', existing: false, err: '', busy: false, sentAt: 0, acct: null };
-    var timer = 0, again = null;
     openDialog(function (card) {
       currentDialog.dataset.kind = 'account';
-      currentDialog.onClose = function () { clearInterval(timer); };
-      render();
-      ensureNet().then(function () { return net.account(); }).then(function (a) {
-        st.acct = a; st.step = a && !a.guest ? 'signed' : 'form'; render();
-      }, function () { st.step = 'form'; st.err = T('netError'); render(); });
-
-      function btn(cls, label, fn, id) { var b = h('button', { class: cls, type: 'button' }, esc(label)); if (id) b.id = id; b.addEventListener('click', fn); return b; }
-      function row(btns) { var r = h('div', { class: 'row-btns' }); btns.forEach(function (b) { r.appendChild(b); }); return r; }
-      function done() { closeDialog(); if (back) back(); }
-      function focus(el) { setTimeout(function () { if (el.isConnected && !el.disabled) try { el.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 30); }
-      // the "send again" countdown (only that button changes, so typing in the code field is never disturbed)
-      function tick() {
-        if (!again || !again.isConnected) { clearInterval(timer); return; }
-        var left = Math.max(0, 60 - Math.floor((Date.now() - st.sentAt) / 1000));
-        again.textContent = left ? T('resendIn', { s: left }) : T('resend');
-        again.disabled = left > 0 || st.busy;
-        if (!left) clearInterval(timer);
-      }
-      function render() {
-        if (!card.isConnected) return;
-        card.innerHTML = ''; again = null;
-        var title = st.step === 'signed' ? T('account') : st.step === 'code' ? T('codeTitle') : T('signIn');
-        card.appendChild(h('div', { class: 'dlg-title' }, esc(title)));
-        if (st.step === 'loading') { card.appendChild(h('div', { class: 'muted' }, esc(T('connecting')) + '…')); return; }
-        var err = st.err ? h('div', { class: 'err', id: 'acct-err', role: 'alert' }, esc(st.err)) : null;
-        if (st.step === 'signed') {
-          card.appendChild(h('div', { class: 'acct-who', id: 'acct-who' }, boldVar('signedInAs', 'email', st.acct.email || '')));
-          card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('signedSub'))));
-          if (err) card.appendChild(err);
-          var so = btn('secondary danger', T('signOut'), signOut, 'btn-signout'); so.disabled = st.busy;
-          card.appendChild(row([so, btn('primary', T('done'), done, 'btn-acct-done')]));
-          return;
-        }
-        if (st.step === 'form') {
-          card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('signInSub'))));
-          var form = h('form', { class: 'acct-form', novalidate: '' });
-          var inp = h('input', { type: 'email', class: 'acct-input', id: 'acct-email', name: 'email', autocomplete: 'email', inputmode: 'email',
-            autocapitalize: 'off', spellcheck: 'false', placeholder: 'you@example.com', 'aria-label': T('emailLabel') });
-          inp.value = st.email;
-          form.appendChild(inp);
-          if (err) form.appendChild(err);
-          var go = h('button', { type: 'submit', class: 'primary', id: 'btn-send-code' }, esc(st.busy ? T('sending') + '…' : T('sendCode')));
-          go.disabled = st.busy;
-          form.appendChild(row([btn('secondary', T('cancel'), closeDialog), go]));
-          form.addEventListener('submit', function (e) { e.preventDefault(); sendCode(inp.value); });
-          card.appendChild(form);
-          if (NETCFG && NETCFG.googleAuth) {
-            card.appendChild(h('div', { class: 'acct-or' }, esc(T('or'))));
-            var gb = btn('secondary', T('continueGoogle'), google, 'btn-google'); gb.disabled = st.busy;
-            card.appendChild(row([gb]));
-          }
-          if (!st.busy) focus(inp);
-          return;
-        }
-        // the code from the email
-        card.appendChild(h('div', { class: 'dlg-sub' }, boldVar('codeSub', 'email', st.email)));
-        if (st.existing) card.appendChild(h('div', { class: 'dlg-note', id: 'acct-existing' }, esc(T('existingNote'))));
-        var cinp = h('input', { type: 'text', class: 'acct-input code', id: 'acct-code', name: 'code', inputmode: 'numeric', pattern: '[0-9]*',
-          autocomplete: 'one-time-code', maxlength: '10', spellcheck: 'false', placeholder: new Array(OTP_LEN + 1).join('\u2022'), 'aria-label': T('codeTitle') });
-        cinp.value = st.code;
-        cinp.disabled = st.busy;
-        cinp.addEventListener('input', function () {
-          var v = cinp.value.replace(/\D/g, '');
-          if (v !== cinp.value) cinp.value = v;
-          st.code = v;
-          if (v.length === OTP_LEN) verify(v);
-        });
-        card.appendChild(cinp);
-        if (err) card.appendChild(err);
-        again = btn('secondary', T('resend'), function () { sendCode(st.email); }, 'btn-resend');
-        var ok = btn('primary', st.busy ? T('checking') + '…' : T('confirm'), function () { verify(cinp.value.replace(/\D/g, '')); }, 'btn-verify');
-        ok.disabled = st.busy;
-        card.appendChild(row([again, ok]));
-        card.appendChild(btn('linkbtn', T('otherEmail'), function () { st.step = 'form'; st.err = ''; st.code = ''; clearInterval(timer); render(); }, 'btn-other-email'));
-        tick();
-        if (!st.busy) focus(cinp);
-      }
-      function sendCode(email) {
-        email = String(email || '').trim();
-        if (st.busy) return;
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { st.email = email; st.err = T('emailInvalid'); render(); return; }
-        st.busy = true; st.err = ''; st.email = email; render();
-        ensureNet().then(function () { return net.account(); }).then(function (a) {
-          if (a && a.guest) {
-            // a guest: the email is added to this same account, so the name, rating and games stay
-            return net.linkEmail(email).then(function () { return { type: 'email_change', existing: false }; }, function (e) {
-              if (!/email_exists|already.*(registered|exists)/i.test(String(e && (e.code || e.message)))) throw e;
-              // the email has its own account: sign in to that one instead
-              if (liveOnlineGame()) { var f = new Error('finish'); f.code = 'finish'; throw f; }
-              return net.signInEmail(email, false).then(function () { return { type: 'email', existing: hasProgress() }; });
-            });
-          }
-          return net.signInEmail(email, true).then(function () { return { type: 'email', existing: false }; });
-        }).then(function (r) {
-          st.busy = false; st.step = 'code'; st.type = r.type; st.existing = r.existing; st.sentAt = Date.now(); st.code = ''; render();
-          clearInterval(timer); timer = setInterval(tick, 1000);
-        }, function (e) { st.busy = false; st.err = e && e.code === 'finish' ? T('finishFirst') : authMsg(e); render(); });
-      }
-      function verify(code) {
-        if (st.busy || code.length < 6) return;
-        st.busy = true; st.err = ''; st.code = code; render();
-        net.verifyCode(st.email, code, st.type).then(function () {
-          clearInterval(timer);
-          if (st.type === 'email_change') {
-            // the same account, now with an email: nothing to reload
-            return refreshMe().then(function () {
-              st.busy = false;
-              if (!me || me.guest) { st.code = ''; st.err = T('signInFailed'); render(); return; } // the account didn't change after all
-              st.acct = { email: me.email || st.email, guest: false }; st.step = 'signed'; render();
-              toast(T('progressSaved')); renderAll();
-            });
-          }
-          // another account: start over as that player
-          save('online', null); save('notice', 'signedIn'); setUrl(null); // don't reopen the previous player's game
-          location.reload();
-        }).catch(function (e) { st.busy = false; st.code = ''; st.err = authMsg(e); render(); });
-      }
-      function signOut() {
-        if (liveOnlineGame()) { st.err = T('finishFirst'); render(); return; }
-        st.busy = true; render();
-        net.signOut().then(function () { save('online', null); save('notice', 'signedOut'); setUrl(null); location.reload(); },
-          function (e) { st.busy = false; st.err = authMsg(e); render(); });
-      }
-      function google() {
-        if (st.busy) return;
-        st.busy = true; st.err = ''; render();
-        // a guest links Google to the same account; otherwise Google signs in (the page leaves for Google here)
-        ensureNet().then(function () { return net.account(); }).then(function (a) { return net.google(!!(a && a.guest)); })
-          .catch(function (e) { st.busy = false; st.err = authMsg(e); render(); });
-      }
+      var flow = accountFlow(card, { onDone: function () { closeDialog(); if (back) back(); }, onCancel: closeDialog });
+      currentDialog.onClose = flow.stop;
     });
+  }
+  // o: { page: the full-page sign-in, onDone(), onCancel() }
+  function accountFlow(card, o) {
+    var st = { step: 'form', email: '', code: '', type: '', existing: false, err: '', busy: false, sentAt: 0, acct: null, name: '' };
+    var timer = 0, again = null, alive = true;
+    if (me && !me.guest) { st.step = 'signed'; st.acct = { email: me.email, guest: false }; }
+    else if (hasNetSession() && !me) {
+      // a session from before: find out whose it is
+      st.step = 'loading';
+      ensureNet().then(function () { return net.account(); }).then(function (a) {
+        if (!alive) return;
+        st.acct = a; st.step = a && !a.guest ? 'signed' : 'form'; render();
+      }, function () { if (!alive) return; st.step = 'form'; st.err = T('netError'); render(); });
+    }
+    render();
+
+    function btn(cls, label, fn, id) { var b = h('button', { class: cls, type: 'button' }, esc(label)); if (id) b.id = id; b.addEventListener('click', fn); return b; }
+    function row(btns) { var r = h('div', { class: 'row-btns' }); btns.forEach(function (b) { r.appendChild(b); }); return r; }
+    function focus(el) { if (o.page && matchMedia('(pointer: coarse)').matches && st.step === 'form') return; setTimeout(function () { if (el.isConnected && !el.disabled) try { el.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 30); }
+    // the "send again" countdown (only that button changes, so typing in the code field is never disturbed)
+    function tick() {
+      if (!again || !again.isConnected) { clearInterval(timer); return; }
+      var left = Math.max(0, 60 - Math.floor((Date.now() - st.sentAt) / 1000));
+      again.textContent = left ? T('resendIn', { s: left }) : T('resend');
+      again.disabled = left > 0 || st.busy;
+      if (!left) clearInterval(timer);
+    }
+    function render() {
+      if (!alive || !card.isConnected) return;
+      card.innerHTML = ''; again = null;
+      var title = st.step === 'signed' ? (o.page ? T('signedInTitle') : T('account')) : st.step === 'code' ? T('codeTitle') : st.step === 'name' ? T('nameTitle') : (o.page ? T('signInTitle') : T('signIn'));
+      if (o.page) card.appendChild(h('div', { class: 'mark', 'aria-hidden': 'true' }, STAR_SVG));
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(title)));
+      if (st.step === 'loading') { card.appendChild(h('div', { class: 'muted' }, esc(T('connecting')) + '…')); return; }
+      var err = st.err ? h('div', { class: 'err', id: 'acct-err', role: 'alert' }, esc(st.err)) : null;
+      if (st.step === 'signed') {
+        card.appendChild(h('div', { class: 'acct-who', id: 'acct-who' }, boldVar('signedInAs', 'email', (st.acct && st.acct.email) || '')));
+        if (!o.page) card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('signedSub'))));
+        if (err) card.appendChild(err);
+        if (o.page) { card.appendChild(btn('primary', T('cont'), o.onDone, 'btn-acct-done')); return; }
+        var so = btn('secondary danger', T('signOut'), signOut, 'btn-signout'); so.disabled = st.busy;
+        card.appendChild(row([so, btn('primary', T('done'), o.onDone, 'btn-acct-done')]));
+        return;
+      }
+      if (st.step === 'name') {
+        card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('nameSub'))));
+        var nf = h('form', { class: 'acct-form', novalidate: '' });
+        var ni = h('input', { type: 'text', class: 'acct-input', id: 'acct-name', maxlength: '20', autocomplete: 'nickname', spellcheck: 'false', 'aria-label': T('nameTitle') });
+        ni.value = st.name;
+        nf.appendChild(ni);
+        if (err) nf.appendChild(err);
+        var nb = h('button', { type: 'submit', class: 'primary', id: 'btn-name' }, esc(T('cont')));
+        nb.disabled = st.busy;
+        nf.appendChild(nb);
+        nf.addEventListener('submit', function (e) { e.preventDefault(); saveName(ni.value); });
+        card.appendChild(nf);
+        return;
+      }
+      if (st.step === 'form') {
+        card.appendChild(h('div', { class: 'dlg-sub' }, esc(o.page ? T('signInPageSub') : T('signInSub'))));
+        var form = h('form', { class: 'acct-form', novalidate: '' });
+        var inp = h('input', { type: 'email', class: 'acct-input', id: 'acct-email', name: 'email', autocomplete: 'email', inputmode: 'email',
+          autocapitalize: 'off', spellcheck: 'false', placeholder: 'you@example.com', 'aria-label': T('emailLabel') });
+        inp.value = st.email;
+        form.appendChild(inp);
+        if (err) form.appendChild(err);
+        var go2 = h('button', { type: 'submit', class: 'primary', id: 'btn-send-code' }, esc(st.busy ? T('sending') + '…' : T('sendCode')));
+        go2.disabled = st.busy;
+        form.appendChild(o.page ? go2 : row([btn('secondary', T('cancel'), o.onCancel), go2]));
+        form.addEventListener('submit', function (e) { e.preventDefault(); sendCode(inp.value); });
+        card.appendChild(form);
+        if (NETCFG && NETCFG.googleAuth) {
+          card.appendChild(h('div', { class: 'acct-or' }, esc(T('or'))));
+          var gb = btn('secondary', T('continueGoogle'), google, 'btn-google'); gb.disabled = st.busy;
+          card.appendChild(row([gb]));
+        }
+        if (o.page) {
+          var alt = h('div', { class: 'signin-alt' }, esc(T('practise')) + ' ');
+          alt.appendChild(btn('linkbtn', T('playTheBot'), showBotSetup, 'btn-signin-bot'));
+          card.appendChild(alt);
+        }
+        if (!st.busy) focus(inp);
+        return;
+      }
+      // the code from the email
+      card.appendChild(h('div', { class: 'dlg-sub' }, boldVar('codeSub', 'email', st.email)));
+      if (st.existing) card.appendChild(h('div', { class: 'dlg-note', id: 'acct-existing' }, esc(T('existingNote'))));
+      var cinp = h('input', { type: 'text', class: 'acct-input code', id: 'acct-code', name: 'code', inputmode: 'numeric', pattern: '[0-9]*',
+        autocomplete: 'one-time-code', maxlength: '10', spellcheck: 'false', placeholder: new Array(OTP_LEN + 1).join('•'), 'aria-label': T('codeTitle') });
+      cinp.value = st.code;
+      cinp.disabled = st.busy;
+      cinp.addEventListener('input', function () {
+        var v = cinp.value.replace(/\D/g, '');
+        if (v !== cinp.value) cinp.value = v;
+        st.code = v;
+        if (v.length === OTP_LEN) verify(v);
+      });
+      card.appendChild(cinp);
+      if (err) card.appendChild(err);
+      again = btn('secondary', T('resend'), function () { sendCode(st.email); }, 'btn-resend');
+      var ok = btn('primary', st.busy ? T('checking') + '…' : T('confirm'), function () { verify(cinp.value.replace(/\D/g, '')); }, 'btn-verify');
+      ok.disabled = st.busy;
+      card.appendChild(row([again, ok]));
+      card.appendChild(btn('linkbtn', T('otherEmail'), function () { st.step = 'form'; st.err = ''; st.code = ''; clearInterval(timer); render(); }, 'btn-other-email'));
+      tick();
+      if (!st.busy) focus(cinp);
+    }
+    function sendCode(email) {
+      email = String(email || '').trim();
+      if (st.busy) return;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { st.email = email; st.err = T('emailInvalid'); render(); return; }
+      st.busy = true; st.err = ''; st.email = email; render();
+      ensureNet().then(function () { return net.account(); }).then(function (a) {
+        if (a && a.guest) {
+          // a guest: the email is added to this same account, so the name, rating and games stay
+          return net.linkEmail(email).then(function () { return { type: 'email_change', existing: false }; }, function (e) {
+            if (!/email_exists|already.*(registered|exists)/i.test(String(e && (e.code || e.message)))) throw e;
+            // the email has its own account: sign in to that one instead
+            if (liveOnlineGame()) { var f = new Error('finish'); f.code = 'finish'; throw f; }
+            return net.signInEmail(email, false).then(function () { return { type: 'email', existing: hasProgress() }; });
+          });
+        }
+        return net.signInEmail(email, true).then(function () { return { type: 'email', existing: false }; });
+      }).then(function (r) {
+        if (!alive) return;
+        st.busy = false; st.step = 'code'; st.type = r.type; st.existing = r.existing; st.sentAt = Date.now(); st.code = ''; render();
+        clearInterval(timer); timer = setInterval(tick, 1000);
+      }, function (e) { if (!alive) return; st.busy = false; st.err = e && e.code === 'finish' ? T('finishFirst') : authMsg(e); render(); });
+    }
+    function verify(code) {
+      if (st.busy || code.length < 6) return;
+      st.busy = true; st.err = ''; st.code = code; render();
+      net.verifyCode(st.email, code, st.type).then(function () {
+        clearInterval(timer);
+        if (st.type === 'email_change') {
+          // the same account, now with an email: nothing to reload
+          return refreshMe().then(function () {
+            st.busy = false;
+            if (!me || me.guest) { st.code = ''; st.err = T('signInFailed'); render(); return; } // the account didn't change after all
+            st.acct = { email: me.email || st.email, guest: false };
+            toast(o.page ? T('signedInAs', { email: st.acct.email }) : T('progressSaved')); renderAll();
+            if (o.page && !hasProgress()) { st.step = 'name'; st.name = me.profile ? me.profile.username : ''; render(); return; } // a new account: let them pick a name
+            if (o.page) { o.onDone(); return; }
+            st.step = 'signed'; render();
+          });
+        }
+        // another account: start over as that player
+        save('online', null); save('notice', 'signedIn'); setUrl(null); // don't reopen the previous player's game
+        location.reload();
+      }).catch(function (e) { if (!alive) return; st.busy = false; st.code = ''; st.err = authMsg(e); render(); });
+    }
+    function saveName(name) {
+      name = String(name || '').trim();
+      if (st.busy) return;
+      if (!name || (me && me.profile && name === me.profile.username)) { o.onDone(); return; }
+      st.busy = true; st.err = ''; st.name = name; render();
+      net.call('rename', { name: name }).then(function (r) { me.profile = r.profile; st.busy = false; o.onDone(); }, function (er) {
+        var c = er && er.data && er.data.error;
+        st.busy = false; st.err = c === 'name_taken' ? T('nameTaken') : c === 'bad_name' ? T('badName') : T('netError'); render();
+      });
+    }
+    function signOut() {
+      if (liveOnlineGame()) { st.err = T('finishFirst'); render(); return; }
+      st.busy = true; render();
+      doSignOut(function (e) { st.busy = false; st.err = authMsg(e); render(); });
+    }
+    function google() {
+      if (st.busy) return;
+      st.busy = true; st.err = ''; render();
+      // a guest links Google to the same account; otherwise Google signs in (the page leaves for Google here)
+      ensureNet().then(function () { return net.account(); }).then(function (a) { return net.google(!!(a && a.guest)); })
+        .catch(function (e) { st.busy = false; st.err = authMsg(e); render(); });
+    }
+    return { stop: function () { alive = false; clearInterval(timer); } };
+  }
+  function doSignOut(onErr) {
+    net.signOut().then(function () { save('online', null); save('notice', 'signedOut'); save('pending', null); setUrl(null); location.hash = 'play'; location.reload(); }, onErr);
   }
   // Back from the link in a sign-in email (or from Google): supabase-js has already taken the session (or the
   // error) from the address. Tidy the address and say what happened.
+  var AUTH_HASH = /(access_token|error_code|error_description)=/;
   function authReturn() {
     var hsh = location.hash || '';
-    if (!/(access_token|error_code|error_description)=/.test(hsh)) return false;
+    if (!AUTH_HASH.test(hsh)) return false;
     var q;
     try { q = new URLSearchParams(hsh.replace(/^#/, '')); } catch (e) { return false; }
     var err = q.get('error_code') || q.get('error'), desc = q.get('error_description') || '', type = q.get('type') || '';
     ensureNet().then(function () {
-      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ }
+      try { history.replaceState({ v: curView }, '', location.pathname + location.search + '#' + (curView || 'play')); } catch (e) { /* ignore */ }
       if (err === 'identity_already_exists' && net.google) { toast(T('googleExists')); net.google(false).catch(function () { /* ignore */ }); return; }
       if (err) toast(/expired|invalid/i.test(err + ' ' + desc) ? T('linkExpired') : T('signInFailed'));
-      else if (me && !me.guest) toast(type === 'email_change' ? T('progressSaved') : T('signedInAs', { email: me.email || '' }));
-      renderAll();
+      else if (me && !me.guest) {
+        toast(type === 'email_change' ? T('progressSaved') : T('signedInAs', { email: me.email || '' }));
+        var a = takePending(); if (a) runPending(a);
+      }
+      renderAll(); if (curView !== 'game') refreshView();
     }, function () { toast(T('netError')); });
     return true;
-  }
-
-  // online part of the New game dialog
-  function onlineFields(s) {
-    var wrap = h('div', { class: 'online-fields' }), prof = h('div', { class: 'prof' }), failed = false;
-    var tcF = h('div', { class: 'field' }), rateLine = h('div', { class: 'record' });
-    tcF.appendChild(h('div', { class: 'lbl' }, esc(T('timeControl'))));
-    tcF.appendChild(seg(ONLINE_TCS.map(function (t) { return { v: t, label: t, id: 'otc' + t }; }), s.otc, function (v) { s.otc = v; updRating(); }, 'tc'));
-    tcF.appendChild(rateLine);
-    var rF = h('div', { class: 'field' });
-    rF.appendChild(seg([{ v: true, label: T('rated'), id: 'rated' }, { v: false, label: T('casual'), id: 'casual' }], s.rated, function (v) { s.rated = v; }));
-    var lb = h('button', { type: 'button', class: 'linkbtn', id: 'btn-leaderboard' }, ICON.trophy + '<span>' + esc(T('leaderboard')) + '</span>');
-    lb.addEventListener('click', function () { showLeaderboard(poolOfLabel(s.otc)); });
-    wrap.appendChild(prof); wrap.appendChild(tcF); wrap.appendChild(rF); wrap.appendChild(lb);
-    function updRating() {
-      var pool = poolOfLabel(s.otc), r = me && me.ratings[pool];
-      rateLine.textContent = me ? T('yourRating', { pool: T(pool), r: r ? Math.round(r.rating) + (r.rd > 110 ? '?' : '') : '1500?' }) : '';
-    }
-    function renderProf(editing, err, value) {
-      prof.innerHTML = '';
-      if (!me) { prof.appendChild(h('div', { class: 'muted' }, esc(failed ? T('netError') : T('connecting') + '…'))); return; }
-      if (!editing) {
-        var line = h('div', { class: 'prof-line' }, '<span>' + esc(T('playingAs')) + ' <b id="my-name">' + esc(me.profile.username) + '</b></span>');
-        var ch = h('button', { type: 'button', class: 'linkbtn', id: 'btn-rename' }, esc(T('change')));
-        ch.addEventListener('click', function () { renderProf(true); });
-        line.appendChild(ch); prof.appendChild(line);
-        var al = h('div', { class: 'prof-line acct-line', id: 'acct-online' });
-        if (me.guest) {
-          al.appendChild(h('span', { class: 'muted' }, esc(T('guestNote'))));
-          var sv = h('button', { type: 'button', class: 'linkbtn', id: 'btn-save-online' }, esc(T('saveProgress')));
-          sv.addEventListener('click', function () { showAccount(function () { lastSetup = s; showNewGame(); }); });
-          al.appendChild(sv);
-        } else al.appendChild(h('span', { class: 'muted acct-email' }, esc(me.email || '')));
-        prof.appendChild(al);
-        return;
-      }
-      var form = h('form', { class: 'prof-edit' });
-      var inp = h('input', { type: 'text', maxlength: '20', id: 'name-input', autocomplete: 'nickname', spellcheck: 'false', 'aria-label': T('playingAs') });
-      inp.value = value != null ? value : me.profile.username;
-      var sv = h('button', { type: 'submit', class: 'sbtn' }, esc(T('save')));
-      form.appendChild(inp); form.appendChild(sv);
-      form.addEventListener('submit', function (e) {
-        e.preventDefault(); sv.disabled = true;
-        net.call('rename', { name: inp.value }).then(function (r) { me.profile = r.profile; renderProf(false); }, function (er) {
-          var code = er && er.data && er.data.error;
-          renderProf(true, code === 'name_taken' ? T('nameTaken') : code === 'bad_name' ? T('badName') : T('netError'), inp.value);
-        });
-      });
-      prof.appendChild(form);
-      if (err) prof.appendChild(h('div', { class: 'err' }, esc(err)));
-      setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) { /* ignore */ } }, 20);
-    }
-    wrap.activate = function () {
-      renderProf(false); updRating();
-      ensureNet().then(function () { failed = false; if (wrap.isConnected) { renderProf(false); updRating(); } },
-        function () { failed = true; if (wrap.isConnected) renderProf(false); });
-    };
-    return wrap;
   }
 
   // ---- the online game itself
@@ -2179,6 +2233,7 @@
     if (game.status === 'playing') Sound.play('start');
     save('online', { id: s.id });
     setUrl('game', s.id);
+    go('game');
     renderAll(); layout();
   }
   function rebuildOnline(s) {
@@ -2395,6 +2450,335 @@
     if (playing ? idle > (o.connected ? 12000 : 2500) : idle > 15000) resyncOnline();
   }, 1000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden && online) resyncOnline(); });
+  // ------------------------------------------------------------------ app shell: tabs and pages
+  // Play (start screen), Learn, Ratings, Profile, the sign-in page and the game itself are views of one page;
+  // the address keeps the view (#play, #learn, ...) so the back button and reloads work.
+  var shellEl = $('shell'), curView = null, learnKit = null, signinFlow = null, ratingsPool = null;
+  var playUi = { tcOpen: false, more: false };
+  var VIEWS = ['play', 'learn', 'ratings', 'profile', 'signin', 'game'], NAV = ['play', 'learn', 'ratings', 'profile'];
+  var NAV_KEY = { play: 'navPlay', learn: 'navLearn', ratings: 'navRatings', profile: 'navProfile' };
+  var STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c1 6.1 3.4 8.5 9.5 9.5-6.1 1-8.5 3.4-9.5 9.5-1-6.1-3.4-8.5-9.5-9.5 6.1-1 8.5-3.4 9.5-9.5z" fill="#e7b44a"/></svg>';
+  var LOGO_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="#1f2c2a"/><path d="M2 9a7 7 0 0 1 7-7h7v14H2z" fill="#2c3c39"/><path d="M16 16h14v7a7 7 0 0 1-7 7h-7z" fill="#2c3c39"/><path d="M16 5.5c.9 5.4 3.6 8.1 9 9-5.4.9-8.1 3.6-9 9-.9-5.4-3.6-8.1-9-9 5.4-.9 8.1-3.6 9-9z" fill="#e7b44a"/></svg>';
+  var CHEV_SVG = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  var BACK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  var NAV_ICON = {
+    play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="6.6" r="2.7"/><path d="M10 10h4M10.1 10c-.2 2.6-.9 4.7-2.4 6.5h8.6c-1.5-1.8-2.2-3.9-2.4-6.5"/><path d="M6.3 20.2h11.4v-1.6c0-1.2-.8-2.1-2-2.1H8.3c-1.2 0-2 .9-2 2.1z"/></svg>',
+    learn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 9.3L12 5l9.5 4.3L12 13.6z"/><path d="M6.6 11.3v4.3c1.6 1.5 3.4 2.2 5.4 2.2s3.8-.7 5.4-2.2v-4.3"/><path d="M21.5 9.3v5"/></svg>',
+    ratings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/></svg>',
+    profile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.4" r="3.7"/><path d="M4.8 20c.9-3.6 3.6-5.6 7.2-5.6s6.3 2 7.2 5.6"/></svg>'
+  };
+  var POOL_ICON = {
+    bullet: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.7 3.1a4.1 4.1 0 0 1 4.2 4.2l-.3.6-9.8 9.8-4.5-4.5 9.8-9.8z"/><path d="M5.3 14.2l4.5 4.5-1.7 1.7a1.5 1.5 0 0 1-2.1 0l-2.4-2.4a1.5 1.5 0 0 1 0-2.1z"/></svg>',
+    blitz: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.6 2.5L5 13.6h6.1L9.6 21.5l8.9-11.3h-6.2z"/></svg>',
+    rapid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7"/><path d="M12 13.5V9.6M10 2.8h4M12 2.8v3.4"/></svg>'
+  };
+  var ROW_ICON = {
+    friend: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11.5" cy="11" r="4.2"/><circle cx="22.5" cy="12.8" r="3.3"/><path d="M3.8 26.2c.8-4.7 3.7-7.4 7.7-7.4s6.9 2.7 7.7 7.4"/><path d="M19.4 19.6a6.2 6.2 0 0 1 3.1-.8c3.3 0 5.5 2.2 6.1 6"/></svg>',
+    bot: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="10" width="19" height="14" rx="4"/><path d="M16 10V6.2M13.6 6h4.8M3.5 15.2v4M28.5 15.2v4"/><circle cx="12.2" cy="16.8" r="1.7" fill="currentColor" stroke="none"/><circle cx="19.8" cy="16.8" r="1.7" fill="currentColor" stroke="none"/></svg>',
+    pass: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11.5h18.5l-4.2-4.2M26 20.5H7.5l4.2 4.2"/></svg>'
+  };
+  function initial(name) { var c = String(name || '?').trim().charAt(0); return c ? c.toUpperCase() : '?'; }
+  function signedIn() { return !!(me && !me.guest); }
+  function tcLabel(t) { return String(t); } // plain text: 3+2
+  // buttons show 3 | 2 with a drawn divider (the | glyph reads as an I in some fonts); screen readers get 3+2
+  function tcHtml(t) { var p = String(t).split('+'); return esc(p[0]) + '<i class="tc-sep"><b>+</b></i>' + esc(p[1] || '0'); }
+  function ratingText(pool) { var r = me && me.ratings[pool]; return r ? Math.round(r.rating) + (r.rd > 110 ? '?' : '') : '1500?'; }
+  function viewEl(v) { return v === 'game' ? app : $('view-' + v); }
+  function viewFromUrl() { var hh = (location.hash || '').replace(/^#/, ''); return VIEWS.indexOf(hh) >= 0 ? hh : null; }
+  function allowed(v) {
+    if (VIEWS.indexOf(v) < 0) return false;
+    if (v === 'game') return !!game;
+    return !!NETCFG || (v !== 'ratings' && v !== 'signin');
+  }
+  function go(v, replace) {
+    if (!allowed(v)) v = 'play';
+    var url = location.pathname + location.search + '#' + v;
+    try { if (replace || curView === null || curView === v) history.replaceState({ v: v }, '', url); else history.pushState({ v: v }, '', url); } catch (e) { /* ignore */ }
+    showView(v);
+  }
+  function onUrlView() { var v = viewFromUrl() || 'play'; if (!allowed(v)) v = 'play'; if (v !== curView) showView(v); }
+  window.addEventListener('popstate', onUrlView);
+  window.addEventListener('hashchange', onUrlView);
+  function showView(v) {
+    var prev = curView;
+    curView = v; shellEl.dataset.view = v;
+    VIEWS.forEach(function (x) { var el = viewEl(x); if (el) el.hidden = x !== v; });
+    renderNav();
+    if (prev !== null && prev !== v && currentDialog && currentDialog.dataset.kind !== 'lobby') closeDialog();
+    if (prev === 'signin' && v !== 'signin' && signinFlow) { signinFlow.stop(); signinFlow = null; }
+    if (v === 'game') { resumeLocalGame(); layout(); renderAll(); } else pauseLocalGame();
+    if (learnKit) learnKit.active(v); // autoplay boards run only on the tab that shows them
+    if (v !== 'game') {
+      refreshView();
+      if (prev !== v) { var el = viewEl(v); try { el.scrollTop = 0; } catch (e) { /* ignore */ } }
+    }
+  }
+  function refreshView() {
+    if (curView === 'play') renderPlay(); else if (curView === 'learn') renderLearn(); else if (curView === 'ratings') renderRatings();
+    else if (curView === 'profile') renderProfile(); else if (curView === 'signin') renderSignin();
+  }
+  function renderNav() {
+    var active = curView === 'game' || curView === 'signin' ? 'play' : curView;
+    var items = NAV.filter(allowed);
+    [$('rail-items'), $('tabbar')].forEach(function (host) {
+      if (host.dataset.built !== lang + items.join()) {
+        host.innerHTML = ''; host.dataset.built = lang + items.join();
+        items.forEach(function (v) {
+          var a = h('a', { class: 'nav-item', href: '#' + v, 'data-nav': v }, NAV_ICON[v] + '<span>' + esc(T(NAV_KEY[v])) + '</span>');
+          a.addEventListener('click', function (e) { e.preventDefault(); go(v); });
+          host.appendChild(a);
+        });
+      }
+      host.querySelectorAll('[data-nav]').forEach(function (a) { if (a.dataset.nav === active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    });
+  }
+  // a game against the bot or on one device waits while the player is on another tab
+  function pauseLocalGame() {
+    if (!game || game.online || game.paused || game.status !== 'playing' || !game.clock) return;
+    game.freeze(perf()); game.paused = true; persist();
+  }
+  function resumeLocalGame() {
+    if (!game || !game.paused) return;
+    game.paused = false; if (game.clock) game.clock.since = perf();
+  }
+  function kit() {
+    if (!learnKit && window.GCLearn) learnKit = GCLearn.create({ T: T, esc: esc, h: h, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup });
+    return learnKit;
+  }
+
+  // ---- online play needs an account; the chosen action continues after signing in (even across a reload)
+  function setPending(a) { a.at = Date.now(); save('pending', a); }
+  function takePending() { var a = load('pending', null); save('pending', null); return a && a.at && Date.now() - a.at < 30 * 60000 ? a : null; }
+  function requireAccount(a) {
+    if (!NETCFG) return;
+    function proceed() { if (signedIn()) runPending(a); else { setPending(a); go('signin'); } }
+    if (!me && hasNetSession()) ensureNet().then(proceed, proceed); else proceed();
+  }
+  function runPending(a) {
+    if (!a) return;
+    if (a.kind === 'seek') { go('play'); startSeek(a.tc, a.rated); }
+    else if (a.kind === 'invite') { go('play'); startInvite(a.tc, a.rated); }
+    else if (a.kind === 'join') joinGame(a.id);
+    else if (a.kind === 'view') go(a.v);
+  }
+  function afterSignin() { var a = takePending(); if (a) runPending(a); else go('play'); }
+
+  // ---- Play: the start screen
+  function renderPlay() {
+    var host = $('view-play');
+    var bwOld = host.querySelector('.play-board');
+    host.innerHTML = '';
+    var wrap = h('div', { class: 'play-wrap' }), bw = h('div', { class: 'play-board' }), col = h('div', { class: 'play-col' });
+    wrap.appendChild(bw); wrap.appendChild(col); host.appendChild(wrap);
+    var head = h('div', { class: 'play-head' });
+    head.appendChild(h('div', { class: 'brand' }, LOGO_SVG + '<span class="wordmark"><b>Golden</b> Chess</span>'));
+    if (NETCFG) {
+      var chip;
+      if (me && me.profile && signedIn()) chip = h('button', { type: 'button', class: 'acct-chip', id: 'acct-chip' }, '<span class="av">' + esc(initial(me.profile.username)) + '</span><span>' + esc(me.profile.username) + '</span>');
+      else chip = h('button', { type: 'button', class: 'acct-chip out', id: 'acct-chip' }, '<span>' + esc(T('signIn')) + '</span>');
+      chip.addEventListener('click', function () { if (signedIn()) go('profile'); else { setPending({ kind: 'view', v: 'play' }); go('signin'); } });
+      head.appendChild(chip);
+    }
+    col.appendChild(head);
+    col.appendChild(h('div', { class: 'play-mark', 'aria-hidden': 'true' }, '<div class="ring"></div><i class="pc-ic p-wN"></i>' +
+      '<span class="sp" style="left:6px;top:34px"></span><span class="sp" style="left:100px;top:76px"></span><span class="sp" style="left:24px;top:98px;width:4px;height:4px"></span><span class="st">' + STAR_SVG + '</span>'));
+    var rc = resumeCard(); if (rc) col.appendChild(rc);
+    if (NETCFG) {
+      var tc = ONLINE_TCS.indexOf(lastSetup.otc) >= 0 ? lastSetup.otc : '3+2', pool = poolOfLabel(tc), rated = lastSetup.rated !== false;
+      var tcb = h('button', { type: 'button', class: 'tc-btn', id: 'play-tc', 'aria-expanded': String(playUi.tcOpen) },
+        '<span class="tc-ic ic-' + pool + '">' + POOL_ICON[pool] + '</span><span class="tc-l">' + tcHtml(tc) + '</span>' + CHEV_SVG);
+      tcb.addEventListener('click', function () { playUi.tcOpen = !playUi.tcOpen; renderPlay(); });
+      col.appendChild(tcb);
+      if (playUi.tcOpen) col.appendChild(tcPanel(tc));
+      var start = h('button', { type: 'button', class: 'start-btn', id: 'btn-start' }, esc(T('startGame')));
+      start.addEventListener('click', function () { requireAccount({ kind: 'seek', tc: tc, rated: rated }); });
+      col.appendChild(start);
+      col.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(signedIn() ? T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase() : T('signInToRate'))));
+      col.appendChild(playRow2('friend', T('playFriend'), T('playFriendSub'), function () { requireAccount({ kind: 'invite', tc: tc, rated: rated }); }, 'btn-friend'));
+      col.appendChild(playRow2('bot', T('playBot'), T('playBotSub'), showBotSetup, 'btn-bot'));
+      var mb = h('button', { type: 'button', class: 'more-btn', id: 'btn-more', 'aria-expanded': String(playUi.more) }, '<span>' + esc(T('more')) + '</span>' + CHEV_SVG);
+      mb.addEventListener('click', function () { playUi.more = !playUi.more; renderPlay(); });
+      col.appendChild(mb);
+      if (playUi.more) {
+        var box = h('div', { class: 'more-box' });
+        box.appendChild(playRow2('pass', T('passPlay'), T('passPlaySub'), showLocalSetup, 'btn-pass'));
+        var rf = h('div', { class: 'field' });
+        rf.appendChild(seg([{ v: true, label: T('rated'), id: 'rated' }, { v: false, label: T('casual'), id: 'casual' }], rated, function (v) { lastSetup.rated = v; save('setup', lastSetup); renderPlay(); }));
+        box.appendChild(rf);
+        col.appendChild(box);
+      }
+    } else {
+      var sb = h('button', { type: 'button', class: 'start-btn', id: 'btn-start' }, esc(T('playBot')));
+      sb.addEventListener('click', showBotSetup);
+      col.appendChild(sb);
+      col.appendChild(playRow2('pass', T('passPlay'), T('passPlaySub'), showLocalSetup, 'btn-pass'));
+      if (window.GC_SITE) col.appendChild(h('div', { class: 'offline-note' }, esc(T('onlineElsewhere')) + ' <a class="site-link" href="' + esc(window.GC_SITE) + '" target="_blank" rel="noopener">' + esc(window.GC_SITE.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>'));
+    }
+    // wide screens: a board beside the menu, showing a golden move
+    if (window.matchMedia && matchMedia('(min-width: 1100px)').matches && kit()) learnKit.heroBoard(bw, bwOld);
+  }
+  function playRow2(icon, label, sub, fn, id) {
+    var b = h('button', { type: 'button', class: 'play-row', id: id }, '<span class="ic">' + ROW_ICON[icon] + '</span><span class="lbl">' + esc(label) + (sub ? '<span class="sub">' + esc(sub) + '</span>' : '') + '</span>');
+    b.addEventListener('click', fn);
+    return b;
+  }
+  function tcPanel(cur) {
+    var p = h('div', { class: 'tc-panel', id: 'tc-panel' });
+    [['bullet', ['1+0', '2+1']], ['blitz', ['3+0', '3+2', '5+0', '5+3']], ['rapid', ['10+0', '10+5', '15+10']]].forEach(function (g) {
+      var grp = h('div', { class: 'tc-group' });
+      grp.appendChild(h('div', { class: 'tc-group-h' }, '<span class="ic-' + g[0] + '">' + POOL_ICON[g[0]] + '</span><span>' + esc(T(g[0])) + '</span>' + (signedIn() ? '<span class="r">' + esc(ratingText(g[0])) + '</span>' : '')));
+      var grid = h('div', { class: 'tc-grid' });
+      g[1].forEach(function (t) {
+        var b = h('button', { type: 'button', class: 'tc-opt', id: 'tc-' + t.replace('+', '-'), 'aria-pressed': String(t === cur) }, tcHtml(t));
+        b.addEventListener('click', function () { lastSetup.otc = t; save('setup', lastSetup); playUi.tcOpen = false; renderPlay(); });
+        grid.appendChild(b);
+      });
+      grp.appendChild(grid); p.appendChild(grp);
+    });
+    return p;
+  }
+  function resumeCard() {
+    if (!game || game.idle || game.status !== 'playing') return null;
+    var title, sub, label;
+    if (game.online) {
+      if (spectating()) return null;
+      title = T('gameOn'); sub = T('vsName', { name: game.cfg.names[game.cfg.human ^ 1] || '' }) + (game.cfg.tc ? ', ' + tcLabel(game.cfg.tc.label) : ''); label = T('returnBtn');
+    } else {
+      if (!game.records.length) return null;
+      title = T('continueGame'); sub = botGame() ? T('vsBot', { n: game.cfg.level }) : T('passPlay'); label = T('cont');
+    }
+    var c = h('div', { class: 'resume', id: 'resume' }, '<span class="t"><b>' + esc(title) + '</b><span>' + esc(sub) + '</span></span>');
+    var b = h('button', { type: 'button', class: 'sbtn', id: 'btn-resume' }, esc(label));
+    b.addEventListener('click', function () { go('game'); });
+    c.appendChild(b);
+    return c;
+  }
+
+  // ---- sign in (a full page)
+  function renderSignin() {
+    var host = $('view-signin');
+    host.innerHTML = '';
+    var pg = h('div', { class: 'signin' }), top = h('div', { class: 'signin-top' });
+    var back = h('button', { type: 'button', class: 'signin-back', id: 'signin-back' }, BACK_SVG + '<span>' + esc(T('back')) + '</span>');
+    back.addEventListener('click', function () { save('pending', null); go('play'); });
+    top.appendChild(back); pg.appendChild(top);
+    var main = h('div', { class: 'signin-main' }), card = h('div', { class: 'signin-card', id: 'signin-card' });
+    main.appendChild(card); pg.appendChild(main); host.appendChild(pg);
+    if (signinFlow) signinFlow.stop();
+    signinFlow = accountFlow(card, { page: true, onDone: afterSignin, onCancel: function () { go('play'); } });
+  }
+
+  // ---- Ratings
+  function renderRatings() {
+    var host = $('view-ratings');
+    host.innerHTML = '';
+    var inn = h('div', { class: 'page-in' }); host.appendChild(inn);
+    inn.appendChild(h('h1', { class: 'page-h' }, esc(T('navRatings'))));
+    var pool = ratingsPool || poolOfLabel(lastSetup.otc || '3+2');
+    inn.appendChild(seg(['bullet', 'blitz', 'rapid'].map(function (p) { return { v: p, label: T(p), id: 'lb' + p }; }), pool, function (p) { ratingsPool = p; renderRatings(); }));
+    var my = h('div', { class: 'card my-card', id: 'my-rating' });
+    if (signedIn()) {
+      var r = me.ratings[pool];
+      my.innerHTML = '<div class="big">' + esc(ratingText(pool)) + '</div><div class="meta"><b>' + esc(T('yourRating')) + '</b><span>' +
+        esc(r && r.games ? T('gamesN', { n: r.games }) + ', ' + T('wdl', { w: r.wins, d: r.draws, l: r.losses }) : T('noGamesYet')) + '</span></div>';
+    } else {
+      my.className += ' out';
+      my.appendChild(h('div', { class: 'muted' }, esc(T('signInToRate'))));
+      var sb = h('button', { type: 'button', class: 'primary', id: 'btn-ratings-signin' }, esc(T('signIn')));
+      sb.addEventListener('click', function () { setPending({ kind: 'view', v: 'ratings' }); go('signin'); });
+      my.appendChild(sb);
+    }
+    inn.appendChild(my);
+    var lbc = h('div', { class: 'card lb-card' }), list = h('div', { class: 'lb', id: 'lb-list' });
+    lbc.appendChild(list); inn.appendChild(lbc);
+    list.innerHTML = '<div class="muted" style="padding:10px 4px">' + esc(T('connecting')) + '…</div>';
+    var c = getClient();
+    (c ? c.top(pool) : Promise.reject(new Error('offline'))).then(function (rows) {
+      if (!list.isConnected) return;
+      if (!rows.length) { list.innerHTML = '<div class="muted" style="padding:10px 4px">' + esc(T('lbEmpty')) + '</div>'; return; }
+      list.innerHTML = rows.map(function (x, i) {
+        var mine = me && (x.uid ? x.uid === me.uid : me.profile && x.name === me.profile.username);
+        return '<div class="lb-row' + (mine ? ' me' : '') + '"><span class="lb-n">' + (i + 1) + '</span><span class="lb-name">' + esc(x.name) + '</span><span class="lb-r">' + x.rating + (x.rd > 110 ? '?' : '') + '</span><span class="lb-g">' + esc(T('gamesN', { n: x.games })) + '</span></div>';
+      }).join('');
+    }, function () { if (list.isConnected) list.innerHTML = '<div class="muted" style="padding:10px 4px">' + esc(T('netError')) + '</div>'; });
+    if (!me && hasNetSession()) ensureNet().then(function () { if (curView === 'ratings' && signedIn() && !my.querySelector('.big')) renderRatings(); }, function () { /* offline */ });
+  }
+
+  // ---- Profile: account, ratings, settings
+  function renderProfile() {
+    var host = $('view-profile');
+    host.innerHTML = '';
+    var inn = h('div', { class: 'page-in' }); host.appendChild(inn);
+    inn.appendChild(h('h1', { class: 'page-h' }, esc(T('navProfile'))));
+    if (NETCFG) {
+      if (!me && hasNetSession()) ensureNet().then(function () { if (curView === 'profile') renderProfile(); }, function () { /* offline */ });
+      var nm = me && me.profile && signedIn() ? me.profile.username : T('profileGuest');
+      var hero = h('div', { class: 'prof-hero' });
+      hero.appendChild(h('div', { class: 'avatar-lg' + (signedIn() ? ' reg' : ''), 'aria-hidden': 'true' }, esc(initial(nm))));
+      var who = h('div', { class: 'prof-who' });
+      var nameEl = h('div', { class: 'prof-name', id: 'prof-name' }, '<span>' + esc(nm) + '</span>');
+      who.appendChild(nameEl);
+      who.appendChild(h('div', { class: 'prof-sub', id: 'prof-sub' }, esc(signedIn() ? (me.email || '') : T('profileSignedOut'))));
+      hero.appendChild(who); inn.appendChild(hero);
+      if (signedIn()) {
+        var ch = h('button', { type: 'button', class: 'linkbtn', id: 'btn-rename' }, esc(T('change')));
+        ch.addEventListener('click', function () { renameForm(who, nameEl); });
+        nameEl.appendChild(ch);
+        var grid = h('div', { class: 'pool-grid' });
+        ['bullet', 'blitz', 'rapid'].forEach(function (p) {
+          var r = me.ratings[p];
+          grid.appendChild(h('div', { class: 'pool-card' }, '<span class="h"><span class="ic-' + p + '">' + POOL_ICON[p] + '</span>' + esc(T(p)) + '</span><span class="r">' + esc(ratingText(p)) + '</span><span class="g">' + esc(r && r.games ? T('gamesN', { n: r.games }) : T('noGamesYet')) + '</span>'));
+        });
+        inn.appendChild(grid);
+        var so = h('button', { type: 'button', class: 'secondary danger', id: 'btn-signout' }, esc(T('signOut')));
+        var soErr = h('div', { class: 'err', id: 'signout-err' });
+        so.addEventListener('click', function () {
+          if (liveOnlineGame()) { soErr.textContent = T('finishFirst'); return; }
+          so.disabled = true;
+          doSignOut(function (e) { so.disabled = false; soErr.textContent = authMsg(e); });
+        });
+        var row = h('div', { class: 'row-btns' }); row.appendChild(so); inn.appendChild(row); inn.appendChild(soErr);
+      } else {
+        var si = h('button', { type: 'button', class: 'primary', id: 'btn-profile-signin' }, esc(T('signIn')));
+        si.addEventListener('click', function () { setPending({ kind: 'view', v: 'profile' }); go('signin'); });
+        var row2 = h('div', { class: 'row-btns' }); row2.appendChild(si); inn.appendChild(row2);
+      }
+    }
+    var sc = h('div', { class: 'card', id: 'settings-card' });
+    sc.appendChild(h('h2', null, esc(T('settings'))));
+    buildSettings(sc, renderProfile);
+    inn.appendChild(sc);
+    var ll = h('button', { type: 'button', class: 'linkbtn', id: 'btn-howto' }, esc(T('howItWorks')));
+    ll.addEventListener('click', function () { go('learn'); });
+    inn.appendChild(ll);
+    inn.appendChild(h('div', { class: 'credit' }, esc(T('credit'))));
+  }
+  function renameForm(who, nameEl) {
+    var form = h('form', { class: 'prof-edit' });
+    var inp = h('input', { type: 'text', maxlength: '20', id: 'name-input', autocomplete: 'nickname', spellcheck: 'false', 'aria-label': T('playingAs') });
+    inp.value = me.profile.username;
+    var sv = h('button', { type: 'submit', class: 'sbtn' }, esc(T('save')));
+    var er = h('div', { class: 'err' });
+    form.appendChild(inp); form.appendChild(sv);
+    nameEl.replaceWith(form); form.after(er);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault(); sv.disabled = true;
+      net.call('rename', { name: inp.value }).then(function (r) { me.profile = r.profile; renderProfile(); }, function (x) {
+        var code = x && x.data && x.data.error; sv.disabled = false;
+        er.textContent = code === 'name_taken' ? T('nameTaken') : code === 'bad_name' ? T('badName') : T('netError');
+      });
+    });
+    setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) { /* ignore */ } }, 20);
+  }
+
+  // ---- Learn
+  function renderLearn() {
+    var k = kit();
+    if (!k) { $('view-learn').innerHTML = ''; return; }
+    k.render($('view-learn'));
+    k.active(curView);
+  }
+
   function bootOnline() {
     if (!NETCFG) return;
     var join = urlQ.get('join'), gid = urlQ.get('game'), saved = load('online', null), note = load('notice', null);
@@ -2403,34 +2787,45 @@
       save('notice', null);
       ensureNet().then(function () {
         if (note === 'signedOut') toast(T('signedOutToast'));
-        else toast(me && !me.guest ? T('signedInAs', { email: me.email || '' }) : T('signInFailed'));
+        else {
+          toast(signedIn() ? T('signedInAs', { email: me.email || '' }) : T('signInFailed'));
+          if (signedIn()) { var a = takePending(); if (a) runPending(a); else if (curView === 'signin') go('play', true); }
+        }
+        refreshView();
       }, function () { /* offline */ });
     }
     var fromLink = authReturn();
-    if (join) { joinGame(join); return; }
+    if (join) { requireAccount({ kind: 'join', id: join }); return; }
     if (gid) { openOnlineGame(gid); return; }
     if (fromLink || note || (saved && saved.id) || hasNetSession()) {
       ensureNet().then(function (r) {
         if (r.live && r.live.status === 'playing') openOnlineGame(r.live.id);
         else if (saved && saved.id) save('online', null);
+        if (curView !== 'game') refreshView(); // the name and rating on the Play tab
       }, function () { /* offline: stay with the local game */ });
     }
   }
 
   // ------------------------------------------------------------------ boot
   function boot(hotData) {
-    applySettings(); applyLang(); layout();
+    applySettings(); applyLang();
     var saved = (hotData && hotData.game) || load('game', null), g = saved ? Game.restore(saved) : null;
     if (g) {
       game = g; view = game.records.length;
       orient = botGame() ? game.cfg.human : 0;
-      board.setOrientation(orient);
-      board.sync(game.pos.board, [], { instantAll: true });
-      renderAll();
-      if (game.status === 'playing' && botGame() && game.pos.side !== game.cfg.human) requestBot();
     } else {
-      startGame(lastSetup.mode === 'online' ? Object.assign({}, lastSetup, { mode: 'bot' }) : lastSetup);
+      // nothing played yet: an empty board for the game view
+      game = new Game({ mode: 'bot', level: lastSetup.level || 3, human: 0, tc: null });
+      game.idle = true; view = 0; orient = 0;
     }
+    board.setOrientation(orient);
+    board.sync(game.pos.board, [], { instantAll: true });
+    renderAll();
+    var v0 = viewFromUrl();
+    // a sign-in link returns with tokens (or an error) in the hash: leave the address alone until the auth client has read it
+    if (AUTH_HASH.test(location.hash || '')) showView('play');
+    else go(v0 && allowed(v0) ? v0 : 'play', true);
+    if (game.status === 'playing' && botGame() && !game.idle && game.pos.side !== game.cfg.human) requestBot();
     loop();
     bootOnline();
   }
@@ -2448,6 +2843,7 @@
     get dialogKind() { return currentDialog ? currentDialog.dataset.kind || '' : null; },
     get online() { return online; }, get me() { return me; }, get lobby() { return lobby; }, startSeek: startSeek, startInvite: startInvite,
     onlineAction: onlineAction, showNewGame: showNewGame, serverNow: serverNow, cancelPremoves: cancelPremoves,
-    showAccount: showAccount, showSettings: showSettings, showOver: showOver
+    showAccount: showAccount, showSettings: showSettings, showOver: showOver,
+    go: go, get curView() { return curView; }, showBotSetup: showBotSetup, showLocalSetup: showLocalSetup
   };
 })();

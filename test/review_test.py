@@ -9,7 +9,7 @@ async def main():
         b = await p.chromium.launch(); ctx = await b.new_context(viewport={'width': 390, 'height': 844}); page = await ctx.new_page()
         errs = []; page.on('pageerror', lambda e: errs.append(str(e))); page.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
         await page.route('**/fonts.googleapis.com/**', lambda r: r.fulfill(status=200, body='', content_type='text/css'))
-        await page.goto('file:///home/claude/golden-chess/dist/preview.html'); await page.evaluate(HELPERS); await page.wait_for_timeout(300)
+        await page.goto('file:///home/claude/golden-chess/dist/preview.html#game'); await page.evaluate(HELPERS); await page.wait_for_timeout(300)
         async def settle():
             for _ in range(120):
                 r = await page.evaluate('__t.check()')

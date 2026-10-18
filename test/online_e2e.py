@@ -1,5 +1,5 @@
 # Two real browsers play each other through the local test server (same game logic as production).
-# Covers: seek + pairing via the UI, moves by click, premoves, golden move, clocks in sync, draw offer/decline,
+# Covers: sign-in before online play, seek + pairing via the UI, moves by click, premoves, golden move, clocks in sync, draw offer/decline,
 # reload mid-game, dropped realtime (polling fallback), flag, rating change, rematch, abort, invite link, spectator.
 # Run: python3 test/online_e2e.py
 import asyncio, json, os, subprocess, sys, time, urllib.request
@@ -75,11 +75,22 @@ async def main():
                 b = await wait_for(B, f'__gc.game.records.length === {n} && !__gc.online.pending', timeout)
                 return a and b and (await fen(A)) == (await fen(B))
 
-            # ---- 1. both players find each other through the New game dialog
-            for pg in (A, B):
-                await pg.click('#btn-new'); await pg.click('#opt-online')
-                ok('lobby shows the player name', await wait_for(pg, '!!document.getElementById("my-name")'))
-                await pg.click('#opt-otc32'); await pg.click('#btn-seek')
+            async def sign_in(pg, email, name):
+                # the sign-in page: email, the code from the outbox, a name for the new account
+                ok(f'{name}: sign-in page first', await wait_for(pg, '__gc.curView === "signin" && !!document.getElementById("acct-email")', 5000))
+                await pg.fill('#acct-email', email); await pg.click('#btn-send-code')
+                await wait_for(pg, '!!document.getElementById("acct-code")', 5000)
+                await pg.fill('#acct-code', admin('outbox', to=email)[-1]['code'])
+                await wait_for(pg, '!!document.getElementById("acct-name")', 5000)
+                await pg.fill('#acct-name', name); await pg.click('#btn-name')
+
+            # ---- 1. both players press Start Game (3+2), sign in, and find each other
+            for pg, email, name in ((A, 'alice@example.com', 'Alice'), (B, 'bob@example.com', 'Bob')):
+                await wait_for(pg, '!!document.getElementById("btn-start")')
+                ok('Play tab offers 3+2', '3+2' in (await pg.text_content('#play-tc')))
+                await pg.click('#btn-start')
+                await sign_in(pg, email, name)
+                ok(f'{name}: the search starts right after signing in', await wait_for(pg, '__gc.dialogKind === "lobby"', 5000))
                 await pg.wait_for_timeout(150)
             ok('paired: both pages in the online game', await wait_for(A, '__gc.online && __gc.game.cfg.mode === "online"', 8000) and await wait_for(B, '__gc.online && __gc.game.cfg.mode === "online"', 8000))
             ca, cb = await A.evaluate('__gc.online.color'), await B.evaluate('__gc.online.color')
@@ -210,10 +221,12 @@ async def main():
             admin('latency', ms=0)
             for pg in (A, B): await pg.evaluate('__gc.closeDialog()')
 
-            # ---- 11. invite a friend by link (casual 5+0)
-            await A.click('#btn-new'); await A.click('#opt-online')
-            await wait_for(A, '!!document.getElementById("my-name")')
-            await A.click('#opt-otc50'); await A.click('#opt-casual'); await A.click('#btn-invite')
+            # ---- 11. invite a friend by link (casual 5+0), from the Play tab
+            await A.click('#rail [data-nav=play]'); await wait_for(A, '__gc.curView === "play"')
+            await A.click('#play-tc'); await A.click('#tc-5-0')
+            ok('time control picked', '5+0' in (await A.text_content('#play-tc')))
+            await A.click('#btn-more'); await A.click('#opt-casual')
+            await A.click('#btn-friend')
             ok('invite link ready', await wait_for(A, '/[?]join=/.test(document.getElementById("invite-link").value)', 5000))
             link = await A.evaluate('document.getElementById("invite-link").value')
             if os.environ.get('DBG'):
@@ -228,8 +241,9 @@ async def main():
             ok('casual game', await A.evaluate('__gc.game.cfg.rated') == False and await A.evaluate('__gc.game.cfg.tc.label') == '5+0')
             ok('url switched to ?game=', 'game=' in B.url and 'join=' not in B.url, B.url)
 
-            # ---- 12. a third person opening the invite link watches
+            # ---- 12. a third person opening the invite link signs in, then watches
             C = await open_page(await br.new_context(viewport={'width': 800, 'height': 900}), 'C', link)
+            await sign_in(C, 'carol@example.com', 'Carol')
             ok('spectator sees the game', await wait_for(C, '__gc.online && __gc.online.color === -1', 6000))
             wa = A if await A.evaluate('__gc.online.color') == 0 else B
             await click_move(wa, 'd2', 'd4')

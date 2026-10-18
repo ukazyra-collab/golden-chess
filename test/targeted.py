@@ -1,6 +1,6 @@
 import asyncio, json
 from playwright.async_api import async_playwright
-URL = 'file:///home/claude/golden-chess/dist/preview.html'
+URL = 'file:///home/claude/golden-chess/dist/preview.html#game'
 HELPERS = open('/home/claude/golden-chess/test/helpers.js').read()
 results = []
 def ok(name, cond, extra=''):

@@ -1,6 +1,6 @@
 import asyncio, random, sys, time, json
 from playwright.async_api import async_playwright
-URL = 'file:///home/claude/golden-chess/dist/preview.html'
+URL = 'file:///home/claude/golden-chess/dist/preview.html#game'
 HELPERS = open('/home/claude/golden-chess/test/helpers.js').read()
 SEED = int(sys.argv[1]) if len(sys.argv) > 1 else 1
 GAMES = int(sys.argv[2]) if len(sys.argv) > 2 else 6

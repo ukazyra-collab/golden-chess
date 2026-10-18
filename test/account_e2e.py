@@ -1,7 +1,9 @@
-# Accounts through the local test server: a guest keeps their rating by adding an email (same account),
-# another device signs in with that email and gets the same player, sign out, wrong code, resend limit,
-# switching accounts with a note, the live-game guard, and an expired sign-in link.
-# Run: python3 test/account_e2e.py        (SHOTS=1 also saves screenshots of the dialogs)
+# Accounts through the local test server's stand-in for Supabase Auth (codes land in an outbox).
+# Online play needs an account: Start Game sends a guest to the sign-in page and the search starts right after;
+# a new account keeps the guest's id and picks a name (a taken name is refused); signing in from the Profile and
+# Ratings tabs returns there; another device signs in to the same player; sign out; wrong code; resend limit;
+# signing out is refused during a live game; an expired sign-in link; Russian.
+# Run: python3 test/account_e2e.py        (SHOTS=1 also saves screenshots)
 import asyncio, json, os, subprocess, sys, time, urllib.request
 from playwright.async_api import async_playwright
 
@@ -73,24 +75,77 @@ async def main():
                 pt = await pg.evaluate(f'__t.sqCenter({sq})'); await pg.mouse.click(*pt)
             async def click_move(pg, a, z):
                 await click_sq(pg, a); await pg.wait_for_timeout(60); await click_sq(pg, z)
-            async def pair(A, B, tc='opt-otc32'):
+            async def nav(pg, v):  # the tab bar on a phone, the rail on a computer
+                await pg.click(f'#tabbar [data-nav={v}]' if await pg.evaluate('innerWidth < 768') else f'#rail [data-nav={v}]')
+                return await wait_for(pg, f'__gc.curView === "{v}"', 3000)
+            async def send_code(pg, email):
+                await pg.fill('#acct-email', email); await pg.click('#btn-send-code')
+                return await wait_for(pg, '!!document.getElementById("acct-code")', 5000)
+            async def pair(A, B):
                 for pg in (A, B):
-                    await pg.evaluate('__gc.closeDialog()')
-                    await pg.click('#btn-new'); await pg.click('#opt-online')
-                    await wait_for(pg, '!!document.getElementById("my-name")')
-                    await pg.click('#' + tc); await pg.click('#btn-seek')
+                    await pg.evaluate('__gc.closeDialog(); __gc.go("play")')
+                    await wait_for(pg, '!!document.getElementById("btn-start")')
+                    await pg.click('#btn-start')
                     await pg.wait_for_timeout(150)
                 a = await wait_for(A, '__gc.online && __gc.game.cfg.mode === "online" && __gc.game.status === "playing"', 8000)
                 b = await wait_for(B, '__gc.online && __gc.game.cfg.mode === "online" && __gc.game.status === "playing"', 8000)
                 return a and b
-            async def enter_email(pg, email):
-                await pg.fill('#acct-email', email); await pg.click('#btn-send-code')
+            async def abort(pg):
+                await pg.click('#btn-menu'); await pg.click('.menu-list button.danger'); await pg.click('.sheetdlg .secondary.danger')
 
             ctxA = await br.new_context(viewport={'width': 1280, 'height': 860})
             ctxB = await br.new_context(viewport={'width': 390, 'height': 844}, has_touch=True, is_mobile=True)
             A = await open_page(ctxA, 'A'); B = await open_page(ctxB, 'B')
 
-            # ---- 1. two guests play a rated game
+            # ---- 1. a guest presses Start Game: the sign-in page, a new account with a name, then the search starts
+            await wait_for(A, '!!document.getElementById("btn-start")')
+            await A.click('#btn-start')
+            ok('Start Game sends a guest to the sign-in page', await wait_for(A, '__gc.curView === "signin" && !!document.getElementById("acct-email")', 4000))
+            ok('the search waits for the sign-in', '"seek"' in (await A.evaluate('localStorage.getItem("goldenchess.pending")') or ''))
+            ok('no tab bar on the sign-in page (rail on a computer)', await A.evaluate('getComputedStyle(document.getElementById("rail")).display !== "none"'))
+            await shot(A, '1-signin')
+            await A.fill('#acct-email', 'not-an-email'); await A.click('#btn-send-code')
+            ok('a bad address is caught before sending', await wait_for(A, '/valid/i.test((document.getElementById("acct-err") || {}).textContent || "")', 2000))
+            ok('code step', await send_code(A, 'Alice@Example.com'))
+            sub = await text(A, '#signin-card .dlg-sub')
+            ok('code step names the address', 'Alice@Example.com' in (sub or ''), sub)
+            rs = await A.evaluate('(b => [b.disabled, b.textContent])(document.getElementById("btn-resend"))')
+            ok('send again waits a minute', rs[0] and any(ch.isdigit() for ch in rs[1]), rs)
+            ok('no note about switching accounts when the email is new', not await A.evaluate('!!document.getElementById("acct-existing")'))
+            msg = last_code('alice@example.com')
+            ok('code sent as an email change of this guest', msg and msg['type'] == 'email_change', msg)
+            uidA = await A.evaluate('__gc.me.uid')
+            await A.fill('#acct-code', '000000')
+            ok('wrong code: clear error, field emptied', await wait_for(A, '/wrong|expired/i.test((document.getElementById("acct-err") || {}).textContent || "") && document.getElementById("acct-code").value === ""', 4000))
+            await A.fill('#acct-code', msg['code'])
+            ok('a new account picks a name', await wait_for(A, '!!document.getElementById("acct-name")', 4000))
+            ok('toast: signed in as', 'alice@example.com' in (await toast_text(A)), await toast_text(A))
+            await shot(A, '2-name')
+            await A.fill('#acct-name', 'Alice'); await A.click('#btn-name')
+            ok('the search starts right after', await wait_for(A, '__gc.dialogKind === "lobby"', 5000))
+            ok('same id as the guest, now with an email', await A.evaluate('__gc.me.uid') == uidA and await A.evaluate('__gc.me.guest === false && __gc.me.email === "alice@example.com"'))
+            ok('name saved', await A.evaluate('__gc.me.profile.username') == 'Alice')
+            prof = [x for x in admin('profiles') if x['id'] == uidA][0]
+            ok('server profile marked registered', prof['is_guest'] is False, prof)
+            ok('nothing left waiting', await A.evaluate('localStorage.getItem("goldenchess.pending")') in (None, 'null'))
+            await A.evaluate('__gc.closeDialog()')
+            ok('Play shows the account', await wait_for(A, '/Alice/.test((document.getElementById("acct-chip") || {}).textContent || "")', 3000))
+
+            # ---- 2. another guest signs in from the Profile tab and comes back to it; a taken name is refused
+            ok('profile tab', await nav(B, 'profile'))
+            ok('profile: a sign-in button for a guest', await wait_for(B, '!!document.getElementById("btn-profile-signin")', 3000))
+            await B.click('#btn-profile-signin')
+            ok('sign-in page, no tab bar on a phone', await wait_for(B, '__gc.curView === "signin"') and await B.evaluate('getComputedStyle(document.getElementById("tabbar")).display === "none"'))
+            ok('code step (B)', await send_code(B, 'bob@example.com'))
+            await B.fill('#acct-code', last_code('bob@example.com')['code'])
+            await wait_for(B, '!!document.getElementById("acct-name")', 4000)
+            await B.fill('#acct-name', 'Alice'); await B.click('#btn-name')
+            ok('a taken name is refused', await wait_for(B, '/taken/i.test((document.getElementById("acct-err") || {}).textContent || "")', 4000), await text(B, '#acct-err'))
+            await B.fill('#acct-name', 'Bob'); await B.click('#btn-name')
+            ok('back on the Profile tab with the account', await wait_for(B, '__gc.curView === "profile" && /Bob/.test(document.getElementById("prof-name").textContent) && /bob@example.com/.test(document.getElementById("prof-sub").textContent)', 5000))
+            await shot(B, '3-profile')
+
+            # ---- 3. both play a rated game
             ok('paired', await pair(A, B))
             W, Bl = (A, B) if await A.evaluate('__gc.online.color') == 0 else (B, A)
             await click_move(W, 'e2', 'e4'); await wait_for(Bl, '__gc.game.records.length === 1 && !__gc.online.pending', 5000)
@@ -98,117 +153,75 @@ async def main():
             await wait_for(Bl, '__gc.game.records.length === 2 && !__gc.online.pending', 5000)
             await Bl.click('#btn-menu'); await Bl.click('.menu-list button.danger'); await Bl.click('.sheetdlg .secondary.danger')
             ok('rated game over, ratings changed', await wait_for(A, '!!document.querySelector(".rating-change")', 6000) and await wait_for(B, '!!document.querySelector(".rating-change")', 6000))
-            ok('result offers a guest to keep the rating', await wait_for(A, '!!document.getElementById("btn-save-progress")', 3000) and await wait_for(B, '!!document.getElementById("btn-save-progress")', 3000))
-            await shot(B, '1-result-nudge')
-            uidA = await A.evaluate('__gc.me.uid'); nameA = await A.evaluate('__gc.me.profile.username')
+            ok('no guest nudge for an account', not await A.evaluate('!!document.getElementById("btn-save-progress")'))
             await wait_for(A, 'Object.values(__gc.me.ratings).some(r => r.games === 1)', 4000)
             ratA = await A.evaluate('JSON.stringify(__gc.me.ratings)')
-            ok('A is a guest with a rating', await A.evaluate('__gc.me.guest === true && __gc.me.email === null') and '"games":1' in ratA, ratA)
+            ok('A has a rating', '"games":1' in ratA, ratA)
 
-            # ---- 2. A adds an email: same account, rating kept
-            await A.click('#btn-save-progress')
-            ok('account dialog opens on the email form', await wait_for(A, '__gc.dialogKind === "account" && !!document.getElementById("acct-email")', 4000))
-            await enter_email(A, 'not-an-email')
-            ok('a bad address is caught before sending', await wait_for(A, '/valid/i.test((document.getElementById("acct-err") || {}).textContent || "")', 2000))
-            await enter_email(A, 'Alice@Example.com')
-            ok('code step', await wait_for(A, '!!document.getElementById("acct-code")', 4000))
-            sub = await text(A, '.sheetdlg .dlg-sub')
-            ok('code step names the address', 'Alice@Example.com' in (sub or ''), sub)
-            rs = await A.evaluate('(b => [b.disabled, b.textContent])(document.getElementById("btn-resend"))')
-            ok('send again waits a minute', rs[0] and any(ch.isdigit() for ch in rs[1]), rs)
-            ok('no note about switching accounts when the email is new', not await A.evaluate('!!document.getElementById("acct-existing")'))
-            msg = last_code('alice@example.com')
-            ok('code sent as an email change of this account', msg and msg['type'] == 'email_change', msg)
-            await shot(A, '2-code')
-            await A.fill('#acct-code', '000000')
-            ok('wrong code: clear error, field emptied', await wait_for(A, '/wrong|expired/i.test((document.getElementById("acct-err") || {}).textContent || "") && document.getElementById("acct-code").value === ""', 4000))
-            await A.fill('#acct-code', msg['code'])
-            ok('right code: signed in, the dialog says so', await wait_for(A, '/alice@example.com/.test((document.getElementById("acct-who") || {}).textContent || "")', 4000))
-            ok('toast: progress saved', 'saved' in (await toast_text(A)).lower(), await toast_text(A))
-            ok('same account, no longer a guest', await A.evaluate('__gc.me.uid') == uidA and await A.evaluate('__gc.me.guest === false && __gc.me.email === "alice@example.com"'))
-            ok('name and rating kept', await A.evaluate('__gc.me.profile.username') == nameA and await A.evaluate('JSON.stringify(__gc.me.ratings)') == ratA)
-            prof = [x for x in admin('profiles') if x['id'] == uidA][0]
-            ok('server profile marked registered', prof['is_guest'] is False, prof)
-            await shot(A, '3-signed')
-            await A.click('#btn-acct-done')
-            ok('done returns to the result', await wait_for(A, '__gc.dialogKind === "over"', 3000))
-            ok('no guest nudge any more', not await A.evaluate('!!document.getElementById("btn-save-progress")'))
-
-            # ---- 3. another device signs in with the same email and becomes the same player
+            # ---- 4. another device signs in with the same email from the Ratings tab and becomes the same player
             ctxC = await br.new_context(viewport={'width': 390, 'height': 844}, has_touch=True, is_mobile=True)
             C = await open_page(ctxC, 'C')
-            await C.click('#btn-settings')
-            ok('settings: account row shows a guest', await wait_for(C, '/guest/i.test((document.getElementById("acct-line") || {}).textContent || "")', 3000))
-            await shot(C, '4-settings-guest')
-            await C.click('#btn-account')
-            await wait_for(C, '!!document.getElementById("acct-email")', 4000)
+            ok('ratings tab', await nav(C, 'ratings'))
+            ok('ratings: asks a guest to sign in', await wait_for(C, '!!document.getElementById("btn-ratings-signin")', 3000))
+            await C.click('#btn-ratings-signin')
             admin('shift', ms=61000)  # past the one-code-a-minute limit for this address
-            await enter_email(C, 'alice@example.com')
-            ok('existing email: code step', await wait_for(C, '!!document.getElementById("acct-code")', 4000))
+            ok('existing email: code step', await send_code(C, 'alice@example.com'))
             ok('no switching note for a fresh guest', not await C.evaluate('!!document.getElementById("acct-existing")'))
             msg = last_code('alice@example.com')
             ok('code sent as a sign-in', msg and msg['type'] == 'email', msg)
-            uidC0 = await C.evaluate('__gc.me.uid')
             await C.fill('#acct-code', msg['code'])
-            ok('page reloads into the account', await wait_for(C, '!!window.__gc && !!__gc.me && __gc.me.uid === %s' % json.dumps(uidA), 8000), uidC0)
+            ok('page reloads into the account', await wait_for(C, '!!window.__gc && !!__gc.me && __gc.me.uid === %s' % json.dumps(uidA), 8000))
             await C.evaluate(HELPERS)
-            ok('same name and rating on the second device', await C.evaluate('__gc.me.profile.username') == nameA and await C.evaluate('JSON.stringify(__gc.me.ratings)') == ratA)
+            ok('same name and rating on the second device', await C.evaluate('__gc.me.profile.username') == 'Alice' and await C.evaluate('JSON.stringify(__gc.me.ratings)') == ratA)
             ok('toast: signed in as', await wait_for(C, '/alice@example.com/.test(document.getElementById("toast").textContent)', 3000), await toast_text(C))
-            await C.click('#btn-settings')
-            ok('settings: account row shows the email', await wait_for(C, '/alice@example.com/.test((document.getElementById("acct-line") || {}).textContent || "")', 3000))
-            await shot(C, '5-settings-signed')
+            ok('back on the Ratings tab with the rating', await wait_for(C, '__gc.curView === "ratings" && !!document.querySelector("#my-rating .big")', 5000))
+            ok('the leaderboard lists the player', await wait_for(C, '/Alice/.test(document.getElementById("lb-list").textContent)', 4000))
+            await shot(C, '4-ratings')
 
-            # ---- 4. sign out: a new guest
-            await C.click('#btn-account')
-            ok('account dialog shows the signed-in state', await wait_for(C, '!!document.getElementById("btn-signout")', 4000))
+            # ---- 5. sign out from the Profile tab: a new guest
+            ok('profile tab (C)', await nav(C, 'profile'))
+            await wait_for(C, '!!document.getElementById("btn-signout")', 3000)
             await C.click('#btn-signout')
             ok('signed out: a new guest after reload', await wait_for(C, '!!window.__gc && !!__gc.me && __gc.me.uid !== %s && __gc.me.guest === true' % json.dumps(uidA), 8000))
             ok('toast: signed out', await wait_for(C, '/signed out/i.test(document.getElementById("toast").textContent)', 3000), await toast_text(C))
+            ok('lands on Play', await C.evaluate('__gc.curView') == 'play')
             ok('the account itself is untouched', [x for x in admin('profiles') if x['id'] == uidA][0]['is_guest'] is False)
 
-            # ---- 5. a guest with games of their own is told before switching; sending again too soon is refused
-            await B.evaluate('__gc.closeDialog()')
-            await B.evaluate('__gc.showAccount()')
-            await wait_for(B, '!!document.getElementById("acct-email")', 4000)
-            admin('shift', ms=61000)
-            await enter_email(B, 'alice@example.com')
-            ok('switching note for a guest with a rating', await wait_for(B, '!!document.getElementById("acct-existing")', 4000))
-            await shot(B, '6-switch-note')
-            await B.click('#btn-other-email')
-            ok('back to the email form, address kept', await wait_for(B, 'document.getElementById("acct-email") && document.getElementById("acct-email").value === "alice@example.com"', 3000))
-            await B.click('#btn-send-code')
-            ok('asking again within a minute: told to wait', await wait_for(B, '/wait|too many/i.test((document.getElementById("acct-err") || {}).textContent || "")', 4000), await text(B, '#acct-err'))
-            ok('B is still its own guest', await B.evaluate('__gc.me.guest === true && __gc.me.uid !== %s' % json.dumps(uidA)))
-            # layout on a phone: nothing sticks out sideways
-            ok('phone: no sideways scroll with the dialog open', await B.evaluate('document.documentElement.scrollWidth <= window.innerWidth'))
-            await B.evaluate('__gc.closeDialog()')
+            # ---- 6. sending again too soon is refused
+            await C.evaluate('__gc.go("signin")')
+            ok('code step (C)', await send_code(C, 'carol@example.com'))
+            await C.click('#btn-other-email')
+            ok('back to the email form, address kept', await wait_for(C, 'document.getElementById("acct-email") && document.getElementById("acct-email").value === "carol@example.com"', 3000))
+            await C.click('#btn-send-code')
+            ok('asking again within a minute: told to wait', await wait_for(C, '/wait|too many/i.test((document.getElementById("acct-err") || {}).textContent || "")', 4000), await text(C, '#acct-err'))
+            ok('phone: no sideways scroll on the sign-in page', await C.evaluate('document.documentElement.scrollWidth <= window.innerWidth'))
+            await C.click('#signin-back')
+            ok('back leaves the sign-in page', await wait_for(C, '__gc.curView === "play"', 3000))
 
-            # ---- 6. not during a live online game: switching accounts or signing out
+            # ---- 7. not during a live online game: signing out
             ok('new game paired', await pair(A, B))
-            await B.evaluate('__gc.showAccount()')
-            await wait_for(B, '!!document.getElementById("acct-email")', 4000)
-            admin('shift', ms=61000)
-            await enter_email(B, 'alice@example.com')
-            ok('switching accounts mid-game is refused', await wait_for(B, '/finish/i.test((document.getElementById("acct-err") || {}).textContent || "")', 4000), await text(B, '#acct-err'))
-            await A.evaluate('__gc.showAccount()')
-            await wait_for(A, '!!document.getElementById("btn-signout")', 4000)
+            ok('profile tab during the game (A)', await nav(A, 'profile'))
+            await wait_for(A, '!!document.getElementById("btn-signout")', 3000)
             await A.click('#btn-signout')
-            ok('signing out mid-game is refused', await wait_for(A, '/finish/i.test((document.getElementById("acct-err") || {}).textContent || "")', 3000))
+            ok('signing out mid-game is refused', await wait_for(A, '/finish/i.test((document.getElementById("signout-err") || {}).textContent || "")', 3000))
             ok('still signed in and playing', await A.evaluate('__gc.me.uid') == uidA and await A.evaluate('__gc.game.status === "playing"'))
-            for pg in (A, B): await pg.evaluate('__gc.closeDialog()')
-            await A.click('#btn-menu'); await A.click('.menu-list button.danger'); await A.click('.sheetdlg .secondary.danger')
-            ok('game aborted', await wait_for(B, '__gc.game.reason === "abort"', 5000))
+            await B.click('#btn-back')
+            ok('phone: back from the game shows it on Play', await wait_for(B, '__gc.curView === "play" && !!document.getElementById("resume")', 3000))
+            await B.click('#btn-resume')
+            ok('and returns to it', await wait_for(B, '__gc.curView === "game" && __gc.game.status === "playing"', 3000))
+            await abort(B)
+            ok('game aborted', await wait_for(A, '__gc.game.reason === "abort"', 5000))
 
-            # ---- 7. an expired sign-in link brings the player back with a clear message
+            # ---- 8. an expired sign-in link brings the player back with a clear message
             D = await open_page(await br.new_context(viewport={'width': 800, 'height': 900}), 'D', BASE + '#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired')
             ok('expired link: told so', await wait_for(D, '/expired/i.test(document.getElementById("toast").textContent)', 4000), await toast_text(D))
-            ok('address tidied', await D.evaluate('location.hash === "" && !/#/.test(location.href)'), await D.evaluate('location.href'))
+            ok('address tidied', await D.evaluate('location.hash === "#play" && !/error/.test(location.href)'), await D.evaluate('location.href'))
 
-            # ---- 8. Russian
+            # ---- 9. Russian
             await D.evaluate('__gc.settings.lang = "ru"; localStorage.setItem("goldenchess.settings", JSON.stringify(__gc.settings))')
             await D.reload(); await D.evaluate(HELPERS)
-            await D.evaluate('__gc.showAccount()')
-            ok('Russian dialog', await wait_for(D, '/Войти/.test(document.querySelector(".sheetdlg .dlg-title").textContent) && /почт/i.test(document.querySelector(".sheetdlg .dlg-sub").textContent)', 4000))
+            await D.evaluate('__gc.go("signin")')
+            ok('Russian sign-in page', await wait_for(D, '/Войдите/.test(document.querySelector("#signin-card .dlg-title").textContent) && /почт/i.test(document.querySelector("#signin-card .dlg-sub").textContent)', 4000))
 
             for nm in errs:
                 bad = [e for e in errs[nm] if 'favicon' not in e]

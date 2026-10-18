@@ -7,7 +7,7 @@ async def main():
             ctx = await b.new_context(viewport={'width': w, 'height': h})
             page = await ctx.new_page()
             await page.route('**/fonts.googleapis.com/**', lambda r: r.fulfill(status=200, body='', content_type='text/css'))
-            await page.goto('file:///home/claude/golden-chess/dist/preview.html'); await page.wait_for_timeout(300)
+            await page.goto('file:///home/claude/golden-chess/dist/preview.html#game'); await page.wait_for_timeout(300)
             r = await page.evaluate('''() => {
               const rect = id => document.getElementById(id).getBoundingClientRect();
               const brand = document.querySelector('.brand').getBoundingClientRect(), acts = document.querySelector('.top-actions').getBoundingClientRect();
