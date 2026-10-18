@@ -202,9 +202,12 @@ async def main():
             ok('both moved to the rematch', await wait_for(A, '__gc.online && __gc.online.id !== "%s" && __gc.game.status === "playing"' % gid, 6000) and await wait_for(B, '__gc.online && __gc.online.id !== "%s"' % gid, 6000))
             ok('colors swapped', await A.evaluate('__gc.online.color') == 1 - ca)
 
-            # ---- 10. abort before two moves
-            await A.evaluate('__gc.onlineAction("resign")')
-            ok('aborted on both', await wait_for(A, '__gc.game.reason === "abort"', 4000) and await wait_for(B, '__gc.game.reason === "abort"', 4000))
+            # ---- 10. abort before two moves, through the menu: the result shows at once, the server confirms
+            admin('latency', ms=700)
+            await A.click('#btn-menu'); await A.click('.menu-list button.danger'); await A.click('.sheetdlg .secondary.danger')
+            ok('abort shown at once (before the slow server answers)', await wait_for(A, '__gc.game.reason === "abort" && __gc.online.resigning', 300, step=10))
+            ok('aborted on both, confirmed', await wait_for(A, '__gc.game.reason === "abort" && !__gc.online.resigning && __gc.online.s.status === "aborted"', 5000) and await wait_for(B, '__gc.game.reason === "abort"', 5000))
+            admin('latency', ms=0)
             for pg in (A, B): await pg.evaluate('__gc.closeDialog()')
 
             # ---- 11. invite a friend by link (casual 5+0)
@@ -232,6 +235,16 @@ async def main():
             await click_move(wa, 'd2', 'd4')
             ok('spectator receives moves', await wait_for(C, '__gc.game.records.length === 1', 5000))
             ok('spectator cannot move', not await C.evaluate('__gc.tryMove(%d, %d, false)' % (sq('d7'), sq('d5'))))
+            wb = B if wa is A else A
+            await click_move(wb, 'd7', 'd5'); ok('moves continue', await wait_for(C, '__gc.game.records.length === 2', 5000))
+
+            # ---- 13. resign through the menu: instant result, server-confirmed on all three screens
+            await wb.click('#btn-menu'); await wb.click('.menu-list button.danger'); await wb.click('.sheetdlg .secondary.danger')
+            ok('resignation shown at once', await wait_for(wb, '__gc.game.status === "over" && __gc.game.reason === "resign"', 300, step=10))
+            winner = '1-0' if wa == A and await A.evaluate('__gc.online.color') == 0 or wa == B and await B.evaluate('__gc.online.color') == 0 else '0-1'
+            ok('winner and spectator see the result', await wait_for(wa, '__gc.game.result === "%s" && __gc.game.reason === "resign"' % winner, 5000) and await wait_for(C, '__gc.game.result === "%s"' % winner, 5000))
+            ok('server confirmed it', await wait_for(wb, '!__gc.online.resigning && __gc.online.s.status === "over" && __gc.online.s.reason === "resign"', 5000))
+            ok('winner sees "won"', await wait_for(wa, '/won|побед/i.test((document.querySelector(".sheetdlg .dlg-title") || {}).textContent || "")', 3000))
 
             for nm in errs:
                 bad = [e for e in errs[nm] if 'favicon' not in e]

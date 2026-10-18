@@ -27,7 +27,10 @@ const mainSrc = [core, engine, rd('src/ui/sound.js'), rd('src/ui/board.js'), rd(
 const supa = rd('vendor/supabase-js-2.117.2.umd.js');
 for (const [name, src] of [['worker', workerSrc], ['main', mainSrc], ['supabase', supa]]) if (/<\/script/i.test(src)) throw new Error(name + ' contains </script');
 
-const body = rd('src/ui/template.html').replace('/*PIECE_CSS*/', () => css).replace('/*ENGINE_SRC*/', () => workerSrc).replace('/*MAIN_SRC*/', () => mainSrc);
+const page = (pre) => rd('src/ui/template.html').replace('/*PIECE_CSS*/', () => css).replace('/*ENGINE_SRC*/', () => workerSrc).replace('/*MAIN_SRC*/', () => pre + mainSrc);
+const body = page('');
+// the artifact can't reach the game server, so it points to the website for online play
+const artifactBody = page('window.GC_SITE = ' + JSON.stringify(SITE) + ';\n');
 const RESET = '<style>:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}html{box-sizing:border-box}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>';
 const doc = (head, b) => '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">' + head + RESET + '</head><body>' + b + '</body></html>\n';
 
@@ -39,8 +42,8 @@ const webHead = '<title>Golden Chess</title><meta name="description" content="' 
   '<meta name="twitter:card" content="summary_large_image">';
 const webBody = body.replace(/^<title>[^<]*<\/title>\n/, '').replace(/^<meta name="claude:viewport-fit-sides"[^>]*>\n/m, '');
 
-write('dist/golden-chess.html', body);
-write('dist/preview.html', doc('', body));
+write('dist/golden-chess.html', artifactBody);
+write('dist/preview.html', doc('', artifactBody));
 write('dist/web/index.html', doc(webHead + '<script>' + supa + '</script><script>window.GC_ONLINE=' + JSON.stringify(ONLINE) + '</script>', webBody));
 write('dist/mock/index.html', doc('<title>Golden Chess (local server)</title><script>window.GC_ONLINE={mock:""}</script>', webBody));
 write('supabase/functions/play/core.js', '// Generated from src/core.js by build.js. Do not edit.\n' + core + '\nexport default GC;\n');

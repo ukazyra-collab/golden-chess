@@ -58,7 +58,7 @@
       r_agreement: 'by agreement', gameTaken: 'This game has already started, you are watching it', noGame: 'Game not found',
       stillPlaying: 'Your online game is still running. Starting another game leaves it, and your clock keeps ticking.',
       reconnecting: 'Reconnecting\u2026', connected: 'Online', disconnected: 'Left the game', leaderboard: 'Top players', lbEmpty: 'No rated games yet. Be the first.',
-      gamesN: '{n} games', casualNote: 'Casual game: ratings don\u2019t change.'
+      gamesN: '{n} games', casualNote: 'Casual game: ratings don\u2019t change.', onlineElsewhere: 'Online games and ratings:'
     },
     ru: {
       newGame: 'Новая партия', rules: 'Правила', settings: 'Настройки', menu: 'Меню партии', prev: 'Предыдущий ход', next: 'Следующий ход',
@@ -75,7 +75,7 @@
       resign: 'Сдаться', resignQ: 'Сдать партию?', resignSub: 'Партия закончится поражением.', cancel: 'Отмена', abort: 'Прервать партию',
       takeback: 'Вернуть ход', flip: 'Перевернуть доску', analyze: 'Анализ движком', analyzeOff: 'Скрыть анализ', copyPgn: 'Скопировать PGN', rematch: 'Реванш',
       youWon: 'Вы победили', youLost: 'Вы проиграли', draw: 'Ничья', whiteWon: 'Белые победили', blackWon: 'Чёрные победили',
-      r_checkmate: 'матом', r_resign: 'сдачей', r_timeout: 'по времени', r_stalemate: 'Пат', r_repetition: 'Троекратное повторение',
+      r_checkmate: 'мат', r_resign: 'сдача', r_timeout: 'время вышло', r_stalemate: 'Пат', r_repetition: 'Троекратное повторение',
       r_fifty: 'Правило 50 ходов', r_insufficient: 'Недостаточно материала', 'r_timeout-insufficient': 'Время вышло, но у соперника не хватает материала для мата', r_abort: 'Партия прервана',
       premoveCancelled: 'Премув отменён', pgnCopied: 'PGN скопирован', pgnManual: 'Скопируй PGN ниже',
       movesEmpty: 'Здесь будут ходы. Золотые ходы отмечены звездой.', movesEmptyShort: 'Здесь будут ходы', yourMove: 'Ваш ход', botThinking: 'Golden Bot думает', whiteMove: 'Ход белых', blackMove: 'Ход чёрных',
@@ -108,7 +108,7 @@
       r_agreement: 'по соглашению', gameTaken: 'Партия уже началась, вы смотрите её как зритель', noGame: 'Партия не найдена',
       stillPlaying: 'Ваша онлайн-партия ещё идёт. Если начать другую, часы в ней продолжат идти.',
       reconnecting: 'Переподключение…', connected: 'В игре', disconnected: 'Вышел из игры', leaderboard: 'Лучшие игроки', lbEmpty: 'Рейтинговых партий ещё нет. Будь первым.',
-      gamesN: 'партий: {n}', casualNote: 'Партия без рейтинга: рейтинг не меняется.'
+      gamesN: 'партий: {n}', casualNote: 'Партия без рейтинга: рейтинг не меняется.', onlineElsewhere: 'Онлайн-партии и рейтинг:'
     }
   };
   var settings = Object.assign({ sound: true, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
@@ -917,7 +917,7 @@
   }
   function resign() {
     if (game.status !== 'playing') return;
-    if (onlineGame()) { onlineAction('resign'); return; }
+    if (onlineGame()) { onlineResign(); return; }
     var c = botGame() ? game.cfg.human : game.pos.side;
     if (game.records.length < 2 && botGame()) { game.end('*', 'abort', perf()); }
     else game.end(c === 0 ? '0-1' : '1-0', 'resign', perf());
@@ -1229,6 +1229,7 @@
       card.appendChild(f3);
       var onF = NETCFG ? onlineFields(s) : null;
       if (onF) card.appendChild(onF);
+      else if (window.GC_SITE) card.appendChild(h('div', { class: 'dlg-note' }, esc(T('onlineElsewhere')) + ' <a class="site-link" href="' + esc(window.GC_SITE) + '" target="_blank" rel="noopener">' + esc(window.GC_SITE.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>'));
       var row = h('div', { class: 'row-btns' });
       var go = h('button', { class: 'primary', id: 'btn-play', type: 'button' }, esc(T('play')));
       go.addEventListener('click', function () { lastSetup = s; save('setup', s); closeDialog(); startGame(s); });
@@ -1956,6 +1957,7 @@
   function onServerState(s, opts) {
     opts = opts || {};
     if (!online || !s || s.id !== online.id || !game || !game.online) return;
+    if (online.resigning && s.status === 'playing') return; // our resignation is on its way; its answer decides
     var prev = online.s;
     if (prev && (opts.force ? s.version < prev.version : s.version <= prev.version)) return;
     online.s = s;
@@ -1967,7 +1969,11 @@
     if (game.records.length > (s.moves || []).length) { renderAll(); return; } // our move is on its way; wait for the server
     syncClock(s);
     if (s.status === 'playing') {
-      if (game.status !== 'playing') { rebuildOnline(s); syncClock(s); }
+      if (game.status !== 'playing') {
+        // we had ended the game locally (e.g. a resignation the server never received): back to the real state
+        rebuildOnline(s); syncClock(s);
+        if (currentDialog && currentDialog.dataset.kind === 'over') closeDialog();
+      }
       if (mine && s.draw_offer && s.draw_offer !== mine && (!prev || prev.draw_offer !== s.draw_offer) && !opts.initial) { Sound.play('select'); toast(T('oppOffersDraw', { name: sideLabel(online.color ^ 1) })); }
       if (mine && prev && prev.draw_offer === mine && !s.draw_offer && s.moves.length === prev.moves.length) toast(T('drawDeclined'));
     } else {
@@ -2045,6 +2051,29 @@
       return null;
     });
   }
+  // Resigning (or aborting) shows the result at once; the server confirms it, or corrects it if the game had
+  // already ended another way (a flag, a mate) by the time the request arrived.
+  function onlineResign() {
+    var o = online;
+    if (!o || o.color < 0 || !game || game.status !== 'playing' || o.resigning) return;
+    var abort = game.records.length < 2;
+    o.resigning = true;
+    game.freeze(perf());
+    game.status = 'over'; game.result = abort ? '*' : (o.color === 0 ? '0-1' : '1-0'); game.reason = abort ? 'abort' : 'resign';
+    gameOver();
+    (function attempt(n) {
+      net.call('resign', { game: o.id }).then(function (r) {
+        if (online !== o) return;
+        o.resigning = false;
+        onServerState(r.game, { force: true });
+      }, function (e) {
+        if (online !== o) return;
+        if (e && e.data && e.data.game) { o.resigning = false; onServerState(e.data.game, { force: true }); return; }
+        if (n < 4) { setTimeout(function () { attempt(n + 1); }, 500 * (n + 1)); return; }
+        o.resigning = false; toast(T('netError')); resyncOnline();
+      });
+    })(0);
+  }
   function rematchState() {
     var s = online && online.s, mine = game && game.cfg.human === 0 ? 'w' : 'b';
     if (!s) return { label: T('rematch'), disabled: true };
@@ -2078,7 +2107,7 @@
     if (s.status === 'playing') {
       if (mine && s.draw_offer && s.draw_offer !== mine) {
         out += '<span class="notice"><b>' + esc(T('oppOffersDraw', { name: sideLabel(o.color ^ 1) })) + '</b>' +
-          '<button class="sbtn" data-act="draw-accept">' + esc(T('accept')) + '</button><button class="sbtn" data-act="draw-decline">' + esc(T('decline')) + '</button></span>';
+          '<span class="notice-btns"><button class="sbtn" data-act="draw-accept">' + esc(T('accept')) + '</button><button class="sbtn" data-act="draw-decline">' + esc(T('decline')) + '</button></span></span>';
       } else if (mine && s.draw_offer === mine) out += '<span>' + esc(T('drawOffered')) + '</span>';
       if (game.records.length < 2 && o.firstSec >= 0) {
         var side = game.pos.side, who = mine && (side === 0 ? 'w' : 'b') === mine ? T('you') : sideLabel(side);
@@ -2086,7 +2115,7 @@
       }
       if (!o.connected && perf() - o.lastEvent > 4000) out += '<span class="muted">' + esc(T('reconnecting')) + '</span>';
     } else if (mine && s.rematch_offer && s.rematch_offer !== mine && !s.rematch_game) {
-      out += '<span class="notice"><b>' + esc(T('oppWantsRematch', { name: sideLabel(o.color ^ 1) })) + '</b><button class="sbtn" data-act="rematch">' + esc(T('acceptRematch')) + '</button></span>';
+      out += '<span class="notice"><b>' + esc(T('oppWantsRematch', { name: sideLabel(o.color ^ 1) })) + '</b><span class="notice-btns"><button class="sbtn" data-act="rematch">' + esc(T('acceptRematch')) + '</button></span></span>';
     }
     return out;
   }
