@@ -30,22 +30,30 @@ const b64u = (b) => Buffer.from(b).toString('base64url');
 function token(sub) {
   const now = Math.floor(Date.now() / 1000);
   const head = b64u(JSON.stringify({ alg: 'ES256', typ: 'JWT', kid: 'k1' }));
-  const body = b64u(JSON.stringify({ sub, role: 'authenticated', aud: 'authenticated', iat: now, exp: now + 3600, iss: 'http://local/auth/v1', is_anonymous: true }));
+  const body = b64u(JSON.stringify({ sub, role: 'authenticated', aud: 'authenticated', iat: now, exp: now + 3600, iss: ISS(), is_anonymous: true }));
   const sig = crypto.sign('sha256', Buffer.from(head + '.' + body), { key: privateKey, dsaEncoding: 'ieee-p1363' });
   return head + '.' + body + '.' + b64u(sig);
 }
 const broadcasts = [];
+let ISS = () => 'http://127.0.0.1/auth/v1';
+const legacyTok = (sub) => b64u(JSON.stringify({ alg: 'HS256', typ: 'JWT' })) + '.' + b64u(JSON.stringify({ sub, role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600, iss: ISS() })) + '.c2ln';
 const fake = http.createServer((req, res) => {
   let data = '';
   req.on('data', (c) => (data += c));
   req.on('end', () => {
     if (req.url.startsWith('/auth/v1/.well-known/jwks.json')) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ keys: [jwk] })); return; }
+    if (req.url.startsWith('/auth/v1/user')) {
+      const tok = (req.headers.authorization || '').replace(/^Bearer\s+/, '');
+      if (tok === legacyTok(B)) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ id: B })); return; }
+      res.writeHead(401); res.end('{}'); return;
+    }
     if (req.url.startsWith('/realtime/v1/api/broadcast')) { broadcasts.push(JSON.parse(data)); res.writeHead(202); res.end(); return; }
     res.writeHead(404); res.end();
   });
 });
 await new Promise((r) => fake.listen(0, '127.0.0.1', r));
 const fakeUrl = 'http://127.0.0.1:' + fake.address().port;
+ISS = () => fakeUrl + '/auth/v1';
 
 // ---- the edge function under Deno
 const fnPort = 18000 + Math.floor(Math.random() * 1000);
@@ -75,7 +83,7 @@ try {
   check('bad token -> 401', r.status === 401, r);
   r = await call(ta, { action: 'hello' });
   check('hello A', r.status === 200 && r.body.profile && r.body.profile.id === A, r);
-  check('CORS + timing headers', r.cors === '*' && /auth;dur=.*db;dur=.*pg.*total;dur=/.test(r.timing) && r.expose === 'Server-Timing', r);
+  check('CORS + timing headers', r.cors === '*' && /auth;dur=.*db;dur=.*total;dur=.*worker;desc=/.test(r.timing) && r.expose === 'Server-Timing', r);
   r = await call(null, { action: 'hello' }, { headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tb } });
   check('hello B (Authorization header also accepted)', r.status === 200 && r.body.profile && r.body.profile.id === B, r);
   r = await call(ta, { action: 'challenge', tc: '3+2', rated: true, color: 'w' });
@@ -124,6 +132,10 @@ try {
   const forged = head + '.' + b64u(JSON.stringify({ sub: B, role: 'authenticated', exp: now + 3600 })) + '.' + b64u(Buffer.alloc(64, 1));
   r = await call(forged, { action: 'hello' });
   check('forged signature refused', r.status === 401, r);
+  r = await call(legacyTok(B), { action: 'hello' });
+  check('legacy symmetric token checked by the auth server', r.status === 200 && r.body.profile && r.body.profile.id === B && /desc="auth-server"/.test(r.timing), r);
+  r = await call(legacyTok(A), { action: 'hello' });
+  check('legacy token the auth server rejects is refused', r.status === 401, r);
 } finally {
   deno.kill();
   fake.close();
