@@ -1,11 +1,20 @@
-// Golden Chess game server (Supabase Edge Function). HTTP + storage + realtime wiring only;
+// Golden Chess game server (Supabase Edge Function). HTTP, storage and realtime wiring only;
 // the game logic lives in logic.js and is shared with the local test server.
+//
+// Latency notes:
+// - Storage goes straight to Postgres (postgres.js over SUPABASE_DB_URL), with the REST API as a fallback.
+// - Clients send "simple" CORS requests (text/plain body, token inside the body, region in the query string),
+//   so browsers never wait for a preflight.
+// - Every response carries a Server-Timing header (auth, db, total).
 import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
+import postgres from 'npm:postgres@3.4.9';
 import GC from './core.js';
 import { createLogic, CORS } from './logic.js';
+import { createPgRepo } from './pgrepo.js';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const DB_URL = Deno.env.get('SUPABASE_DB_URL');
 const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
 // deno-lint-ignore no-explicit-any
@@ -15,7 +24,8 @@ async function one(q: PromiseLike<{ data: any; error: any }>) {
   return data;
 }
 
-const repo = {
+// ---- storage over the REST API (fallback)
+const restRepo = {
   getGame: (id: string) => one(db.from('games').select('*').eq('id', id).maybeSingle()),
   updateGame: (id: string, version: number, patch: Record<string, unknown>) =>
     one(db.from('games').update(patch).eq('id', id).eq('version', version).select().maybeSingle()),
@@ -54,25 +64,49 @@ const repo = {
   },
 };
 
+// ---- storage straight over Postgres (preferred); on connection trouble fall back to REST for a minute
+const sql = DB_URL ? postgres(DB_URL, { prepare: false, max: +(Deno.env.get('PG_POOL_MAX') || 4), idle_timeout: 120, connect_timeout: 4, onnotice: () => {} }) : null;
+const pgRepo = sql ? createPgRepo(sql) : null;
+// open the connection while the first request is still being parsed and authorized
+const pgOk: Promise<boolean> = sql ? sql`select 1`.then(() => true, (e: unknown) => { console.error('pg connect failed, using REST', String(e)); return false; }) : Promise.resolve(false);
+let pgDownUntil = 0;
+// deno-lint-ignore no-explicit-any
+const isSqlError = (e: any) => e && typeof e.code === 'string' && /^[0-9A-Z]{5}$/.test(e.code) && !!e.severity;
+
+// per-request view of a repo that adds up time spent in storage
+// deno-lint-ignore no-explicit-any
+function timed(repo: any, acc: { db: number; n: number }, isPg: boolean) {
+  // deno-lint-ignore no-explicit-any
+  const out: any = {};
+  for (const k of Object.keys(repo)) {
+    // deno-lint-ignore no-explicit-any
+    out[k] = async (...args: any[]) => {
+      const t = performance.now();
+      try { return await repo[k](...args); }
+      catch (e) { if (isPg && !isSqlError(e)) { pgDownUntil = Date.now() + 60000; console.error('pg unavailable, using REST', String(e)); } throw e; }
+      finally { acc.db += performance.now() - t; acc.n++; }
+    };
+  }
+  return out;
+}
+
 async function broadcast(topic: string, event: string, payload: unknown) {
+  const t = performance.now();
   try {
     const r = await fetch(`${SUPABASE_URL}/realtime/v1/api/broadcast`, {
       method: 'POST',
       headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages: [{ topic, event, payload, private: true }] }),
     });
+    const ms = Math.round(performance.now() - t);
     if (!r.ok) console.error('broadcast', r.status, await r.text());
+    else if (ms > 150) console.log('broadcast slow', ms, 'ms');
   } catch (e) { console.error('broadcast', e); }
 }
+// deno-lint-ignore no-explicit-any
+const background = (p: Promise<unknown>) => { const rt = (globalThis as any).EdgeRuntime; if (rt && rt.waitUntil) rt.waitUntil(p); else p.catch(() => {}); };
 
-const logic = createLogic({
-  repo, broadcast, GC,
-  // deno-lint-ignore no-explicit-any
-  background: (p: Promise<unknown>) => { const rt = (globalThis as any).EdgeRuntime; if (rt && rt.waitUntil) rt.waitUntil(p); else p.catch(() => {}); },
-});
-
-async function userId(req: Request): Promise<string> {
-  const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+async function userId(token: string): Promise<string> {
   if (!token) throw { code: 'auth' };
   // deno-lint-ignore no-explicit-any
   const auth = db.auth as any;
@@ -86,9 +120,26 @@ async function userId(req: Request): Promise<string> {
   return data.user.id;
 }
 
+const HEADERS = { ...CORS, 'Content-Type': 'application/json', 'Timing-Allow-Origin': '*', 'Access-Control-Expose-Headers': 'Server-Timing' };
+let served = 0;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-  const body = await req.json().catch(() => ({}));
-  const { status, body: out } = await logic.handle(userId(req), body);
-  return new Response(JSON.stringify(out), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
+  const t0 = performance.now(), cold = served++ === 0;
+  // deno-lint-ignore no-explicit-any
+  let body: any = {};
+  try { body = JSON.parse((await req.text()) || '{}'); } catch { body = {}; }
+  if (!body || typeof body !== 'object') body = {};
+  const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '') || (typeof body.token === 'string' ? body.token : '');
+  delete body.token;
+  const acc = { db: 0, n: 0 };
+  let tAuth = 0;
+  const authP = userId(token).finally(() => { tAuth = performance.now() - t0; });
+  const usePg = !!pgRepo && body.via !== 'rest' && Date.now() > pgDownUntil && (await pgOk);
+  delete body.via;
+  const logic = createLogic({ repo: timed(usePg ? pgRepo : restRepo, acc, usePg), broadcast, GC, background });
+  const { status, body: out } = await logic.handle(authP, body);
+  const total = performance.now() - t0;
+  const timing = `auth;dur=${tAuth.toFixed(1)}, db;dur=${acc.db.toFixed(1)};desc="${acc.n}x ${usePg ? 'pg' : 'rest'}", total;dur=${total.toFixed(1)}` + (cold ? ', cold;dur=0' : '');
+  return new Response(JSON.stringify(out), { status, headers: { ...HEADERS, 'Server-Timing': timing } });
 });

@@ -1,15 +1,29 @@
 // Server logic tests: pairing, invites, legality, clocks (with a controllable clock), flags, aborts,
-// draw offers, resign, rematch, ratings. Run: node test/server/logic.test.mjs
+// draw offers, resign, rematch, ratings, concurrent writes.
+// Run: node test/server/logic.test.mjs          (in-memory store)
+//      PG=1 node test/server/logic.test.mjs     (real Postgres + postgres.js + the production migration)
 import { createRequire } from 'node:module';
 import { createLogic, glicko2, poolOf, LAG_COMP } from '../../supabase/functions/play/logic.js';
 import { createMemoryRepo } from './memory-repo.mjs';
 
 const require = createRequire(import.meta.url);
 const GC = require('../../src/core.js');
+const PG = process.env.PG === '1';
 
 let T = Date.parse('2026-10-18T12:00:00Z');
 const now = () => T;
-const { repo, db } = createMemoryRepo(now);
+const A = PG ? 'aaaaaaaa-0000-4000-8000-000000000001' : 'alice';
+const B = PG ? 'bbbbbbbb-0000-4000-8000-000000000002' : 'bob';
+const C = PG ? 'cccccccc-0000-4000-8000-000000000003' : 'carol';
+let repo, inspect, cleanup = async () => {};
+if (PG) {
+  const { setupPg } = await import('./pg-harness.mjs');
+  ({ repo, inspect, cleanup } = await setupPg([A, B, C]));
+} else {
+  const m = createMemoryRepo(now);
+  repo = m.repo;
+  inspect = { profiles: async () => [...m.db.profiles.values()], ratings: async () => [...m.db.ratings.values()], game: async (id) => m.db.games.get(id) };
+}
 const sent = [];
 const logic = createLogic({ repo, GC, now, broadcast: async (topic, event, payload) => { sent.push({ topic, event, payload }); } });
 const call = async (uid, body) => { const r = await logic.handle(Promise.resolve(uid), body); return r; };
@@ -18,10 +32,10 @@ const ok = async (uid, body) => { const r = await call(uid, body); if (r.status 
 let pass = 0, fail = 0;
 function check(name, cond, extra) { if (cond) pass++; else { fail++; console.log('FAIL', name, extra !== undefined ? JSON.stringify(extra) : ''); } }
 
-const A = 'alice', B = 'bob', C = 'carol';
 for (const u of [A, B, C]) await ok(u, { action: 'hello' });
-check('profiles created', db.profiles.size === 3);
-check('names unique', new Set([...db.profiles.values()].map((p) => p.username.toLowerCase())).size === 3);
+const profs = await inspect.profiles();
+check('profiles created', profs.length === 3);
+check('names unique', new Set(profs.map((p) => p.username.toLowerCase())).size === 3);
 
 // rename
 let r = await call(A, { action: 'rename', name: 'x' });
@@ -71,7 +85,7 @@ r = await call(Bk, { action: 'move', game: g1.id, uci: 'e7e5', ply: 0 });
 check('stale ply rejected', r.body.error && r.body.error === 'stale');
 T += 7000;
 r = await ok(Bk, { action: 'move', game: g1.id, uci: 'e7e5', ply: 1 });
-check('second move starts clock', r.game.clock_b === 180000 && r.game.turn_started_at === new Date(T).toISOString());
+check('second move starts clock', r.game.clock_b === 180000 && Date.parse(r.game.turn_started_at) === T, r.game.turn_started_at);
 T += 10000;
 r = await ok(W, { action: 'move', game: g1.id, uci: 'g1f3', ply: 2 });
 check('clock: 10s used, lag credited, +2s inc', r.game.clock_w === 180000 - 10000 + LAG_COMP + 2000, r.game.clock_w);
@@ -107,7 +121,8 @@ r = await ok(Bk, { action: 'draw', game: g1.id, op: 'accept' });
 check('accept -> draw by agreement', r.game.status === 'over' && r.game.result === '1/2-1/2' && r.game.reason === 'agreement');
 check('ratings updated (draw, equal)', r.game.white_diff === 0 && r.game.black_diff === 0, [r.game.white_diff, r.game.black_diff]);
 check('clocks frozen at end', r.game.clock_b < 180000 + 2000 * 3);
-check('rating rows', db.ratings.size === 2 && [...db.ratings.values()].every((x) => x.games === 1 && x.draws === 1 && x.rd < 350));
+const rrows = await inspect.ratings();
+check('rating rows', rrows.length === 2 && rrows.every((x) => x.games === 1 && x.draws === 1 && x.rd < 350), rrows);
 
 // rematch
 r = await ok(W, { action: 'rematch', game: g1.id });
@@ -169,7 +184,7 @@ check('resign before 2 moves aborts', r.game.status === 'aborted');
 r = await ok(A, { action: 'challenge', tc: '5+0' });
 const g5 = r.game;
 r = await ok(A, { action: 'challenge', tc: '3+0' });
-check('new challenge aborts the old waiting one', db.games.get(g5.id).status === 'aborted');
+check('new challenge aborts the old waiting one', (await inspect.game(g5.id)).status === 'aborted');
 const g6 = r.game;
 await ok(B, { action: 'join', game: g6.id });
 const g6s = (await ok(B, { action: 'game', game: g6.id })).game;
@@ -207,7 +222,7 @@ await ok(B, { action: 'join', game: g8.id });
 await ok(A, { action: 'move', game: g8.id, uci: 'e2e4', ply: 0 });
 await ok(B, { action: 'move', game: g8.id, uci: 'e7e5', ply: 1 });
 const [x1, x2] = await Promise.all([call(A, { action: 'move', game: g8.id, uci: 'g1f3', ply: 2 }), call(A, { action: 'move', game: g8.id, uci: 'g1f3', ply: 2 })]);
-check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.error).length === 1 && db.games.get(g8.id).moves.length === 3, [x1.body.error, x2.body.error]);
+check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.error).length === 1 && (await inspect.game(g8.id)).moves.length === 3, [x1.body.error, x2.body.error]);
 
 // leaderboard
 r = await ok(A, { action: 'top', pool: 'bullet' });
@@ -220,5 +235,6 @@ const gl = glicko2(1500, 60, 0.06, 1500, 60, 0);
 check('glicko established loss small', gl.rating > 1470 && gl.rating < 1490, gl);
 check('pools', poolOf(60000, 0) === 'bullet' && poolOf(120000, 1000) === 'bullet' && poolOf(180000, 2000) === 'blitz' && poolOf(300000, 3000) === 'blitz' && poolOf(600000, 0) === 'rapid');
 
-console.log(`server logic: ${pass} passed, ${fail} failed`);
+console.log(`server logic (${PG ? 'postgres' : 'memory'}): ${pass} passed, ${fail} failed`);
+await cleanup();
 process.exit(fail ? 1 : 0);

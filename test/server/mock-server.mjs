@@ -65,7 +65,9 @@ const server = http.createServer(async (req, res) => {
   }
   if (req.method === 'POST' && u.pathname === '/play') {
     const body = await readBody(req);
-    const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    // same contract as the edge function: token in the Authorization header or in the body
+    const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || (typeof body.token === 'string' ? body.token : '');
+    delete body.token; delete body.via;
     const auth = token ? Promise.resolve(token) : Promise.reject({ code: 'auth' });
     const delay = +(process.env.MOCK_LATENCY || 0);
     if (delay) await new Promise((r) => setTimeout(r, delay / 2));

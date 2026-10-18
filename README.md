@@ -28,13 +28,15 @@ Play: https://ukazyra-collab.github.io/golden-chess/ (bot, two players on one de
 - A flag falls on the server: the client that sees a clock at zero asks the server to settle it (`claim`). A player who doesn't make a first move within 30 s gets the game aborted.
 - Matchmaking pairs the closest rating with the same time control and rated/casual choice. Invites are links (`?join=<id>`); a third person opening one watches.
 - Anonymous accounts (Supabase anonymous sign-in); a random name you can change.
+- Latency: the function talks to Postgres directly (postgres.js over `SUPABASE_DB_URL`, REST API as a fallback), runs in the database's region (`?forceFunctionRegion=eu-central-1`), and clients send CORS-simple requests (text/plain body with the token inside), so no preflight round trip. Every response carries a `Server-Timing` header (auth, db, total).
 
 ## Tests
 
 - `node test/perft.js` — move generator vs reference perft counts
 - `node test/golden.js` — golden-move rules + random-play fuzz
 - `node test/engine.js` — tactics incl. golden block, mate finding, KQK conversion
-- `node test/server/logic.test.mjs` — server: pairing, invites, legality, clocks, flags, aborts, draws, rematch, ratings, concurrent writes
+- `node test/server/logic.test.mjs` — server: pairing, invites, legality, clocks, flags, aborts, draws, rematch, ratings, concurrent writes; `PG=1` runs the same tests on real Postgres (PGlite) through postgres.js with the production migration (dev deps in `test/server/package.json`)
+- `DENO=<path to deno> node test/server/edge-local.mjs` — the production `index.ts` under Deno against PGlite, with a fake JWKS (ES256 tokens) and a fake Realtime endpoint
 - `python3 test/online_e2e.py` — two browsers play each other through `test/server/mock-server.mjs` (same server logic, in-memory store, SSE instead of Realtime): pairing, moves, premoves, golden move, clock sync, draw offer, reload, dropped realtime, flag, rating change, rematch, abort, invite link, spectator
 - `python3 test/targeted.py`, `python3 test/review_test.py`, `python3 test/stress.py <seed> <games>` — offline UI flows, review, randomized input with a per-frame consistency monitor
 

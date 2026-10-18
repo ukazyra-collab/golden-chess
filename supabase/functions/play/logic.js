@@ -219,6 +219,7 @@ export function createLogic(opts) {
     await repo.abortWaiting(uid);
     const row = await repo.insertGame({ status: 'waiting', host_id: uid, host_color: color, tc_base: t[0], tc_inc: t[1], pool: poolOf(t[0], t[1]),
       rated: !!b.rated, start_fen: GC.START_FEN, fen: GC.START_FEN, moves: [], sans: [], clock_w: t[0], clock_b: t[0], version: 0 });
+    if (!row || !row.id) throw new Error('insert failed');
     return { game: view(row) };
   };
 

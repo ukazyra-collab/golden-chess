@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "description": "Dev-only tools for the server tests (Postgres in WASM + the same driver the edge function uses)",
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
+    "@electric-sql/pglite-socket": "0.2.13",
+    "postgres": "3.4.9"
+  }
+}
