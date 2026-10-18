@@ -8,23 +8,17 @@ import http from 'node:http';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import { PGlite } from '@electric-sql/pglite';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
+import { createDb } from './pg-harness.mjs';
 
 const ROOT = new URL('../../', import.meta.url).pathname;
 const DENO = process.env.DENO || 'deno';
 let pass = 0, fail = 0;
 const check = (name, cond, extra) => { if (cond) pass++; else { fail++; console.log('FAIL', name, extra !== undefined ? JSON.stringify(extra) : ''); } };
 
-// ---- Postgres
-const pg = await PGlite.create();
-await pg.exec(`create role anon; create role authenticated; create role service_role;
-  create schema auth; create table auth.users (id uuid primary key);
-  create schema realtime; create table realtime.messages (id bigserial primary key, topic text, extension text, payload jsonb, event text, private boolean);
-  alter table realtime.messages enable row level security;`);
-for (const f of fs.readdirSync(ROOT + 'supabase/migrations').sort()) await pg.exec(fs.readFileSync(ROOT + 'supabase/migrations/' + f, 'utf8'));
+// ---- Postgres (production migrations on top of stand-ins for Supabase's auth and realtime schemas)
 const A = 'aaaaaaaa-0000-4000-8000-00000000000a', B = 'bbbbbbbb-0000-4000-8000-00000000000b';
-for (const id of [A, B]) await pg.query('insert into auth.users (id) values ($1)', [id]);
+const pg = await createDb([A, B]);
 const pgServer = new PGLiteSocketServer({ db: pg, port: 0, host: '127.0.0.1', maxConnections: 8 });
 await pgServer.start();
 const pgPort = pgServer.server ? pgServer.server.address().port : pgServer.port;

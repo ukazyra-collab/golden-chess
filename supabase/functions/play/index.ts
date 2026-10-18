@@ -130,16 +130,18 @@ Deno.serve(async (req) => {
   let body: any = {};
   try { body = JSON.parse((await req.text()) || '{}'); } catch { body = {}; }
   if (!body || typeof body !== 'object') body = {};
+  const tBody = performance.now() - t0;
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '') || (typeof body.token === 'string' ? body.token : '');
   delete body.token;
   const acc = { db: 0, n: 0 };
   let tAuth = 0;
-  const authP = userId(token).finally(() => { tAuth = performance.now() - t0; });
+  const ta = performance.now();
+  const authP = userId(token).finally(() => { tAuth = performance.now() - ta; });
   const usePg = !!pgRepo && body.via !== 'rest' && Date.now() > pgDownUntil && (await pgOk);
   delete body.via;
   const logic = createLogic({ repo: timed(usePg ? pgRepo : restRepo, acc, usePg), broadcast, GC, background });
   const { status, body: out } = await logic.handle(authP, body);
   const total = performance.now() - t0;
-  const timing = `auth;dur=${tAuth.toFixed(1)}, db;dur=${acc.db.toFixed(1)};desc="${acc.n}x ${usePg ? 'pg' : 'rest'}", total;dur=${total.toFixed(1)}` + (cold ? ', cold;dur=0' : '');
+  const timing = `body;dur=${tBody.toFixed(1)}, auth;dur=${tAuth.toFixed(1)}, db;dur=${acc.db.toFixed(1)};desc="${acc.n}x ${usePg ? 'pg' : 'rest'}", total;dur=${total.toFixed(1)}` + (cold ? ', cold;dur=0' : '');
   return new Response(JSON.stringify(out), { status, headers: { ...HEADERS, 'Server-Timing': timing } });
 });

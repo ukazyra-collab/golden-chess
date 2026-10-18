@@ -64,6 +64,7 @@ export function createLogic(opts) {
   const later = (p) => (opts.background ? (opts.background(p), undefined) : p);
 
   const iso = (t) => new Date(t).toISOString();
+  const sleep = opts.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
   const colorOf = (g, uid) => (g.white_id === uid ? 'w' : g.black_id === uid ? 'b' : null);
   const other = (c) => (c === 'w' ? 'b' : 'w');
   const view = (g) => Object.assign({}, g, { now: now() });
@@ -242,9 +243,16 @@ export function createLogic(opts) {
   A.game = async (uid, b) => ({ game: view(await game(b.game)) });
 
   A.move = async (_, b, auth) => {
-    const [uid, g] = await Promise.all([auth, game(b.game)]);
-    if (g.status !== 'playing') throw new Fail('not_playing', view(g));
+    const [uid, g0] = await Promise.all([auth, game(b.game)]);
+    let g = g0;
     const color = colorOf(g, uid);
+    // The player may have seen the opponent's move peer-to-peer (Realtime) before the server committed it,
+    // and answered at once (often a premove). Give that move a moment to land instead of refusing as stale.
+    for (let i = 0; i < 40 && color && g.status === 'playing' && Number.isInteger(b.ply) && g.moves.length === b.ply - 1 && sideToMove(g) === other(color); i++) {
+      await sleep(i < 12 ? 25 : 50);
+      g = await game(b.game);
+    }
+    if (g.status !== 'playing') throw new Fail('not_playing', view(g));
     if (!color) throw new Fail('not_player', view(g));
     if (g.moves.length !== b.ply) throw new Fail('stale', view(g));
     const { pos, counts } = replay(g);

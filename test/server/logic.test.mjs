@@ -224,6 +224,25 @@ await ok(B, { action: 'move', game: g8.id, uci: 'e7e5', ply: 1 });
 const [x1, x2] = await Promise.all([call(A, { action: 'move', game: g8.id, uci: 'g1f3', ply: 2 }), call(A, { action: 'move', game: g8.id, uci: 'g1f3', ply: 2 })]);
 check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.error).length === 1 && (await inspect.game(g8.id)).moves.length === 3, [x1.body.error, x2.body.error]);
 
+// a reply that reaches the server before the move it answers (the player saw that move peer-to-peer)
+{
+  const T0 = T;
+  const early = call(A, { action: 'move', game: g8.id, uci: 'f1c4', ply: 4 }); // White answers before Black's move landed
+  await new Promise((res) => setTimeout(res, 120));
+  T = T0 + 5000; // Black spent 5 s
+  await ok(B, { action: 'move', game: g8.id, uci: 'b8c6', ply: 3 });
+  const re = await early;
+  check('early reply applied after the move it answers', !re.body.error && re.body.game.moves.join(' ') === 'e2e4 e7e5 g1f3 b8c6 f1c4', re.body);
+  check('early reply costs no clock time; the mover paid for its think', re.body.game && re.body.game.clock_w === 600000 && re.body.game.clock_b === 600000 - 5000 + LAG_COMP,
+    re.body.game && [re.body.game.clock_w, re.body.game.clock_b]);
+  const t1 = Date.now();
+  r = await call(A, { action: 'move', game: g8.id, uci: 'e1g1', ply: 6 }); // Black's ply 5 never comes
+  check('reply to a move that never lands: refused as stale after a short wait', r.body.error === 'stale' && Date.now() - t1 >= 1000 && r.body.game.moves.length === 5,
+    [r.body.error, Date.now() - t1]);
+  r = await call(A, { action: 'move', game: g8.id, uci: 'g1f3', ply: 9 }); // far ahead: no waiting
+  check('far-ahead ply refused at once', r.body.error === 'stale');
+}
+
 // leaderboard
 r = await ok(A, { action: 'top', pool: 'bullet' });
 check('leaderboard', r.rows.length === 2 && r.rows[0].rating >= r.rows[1].rating);

@@ -24,6 +24,8 @@ const { repo, db } = createMemoryRepo(now);
 // ---- SSE "realtime"
 const subs = new Map(); // topic -> Set<{res, uid}>
 let dropBroadcasts = false; // test hook: simulate a dead realtime channel
+let dropPeer = false; // test hook: peer messages lost (server broadcasts still arrive)
+let extraLatency = 0; // test hook: a slow server (added to MOCK_LATENCY)
 function send(res, event, payload) { res.write('data: ' + JSON.stringify({ event, payload }) + '\n\n'); }
 async function broadcast(topic, event, payload) {
   if (dropBroadcasts) return;
@@ -69,7 +71,7 @@ const server = http.createServer(async (req, res) => {
     const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || (typeof body.token === 'string' ? body.token : '');
     delete body.token; delete body.via;
     const auth = token ? Promise.resolve(token) : Promise.reject({ code: 'auth' });
-    const delay = +(process.env.MOCK_LATENCY || 0);
+    const delay = +(process.env.MOCK_LATENCY || 0) + extraLatency;
     if (delay) await new Promise((r) => setTimeout(r, delay / 2));
     const { status, body: out } = await logic.handle(auth, body);
     if (delay) await new Promise((r) => setTimeout(r, delay / 2));
@@ -77,11 +79,25 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify(out));
     return;
   }
+  // peer-to-peer broadcast (Realtime "m:<game>" topic): only players of that game may send, never to themselves
+  if (req.method === 'POST' && u.pathname === '/peer') {
+    const b = await readBody(req);
+    const g = typeof b.topic === 'string' && b.topic.startsWith('m:') ? db.games.get(b.topic.slice(2)) : null;
+    const allowed = !!g && !!b.token && (g.white_id === b.token || g.black_id === b.token);
+    if (allowed && !dropBroadcasts && !dropPeer) {
+      const set = subs.get(b.topic);
+      if (set) for (const c of set) if (c.uid !== b.token) send(c.res, b.event, b.payload);
+    }
+    res.writeHead(allowed ? 202 : 403); res.end();
+    return;
+  }
   if (req.method === 'POST' && u.pathname === '/admin') {
     const b = await readBody(req);
     let out = { ok: true };
     if (b.op === 'shift') shift += b.ms || 0;
     else if (b.op === 'drop') dropBroadcasts = !!b.on;
+    else if (b.op === 'droppeer') dropPeer = !!b.on;
+    else if (b.op === 'latency') extraLatency = +b.ms || 0;
     else if (b.op === 'game') out = clone(db.games.get(b.game) || null);
     else if (b.op === 'games') out = [...db.games.values()].map(clone);
     else if (b.op === 'ratings') out = [...db.ratings.values()].map(clone);
@@ -92,7 +108,7 @@ const server = http.createServer(async (req, res) => {
       if (g.moves.length >= 2) g.turn_started_at = iso(now());
       await broadcast('g:' + g.id, 'state', Object.assign(clone(g), { now: now() }));
       out = clone(g);
-    } else if (b.op === 'reset') { for (const k of Object.keys(db)) db[k].clear(); shift = 0; dropBroadcasts = false; }
+    } else if (b.op === 'reset') { for (const k of Object.keys(db)) db[k].clear(); shift = 0; dropBroadcasts = false; dropPeer = false; }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(out));
     return;
