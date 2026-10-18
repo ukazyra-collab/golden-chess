@@ -2010,14 +2010,14 @@
             });
           }
           // another account: start over as that player
-          save('online', null); save('notice', 'signedIn');
+          save('online', null); save('notice', 'signedIn'); setUrl(null); // don't reopen the previous player's game
           location.reload();
         }).catch(function (e) { st.busy = false; st.code = ''; st.err = authMsg(e); render(); });
       }
       function signOut() {
         if (liveOnlineGame()) { st.err = T('finishFirst'); render(); return; }
         st.busy = true; render();
-        net.signOut().then(function () { save('online', null); save('notice', 'signedOut'); location.reload(); },
+        net.signOut().then(function () { save('online', null); save('notice', 'signedOut'); setUrl(null); location.reload(); },
           function (e) { st.busy = false; st.err = authMsg(e); render(); });
       }
       function google() {

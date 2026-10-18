@@ -16,8 +16,8 @@
 
 - URL Configuration: Site URL `https://ukazyra-collab.github.io/golden-chess/`, Redirect URLs `https://ukazyra-collab.github.io/golden-chess/**`.
 - Email OTP (Sign In / Providers → Email): длина 6 (в проекте по умолчанию было 8; клиент ждёт `GC_ONLINE.otpLength` = 6), срок 3600 с.
-- Свой отправитель: Authentication → Emails → SMTP Settings → Enable Custom SMTP (Resend): host `smtp.resend.com`, port `465`, user `resend`, password = API-ключ Resend, sender `chess@hutka.ai`, name `Golden Chess`. Без своего SMTP Supabase шлёт письма только участникам проекта и с жёстким лимитом.
-- После SMTP: Authentication → Rate Limits → emails sent — 100 в час.
+- Свой отправитель: подключён через интеграцию Resend → Supabase (Resend → Settings → Integrations → Supabase): проект Golden Chess, домен `hutka.ai`, ключ `Supabase Integration`, отправитель `Golden Chess <chess@hutka.ai>`.
+- Rate Limits → emails sent: 100 в час.
 
 Google (подготовлено, выключено флагом `googleAuth` в `build.js`):
 
