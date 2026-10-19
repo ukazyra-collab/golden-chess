@@ -225,8 +225,9 @@ async def main():
             await A.click('#rail [data-nav=play]'); await wait_for(A, '__gc.curView === "play"')
             await A.click('#play-tc'); await A.click('#tc-5-0')
             ok('time control picked', '5+0' in (await A.text_content('#play-tc')))
-            await A.click('#btn-more'); await A.click('#opt-casual')
-            await A.click('#btn-friend')
+            await A.click('#play-tc'); await A.click('#set-rated'); await A.evaluate('__gc.closeDialog()')
+            ok('casual chosen', await A.evaluate('/casual/i.test(document.getElementById("play-meta").textContent)'), await A.text_content('#play-meta'))
+            await A.click('#btn-friend'); await A.click('#btn-invite-link')
             ok('invite link ready', await wait_for(A, '/[?]join=/.test(document.getElementById("invite-link").value)', 5000))
             link = await A.evaluate('document.getElementById("invite-link").value')
             if os.environ.get('DBG'):

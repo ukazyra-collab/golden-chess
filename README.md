@@ -4,7 +4,7 @@ Chess plus one **golden move** per player per game: a queen, rook, bishop or kni
 
 Play: https://ukazyra-collab.github.io/golden-chess/ (bot, two players on one device, online rated games, invite a friend by link).
 
-The site has four tabs, like a chess site: **Play** (time control, Start Game, play a friend, play the bot, two players), **Learn** (what the golden move is, autoplay boards, three one-move puzzles), **Ratings** (leaderboard per pool) and **Profile** (name, ratings, settings). A bottom tab bar on phones, a side rail on wider screens; the address hash names the tab (`#play`, `#learn`, `#ratings`, `#profile`, `#signin`, `#game`), so the browser's back button works. Online play needs an account (email code, free); the bot and two-player games don't.
+The site has five tabs, like a chess site: **Play** (time control, Play, Play a friend by link or on one device), **Bots** (eight characters, one per engine level, from Pip at 600 to Golden at 2500), **Learn** (what the golden move is, autoplay boards, three one-move puzzles), **Ratings** (leaderboard per pool) and **Profile** (name, ratings, settings). A bottom tab bar on phones, a side rail on wider screens; the address hash names the tab (`#play`, `#bots`, `#learn`, `#ratings`, `#profile`, `#signin`, `#game`), so the browser's back button works. Each screen has one main action in gold and at most one quieter one. Online play needs an account (email code, free); bot and two-player games don't. Bot games have no clock, and the bot takes a human-like pause before each move (shorter in the opening, on forced moves and recaptures, longer in rich positions and before its golden move).
 
 ## Layout
 
@@ -16,6 +16,7 @@ The site has four tabs, like a chess site: **Play** (time control, Start Game, p
 | `src/ui/board.js` | Renderer: one id per piece, one rAF loop, every animation starts from the piece's current drawn position (no overlapping animations) |
 | `src/ui/app.js` | Controller: single synchronous move path, monotonic clocks, premoves, golden mode, bot, review (accuracy, estimated Elo), online play, tabs and sign-in page, EN/RU |
 | `src/ui/learn.js` | The Learn tab: autoplay boards and puzzles (positions checked by `test/learn.js`) |
+| `src/ui/bots.js` | The eight bot characters: names, bios, portraits drawn as inline SVG |
 | `src/ui/sound.js` | Synthesized sounds (WebAudio, no samples) |
 | `src/ui/template.html` | Page shell + CSS |
 | `supabase/functions/play/` | Game server (edge function): `logic.js` is runtime-agnostic, `index.ts` wires it to Postgres and Realtime, `core.js` is generated from `src/core.js` |
@@ -42,6 +43,7 @@ The site has four tabs, like a chess site: **Play** (time control, Start Game, p
 - `DENO=<path to deno> node test/server/edge-local.mjs` — the production `index.ts` under Deno against PGlite, with a fake JWKS (ES256 tokens) and a fake Realtime endpoint
 - `python3 test/online_e2e.py` — two browsers play each other through `test/server/mock-server.mjs` (same server logic, in-memory store, SSE instead of Realtime): pairing, moves, premoves, golden move, clock sync, draw offer, reload, dropped realtime, flag, rating change, rematch, abort, invite link, spectator
 - `python3 test/account_e2e.py` — accounts through the mock server's stand-in for Supabase Auth (codes land in an outbox): Start Game sends a guest to the sign-in page and the search starts after it, a new account keeps the guest's id and picks a name (a taken one is refused), signing in from Profile and Ratings returns there, a second device signs in and is the same player, sign out, wrong code, resend limit, refused during a live game, expired link
+- `python3 test/bot_think.py` — the Bots tab, no clock in bot games, the bot's thinking pause (never instant, varies, quick forced moves, longer before a golden move)
 - `node test/learn.js` — the Learn tab: scripted moves are legal, the "mate in normal chess" positions are mate, every accepted puzzle answer wins or saves the game and every other golden move scores clearly worse (engine)
 - `python3 test/targeted.py`, `python3 test/review_test.py`, `python3 test/stress.py <seed> <games>` — offline UI flows, review, randomized input with a per-frame consistency monitor
 - `python3 test/shots.py`, `python3 test/online_shots.py en ru` — screenshots (phone and desktop) into `test/shots/`

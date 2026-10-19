@@ -108,7 +108,13 @@
       p3Good: 'The knight stops the pawn for good, and your h-pawn walks in to queen.',
       p3Hint: 'The knight can stand on the queening square or guard it.',
       badMove: 'Not this one. Look again.', showAnswer: 'Show answer', nextPuzzle: 'Next', tryAgain: 'Try again', puzzleHint: 'Hint',
-      allSolved: 'All solved. Now try it in a real game.', rulesH: 'All the rules', premoveRule: 'You can queue the golden move as a premove too.', playNow: 'Play now'
+      allSolved: 'All solved. Now try it in a real game.', rulesH: 'All the rules', premoveRule: 'You can queue the golden move as a premove too.', playNow: 'Play now',
+      navBots: 'Bots', easier: 'Easier', stronger: 'Stronger', yourColor: 'Your pieces', botOpp: 'vs {name}', unfinished: 'Game in progress',
+      thinkingName: '{name} is thinking', playMain: 'Play', playFriendShort: 'Play a friend', friendT: 'Play a friend',
+      friendLink: 'Send a link', friendLinkSub: 'Online. The game starts when your friend opens it',
+      friendHere: 'On this device', friendHereSub: 'Take turns on one screen', signInFree: 'Online play needs a free sign-in by email',
+      passPlayLong: 'Two players on one device', learnCta: 'Play a bot', botScore: 'Your score: {w} won, {d} drawn, {l} lost', botNoGames: 'You haven’t played {name} yet',
+      againBot: 'Play again'
     },
     ru: {
       newGame: 'Новая партия', rules: 'Правила', settings: 'Настройки', menu: 'Меню партии', prev: 'Предыдущий ход', next: 'Следующий ход',
@@ -208,7 +214,13 @@
       p3Good: 'Конь остановил пешку, а ваша пешка h проходит в ферзи.',
       p3Hint: 'Конь может встать на поле превращения или держать его под ударом.',
       badMove: 'Не то. Посмотрите ещё раз.', showAnswer: 'Показать ответ', nextPuzzle: 'Дальше', tryAgain: 'Ещё раз', puzzleHint: 'Подсказка',
-      allSolved: 'Все решены. Теперь попробуйте в настоящей партии.', rulesH: 'Все правила', premoveRule: 'Золотой ход можно поставить и премувом.', playNow: 'Играть'
+      allSolved: 'Все решены. Теперь попробуйте в настоящей партии.', rulesH: 'Все правила', premoveRule: 'Золотой ход можно поставить и премувом.', playNow: 'Играть',
+      navBots: 'Боты', easier: 'Полегче', stronger: 'Посильнее', yourColor: 'Ваш цвет', botOpp: 'соперник: {name}', unfinished: 'Партия идёт',
+      thinkingName: '{name} думает', playMain: 'Играть', playFriendShort: 'Играть с другом', friendT: 'Игра с другом',
+      friendLink: 'Отправить ссылку', friendLinkSub: 'Онлайн. Партия начнётся, когда друг откроет ссылку',
+      friendHere: 'На одном устройстве', friendHereSub: 'Ходите по очереди на одном экране', signInFree: 'Для игры онлайн нужен вход по почте, это бесплатно',
+      passPlayLong: 'Вдвоём на одном устройстве', learnCta: 'Сыграть с ботом', botScore: 'Ваш счёт: побед {w}, ничьих {d}, поражений {l}', botNoGames: 'Вы ещё не играли с этим ботом',
+      againBot: 'Ещё партия'
     }
   };
   var settings = Object.assign({ sound: true, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
@@ -737,24 +749,52 @@
   }
 
   // ------------------------------------------------------------------ bot
+  // The bot thinks like a person: quick in the opening, on forced moves and recaptures, longer when the position is rich,
+  // never the same time twice, and a real pause before its golden move. Bot games have no clock; older games that do
+  // still never lose on time.
+  var THINK_BASE = [950, 1150, 1350, 1550, 1800, 2100, 2400, 2700];
+  function gauss() { var u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+  function botThinkMs(uci) {
+    var pos = game.pos, lvl = game.cfg.level, n = game.records.length, moveNo = Math.floor(n / 2) + 1;
+    var normal = 0; game.legal.forEach(function (x) { if (!(x & F_GOLDEN)) normal++; });
+    var m = uci ? pos.moveFromUci(uci) : 0, golden = !!(m && (m & F_GOLDEN)), last = n ? game.records[n - 1] : null;
+    var recapture = !!(m && last && last.capture && (m & F_CAPTURE) && ((m >> 7) & 127) === ((last.m >> 7) & 127));
+    var ms;
+    if (normal <= 1 && !golden) ms = 380 + Math.random() * 420;
+    else {
+      ms = THINK_BASE[lvl - 1];
+      ms *= moveNo <= 2 ? 0.42 : moveNo <= 5 ? 0.6 : moveNo <= 10 ? 0.85 : 1;
+      ms *= Math.max(0.7, Math.min(1.35, 0.72 + normal / 70));
+      if (pos.inCheck()) ms *= 0.85;
+      ms *= Math.exp(gauss() * 0.33);
+      if (moveNo > 8 && Math.random() < 0.12) ms *= 1.8;
+      if (recapture) ms = Math.min(ms, 450 + Math.random() * 550);
+      if (golden) ms = ms * 1.3 + 900;
+      ms = Math.max(450, Math.min(lvl >= 6 ? 9000 : 6500, ms));
+    }
+    if (game.clock) {
+      var left = game.timeLeft(pos.side, perf()), inc = game.cfg.tc.inc;
+      ms = Math.min(ms, Math.max(120, left / 28 + inc * 0.6));
+      if (left < 10000) ms = Math.min(ms, 150 + Math.random() * 200);
+    }
+    return ms;
+  }
+  function botName() { return window.GCBots ? GCBots.name(game.cfg.level - 1, lang) : T('bot'); }
   function requestBot() {
     if (!botGame() || game.status !== 'playing' || game.pos.side === game.cfg.human) return;
     cancelBot();
     var id = ++reqSeq, t0 = perf(), color = game.pos.side, lvl = game.cfg.level;
-    var lv = Engine.LEVELS[lvl - 1], budget = lv.time, minDelay;
+    var budget = Engine.LEVELS[lvl - 1].time;
     if (game.clock) {
-      var left = game.timeLeft(color, t0), inc = game.cfg.tc.inc, base = game.cfg.tc.base;
+      var left = game.timeLeft(color, t0), inc = game.cfg.tc.inc;
       budget = Math.min(budget, Math.max(40, left / 32 + inc * 0.7));
       if (left < 4000) budget = Math.min(budget, Math.max(15, left / 60));
-      minDelay = base <= 60000 ? 60 + Math.random() * 160 : base <= 300000 ? 140 + Math.random() * 380 : 260 + Math.random() * 600;
-      if (left < 5000) minDelay = 30;
-    } else minDelay = 280 + Math.random() * 520;
-    if (game.records.length < 2) minDelay = Math.min(minDelay, 350);
+    }
     botReq = { id: id, timer: 0 };
     renderBars(); renderSide();
     bot.think({ id: id, fen: game.startFen, moves: game.records.map(function (r) { return r.uci; }), timeMs: budget, level: lvl }, function (res) {
       if (!botReq || botReq.id !== id) return;
-      var wait = Math.max(0, minDelay - (perf() - t0));
+      var wait = Math.max(0, (window.__gcFastBot ? 0 : botThinkMs(res && res.uci)) - (perf() - t0));
       botReq.timer = setTimeout(function () {
         if (!botReq || botReq.id !== id) return;
         botReq = null;
@@ -1047,7 +1087,7 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function sideLabel(color) {
     if (onlineGame()) return game.cfg.names[color] || (color === 0 ? T('white') : T('black'));
-    if (botGame()) return color === game.cfg.human ? T('you') : T('bot');
+    if (botGame()) return color === game.cfg.human ? T('you') : botName();
     return color === 0 ? T('white') : T('black');
   }
   function renderAll() { renderMarks(); renderBars(); renderMoves(); renderControls(); renderSide(); renderAna(); renderClocks(perf(), true); }
@@ -1097,7 +1137,7 @@
   }
   function renderBar(el, color) {
     var b = displayBoard(), c = counts(b), opp = color ^ 1, posV = viewPos();
-    var name, sub, extra = '';
+    var name, sub, extra = '', botFace = false;
     if (onlineGame()) {
       name = game.cfg.names[color] || (color === 0 ? T('white') : T('black'));
       sub = color === 0 ? T('white') : T('black');
@@ -1106,7 +1146,7 @@
       if (online && !spectating() && color !== game.cfg.human && online.oppHere != null) extra += '<i class="conn' + (online.oppHere ? '' : ' off') + '" title="' + esc(online.oppHere ? T('connected') : T('disconnected')) + '"></i>';
     } else if (botGame()) {
       if (color === game.cfg.human) { name = T('you'); sub = color === 0 ? T('white') : T('black'); }
-      else { name = T('bot'); sub = T('level', { n: game.cfg.level }) + ', ' + T('lv' + game.cfg.level); extra = '<span class="rt" title="Elo">' + Engine.LEVELS[game.cfg.level - 1].elo + '</span>'; }
+      else { name = botName(); sub = T('lv' + game.cfg.level); extra = '<span class="rt" title="Elo">' + Engine.LEVELS[game.cfg.level - 1].elo + '</span>'; botFace = true; }
     } else { name = color === 0 ? T('white') : T('black'); sub = ''; }
     var caps = '', diff = 0;
     for (var t = 5; t >= 1; t--) {
@@ -1117,7 +1157,8 @@
     var thinking = botReq && botGame() && color !== game.cfg.human && game.status === 'playing';
     var gAvail = posV.goldenAvailable(color);
     el.innerHTML =
-      '<div class="avatar"><i class="pc-ic ' + BoardView.cls((color << 3) | 6) + '"></i></div>' +
+      (botFace && window.GCBots ? '<div class="avatar bot' + (thinking ? ' busy' : '') + '">' + GCBots.avatar(game.cfg.level - 1, lang) + '</div>'
+        : '<div class="avatar"><i class="pc-ic ' + BoardView.cls((color << 3) | 6) + '"></i></div>') +
       '<div class="pmeta"><div class="pname"><span class="nm">' + esc(name) + '</span>' + extra +
       '<svg class="gstar' + (gAvail ? '' : ' used') + '" viewBox="0 0 24 24" aria-label="' + esc(T('golden')) + '"><path class="fill" d="M12 2.5c1 6.1 3.4 8.5 9.5 9.5-6.1 1-8.5 3.4-9.5 9.5-1-6.1-3.4-8.5-9.5-9.5 6.1-1 8.5-3.4 9.5-9.5z"/></svg>' +
       (thinking ? '<span class="thinking"><i></i><i></i><i></i></span>' : '') + '</div>' +
@@ -1214,15 +1255,15 @@
 
   function renderSide() {
     if (!game) return;
-    $('side-title').textContent = onlineGame() ? T('online') : botGame() ? T('bot') : T('passPlay');
+    $('side-title').textContent = onlineGame() ? T('online') : botGame() ? botName() : T('passPlay');
     var tc = game.cfg.tc ? game.cfg.tc.label : T('unlimited'), status;
     if (game.status === 'over') status = resultTitle() + (game.reason && reasonText() ? ', ' + reasonText().toLowerCase() : '') + (explore ? '. ' + T('variation') : '');
     else if (explore) status = T('variation');
     else if (!live()) status = T('viewing', { n: Math.ceil(view / 2) || 1 });
     else if (onlineGame() && !spectating()) status = game.pos.side === game.cfg.human ? T('yourMove') : T('oppMove');
-    else if (botGame()) status = game.pos.side === game.cfg.human ? T('yourMove') : T('botThinking');
+    else if (botGame()) status = game.pos.side === game.cfg.human ? T('yourMove') : T('thinkingName', { name: botName() });
     else status = game.pos.side === 0 ? T('whiteMove') : T('blackMove');
-    var pre = botGame() ? T('level', { n: game.cfg.level }) + ', ' : onlineGame() ? poolLine(game.cfg.pool, game.cfg.rated) + ', ' : '';
+    var pre = botGame() ? Engine.LEVELS[game.cfg.level - 1].elo + ' Elo, ' : onlineGame() ? poolLine(game.cfg.pool, game.cfg.rated) + ', ' : '';
     $('side-sub').textContent = pre + tc + '. ' + status;
     var acts = $('side-actions'); acts.innerHTML = '';
     function add(label, fn, cls, disabled) { var b = document.createElement('button'); b.className = 'sbtn' + (cls ? ' ' + cls : ''); b.textContent = label; b.disabled = !!disabled; b.addEventListener('click', fn); acts.appendChild(b); }
@@ -1243,8 +1284,6 @@
         add(T('newOpponent'), newOpponent);
       }
     }
-    add(T('flip'), flip);
-    add(T('copyPgn'), copyPgn);
   }
   function resultTitle() {
     if (game.reason === 'abort') return T('r_abort');
@@ -1295,35 +1334,9 @@
   }
 
   // "New game" anywhere leads to the Play tab
-  function showNewGame() { closeDialog(); go('play'); }
+  function showNewGame() { closeDialog(); go(gameHome()); }
   // bot setup (Play a Bot) and two players on one device
-  function showBotSetup() {
-    var s = Object.assign({}, lastSetup, { mode: 'bot' });
-    if (TCS.indexOf(s.tc) < 0) s.tc = '5+0';
-    openDialog(function (card) {
-      currentDialog.dataset.kind = 'bot';
-      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('botSetupTitle'))));
-      var lv = h('div', { class: 'field' });
-      lv.appendChild(h('label', { for: 'lvl-range' }, esc(T('strength'))));
-      var lvRow = h('div', { class: 'lvl' });
-      var range = h('input', { type: 'range', min: '1', max: '8', step: '1', id: 'lvl-range', value: String(s.level) });
-      var out = h('output', { for: 'lvl-range', id: 'lvl-out' });
-      var rec = h('div', { class: 'record' });
-      function upd() {
-        out.innerHTML = esc(s.level + '. ' + T('lv' + s.level)) + '<small>' + esc(T('eloApprox', { n: Engine.LEVELS[s.level - 1].elo })) + '</small>';
-        var st = stats['L' + s.level];
-        rec.textContent = st ? T('record', { n: s.level, w: st.w, d: st.d, l: st.l }) : T('recordNone', { n: s.level });
-      }
-      range.addEventListener('input', function () { s.level = +range.value; upd(); });
-      lvRow.appendChild(range); lvRow.appendChild(out); lv.appendChild(lvRow); lv.appendChild(rec); upd();
-      card.appendChild(lv);
-      var cf = h('div', { class: 'field' }); cf.appendChild(h('div', { class: 'lbl' }, esc(T('playAs'))));
-      cf.appendChild(seg([{ v: 'w', label: T('white') }, { v: 'r', label: T('random') }, { v: 'b', label: T('black') }], s.color, function (v) { s.color = v; }));
-      card.appendChild(cf);
-      card.appendChild(tcField(s));
-      card.appendChild(playRow(s));
-    });
-  }
+  function showBotSetup() { closeDialog(); go('bots'); }
   function showLocalSetup() {
     var s = Object.assign({}, lastSetup, { mode: 'local' });
     if (TCS.indexOf(s.tc) < 0) s.tc = '5+0';
@@ -1377,31 +1390,29 @@
           sp.addEventListener('click', function () { showAccount(showOver); });
           nudge.appendChild(sp); card.appendChild(nudge);
         }
+        var rv = h('button', { class: spectating() ? 'secondary' : 'linkbtn center', type: 'button', id: 'btn-over-review' }, esc(T('review')));
+        rv.addEventListener('click', function () { closeDialog(); startReview(); renderSide(); });
         if (!spectating()) {
           var rm = rematchState();
-          var rb = h('button', { class: 'primary', type: 'button' }, esc(rm.label)); rb.disabled = rm.disabled;
+          var rb = h('button', { class: 'primary', type: 'button', id: 'btn-rematch' }, esc(rm.label)); rb.disabled = rm.disabled;
           rb.addEventListener('click', rematch);
-          var no = h('button', { class: 'secondary', type: 'button' }, esc(T('newOpponent')));
+          var no = h('button', { class: 'secondary', type: 'button', id: 'btn-new-opp' }, esc(T('newOpponent')));
           no.addEventListener('click', function () { closeDialog(); newOpponent(); });
           row.appendChild(rb); row.appendChild(no);
-        }
-        var rv = h('button', { class: 'secondary', type: 'button' }, esc(T('review')));
-        rv.addEventListener('click', function () { closeDialog(); startReview(); renderSide(); });
-        row.appendChild(rv);
-        card.appendChild(row);
+          card.appendChild(row); card.appendChild(rv);
+        } else { row.appendChild(rv); card.appendChild(row); }
         return;
       }
-      var again = h('button', { class: 'primary', type: 'button' }, esc(T('rematch')));
+      // a game against the bot or on one device: play again (colours swap with the bot), or look through the game
+      var again = h('button', { class: 'primary', type: 'button', id: 'btn-again' }, esc(T('againBot')));
       again.addEventListener('click', function () {
         closeDialog();
         var s = { mode: game.cfg.mode, level: game.cfg.level, tc: game.cfg.tc ? game.cfg.tc.label : 'none', color: 'w' };
         startGame(s, { human: botGame() ? game.cfg.human ^ 1 : 0 });
       });
-      var anaB = h('button', { class: 'secondary', type: 'button' }, esc(T('review')));
+      var anaB = h('button', { class: 'secondary', type: 'button', id: 'btn-over-review' }, esc(T('review')));
       anaB.addEventListener('click', function () { closeDialog(); startReview(); renderSide(); });
-      var nb = h('button', { class: 'secondary', type: 'button' }, esc(T('newGame')));
-      nb.addEventListener('click', function () { showNewGame(); });
-      row.appendChild(again); row.appendChild(anaB); row.appendChild(nb);
+      row.appendChild(again); row.appendChild(anaB);
       card.appendChild(row);
     });
   }
@@ -1605,8 +1616,10 @@
   $('btn-prev').addEventListener('click', function () { navStep(-1); });
   $('btn-next').addEventListener('click', function () { navStep(1); });
   $('btn-menu').addEventListener('click', showMenu);
-  $('btn-new').addEventListener('click', function () { go('play'); });
-  $('btn-back').addEventListener('click', function () { go('play'); });
+  // back from a game goes to the tab where that kind of game starts
+  function gameHome() { return game && botGame() ? 'bots' : 'play'; }
+  $('btn-new').addEventListener('click', function () { go(gameHome()); });
+  $('btn-back').addEventListener('click', function () { go(gameHome()); });
   $('btn-settings').addEventListener('click', showSettings);
   $('btn-rules').addEventListener('click', showRules);
   function onMoveClick(e) {
@@ -2037,7 +2050,7 @@
         }
         if (o.page) {
           var alt = h('div', { class: 'signin-alt' }, esc(T('practise')) + ' ');
-          alt.appendChild(btn('linkbtn', T('playTheBot'), showBotSetup, 'btn-signin-bot'));
+          alt.appendChild(btn('linkbtn', T('playTheBot'), function () { save('pending', null); go('bots'); }, 'btn-signin-bot'));
           card.appendChild(alt);
         }
         if (!st.busy) focus(inp);
@@ -2454,15 +2467,17 @@
   // Play (start screen), Learn, Ratings, Profile, the sign-in page and the game itself are views of one page;
   // the address keeps the view (#play, #learn, ...) so the back button and reloads work.
   var shellEl = $('shell'), curView = null, learnKit = null, signinFlow = null, ratingsPool = null;
-  var playUi = { tcOpen: false, more: false };
-  var VIEWS = ['play', 'learn', 'ratings', 'profile', 'signin', 'game'], NAV = ['play', 'learn', 'ratings', 'profile'];
-  var NAV_KEY = { play: 'navPlay', learn: 'navLearn', ratings: 'navRatings', profile: 'navProfile' };
+  var botsUi = { sel: Math.max(0, Math.min(7, (lastSetup.level || 3) - 1)), color: lastSetup.color || 'w' };
+  var VIEWS = ['play', 'bots', 'learn', 'ratings', 'profile', 'signin', 'game'], NAV = ['play', 'bots', 'learn', 'ratings', 'profile'];
+  var NAV_KEY = { play: 'navPlay', bots: 'navBots', learn: 'navLearn', ratings: 'navRatings', profile: 'navProfile' };
+  var COLOR_RANDOM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6" fill="#1f2422"/><path d="M12 3.4a8.6 8.6 0 0 0 0 17.2z" fill="#f4efe4"/><circle cx="12" cy="12" r="8.6" fill="none" stroke="#8d9691" stroke-width="1.2"/></svg>';
   var STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c1 6.1 3.4 8.5 9.5 9.5-6.1 1-8.5 3.4-9.5 9.5-1-6.1-3.4-8.5-9.5-9.5 6.1-1 8.5-3.4 9.5-9.5z" fill="#e7b44a"/></svg>';
-  var LOGO_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="#1f2c2a"/><path d="M2 9a7 7 0 0 1 7-7h7v14H2z" fill="#2c3c39"/><path d="M16 16h14v7a7 7 0 0 1-7 7h-7z" fill="#2c3c39"/><path d="M16 5.5c.9 5.4 3.6 8.1 9 9-5.4.9-8.1 3.6-9 9-.9-5.4-3.6-8.1-9-9 5.4-.9 8.1-3.6 9-9z" fill="#e7b44a"/></svg>';
+  var LOGO_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="#3a423f"/><path d="M2 9a7 7 0 0 1 7-7h7v14H2z" fill="#4a5350"/><path d="M16 16h14v7a7 7 0 0 1-7 7h-7z" fill="#4a5350"/><path d="M16 5.5c.9 5.4 3.6 8.1 9 9-5.4.9-8.1 3.6-9 9-.9-5.4-3.6-8.1-9-9 5.4-.9 8.1-3.6 9-9z" fill="#e7b44a"/></svg>';
   var CHEV_SVG = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
   var BACK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
   var NAV_ICON = {
     play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="6.6" r="2.7"/><path d="M10 10h4M10.1 10c-.2 2.6-.9 4.7-2.4 6.5h8.6c-1.5-1.8-2.2-3.9-2.4-6.5"/><path d="M6.3 20.2h11.4v-1.6c0-1.2-.8-2.1-2-2.1H8.3c-1.2 0-2 .9-2 2.1z"/></svg>',
+    bots: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="8" width="15" height="11.5" rx="4"/><path d="M12 8V4.6"/><circle cx="12" cy="3.9" r="1" fill="currentColor"/><circle cx="9.2" cy="13.4" r="1.3" fill="currentColor" stroke="none"/><circle cx="14.8" cy="13.4" r="1.3" fill="currentColor" stroke="none"/><path d="M2.5 12.5v3M21.5 12.5v3"/></svg>',
     learn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 9.3L12 5l9.5 4.3L12 13.6z"/><path d="M6.6 11.3v4.3c1.6 1.5 3.4 2.2 5.4 2.2s3.8-.7 5.4-2.2v-4.3"/><path d="M21.5 9.3v5"/></svg>',
     ratings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7"/></svg>',
     profile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.4" r="3.7"/><path d="M4.8 20c.9-3.6 3.6-5.6 7.2-5.6s6.3 2 7.2 5.6"/></svg>'
@@ -2514,11 +2529,11 @@
     }
   }
   function refreshView() {
-    if (curView === 'play') renderPlay(); else if (curView === 'learn') renderLearn(); else if (curView === 'ratings') renderRatings();
+    if (curView === 'play') renderPlay(); else if (curView === 'bots') renderBots(); else if (curView === 'learn') renderLearn(); else if (curView === 'ratings') renderRatings();
     else if (curView === 'profile') renderProfile(); else if (curView === 'signin') renderSignin();
   }
   function renderNav() {
-    var active = curView === 'game' || curView === 'signin' ? 'play' : curView;
+    var active = curView === 'game' ? gameHome() : curView === 'signin' ? 'play' : curView;
     var items = NAV.filter(allowed);
     [$('rail-items'), $('tabbar')].forEach(function (host) {
       if (host.dataset.built !== lang + items.join()) {
@@ -2563,7 +2578,7 @@
   }
   function afterSignin() { var a = takePending(); if (a) runPending(a); else go('play'); }
 
-  // ---- Play: the start screen
+  // ---- Play: the start screen. One main action (Play), one quiet one (Play a friend).
   function renderPlay() {
     var host = $('view-play');
     var bwOld = host.querySelector('.play-board');
@@ -2580,78 +2595,141 @@
       head.appendChild(chip);
     }
     col.appendChild(head);
-    col.appendChild(h('div', { class: 'play-mark', 'aria-hidden': 'true' }, '<div class="ring"></div><i class="pc-ic p-wN"></i>' +
+    var main = h('div', { class: 'play-main' }); col.appendChild(main);
+    main.appendChild(h('div', { class: 'play-mark', 'aria-hidden': 'true' }, '<div class="ring"></div><i class="pc-ic p-wN"></i>' +
       '<span class="sp" style="left:6px;top:34px"></span><span class="sp" style="left:100px;top:76px"></span><span class="sp" style="left:24px;top:98px;width:4px;height:4px"></span><span class="st">' + STAR_SVG + '</span>'));
-    var rc = resumeCard(); if (rc) col.appendChild(rc);
-    if (NETCFG) {
-      var tc = ONLINE_TCS.indexOf(lastSetup.otc) >= 0 ? lastSetup.otc : '3+2', pool = poolOfLabel(tc), rated = lastSetup.rated !== false;
-      var tcb = h('button', { type: 'button', class: 'tc-btn', id: 'play-tc', 'aria-expanded': String(playUi.tcOpen) },
-        '<span class="tc-ic ic-' + pool + '">' + POOL_ICON[pool] + '</span><span class="tc-l">' + tcHtml(tc) + '</span>' + CHEV_SVG);
-      tcb.addEventListener('click', function () { playUi.tcOpen = !playUi.tcOpen; renderPlay(); });
-      col.appendChild(tcb);
-      if (playUi.tcOpen) col.appendChild(tcPanel(tc));
-      var start = h('button', { type: 'button', class: 'start-btn', id: 'btn-start' }, esc(T('startGame')));
-      start.addEventListener('click', function () { requireAccount({ kind: 'seek', tc: tc, rated: rated }); });
-      col.appendChild(start);
-      col.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(signedIn() ? T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase() : T('signInToRate'))));
-      col.appendChild(playRow2('friend', T('playFriend'), T('playFriendSub'), function () { requireAccount({ kind: 'invite', tc: tc, rated: rated }); }, 'btn-friend'));
-      col.appendChild(playRow2('bot', T('playBot'), T('playBotSub'), showBotSetup, 'btn-bot'));
-      var mb = h('button', { type: 'button', class: 'more-btn', id: 'btn-more', 'aria-expanded': String(playUi.more) }, '<span>' + esc(T('more')) + '</span>' + CHEV_SVG);
-      mb.addEventListener('click', function () { playUi.more = !playUi.more; renderPlay(); });
-      col.appendChild(mb);
-      if (playUi.more) {
-        var box = h('div', { class: 'more-box' });
-        box.appendChild(playRow2('pass', T('passPlay'), T('passPlaySub'), showLocalSetup, 'btn-pass'));
-        var rf = h('div', { class: 'field' });
-        rf.appendChild(seg([{ v: true, label: T('rated'), id: 'rated' }, { v: false, label: T('casual'), id: 'casual' }], rated, function (v) { lastSetup.rated = v; save('setup', lastSetup); renderPlay(); }));
-        box.appendChild(rf);
-        col.appendChild(box);
-      }
+    var acts = h('div', { class: 'play-actions' });
+    main.appendChild(acts);
+    var lr = localResume(); if (lr) acts.appendChild(lr);
+    if (liveOnlineGame()) {
+      // a game is on: the only thing to do here is to go back to it
+      acts.appendChild(h('div', { class: 'play-meta' }, esc(T('gameOn') + ': ' + T('vsName', { name: game.cfg.names[game.cfg.human ^ 1] || '' }) + (game.cfg.tc ? ', ' + tcLabel(game.cfg.tc.label) : ''))));
+      acts.appendChild(bigBtn('start-btn', T('returnBtn'), 'btn-resume', function () { go('game'); }));
+    } else if (NETCFG) {
+      var tc = onlineTc(), pool = poolOfLabel(tc), rated = lastSetup.rated !== false;
+      var tcb = h('button', { type: 'button', class: 'tc-field', id: 'play-tc', 'aria-haspopup': 'dialog' },
+        '<span class="tc-ic ic-' + pool + '">' + POOL_ICON[pool] + '</span><span class="tc-l"><span class="pool">' + esc(T(pool)) + '</span><span class="v">' + tcHtml(tc) + '</span></span>' +
+        (rated ? '' : '<span class="tag">' + esc(T('casual')) + '</span>') + CHEV_SVG);
+      tcb.addEventListener('click', tcSheet);
+      acts.appendChild(tcb);
+      acts.appendChild(bigBtn('start-btn', T('playMain'), 'btn-start', function () { requireAccount({ kind: 'seek', tc: tc, rated: rated }); }));
+      acts.appendChild(bigBtn('second-btn', T('playFriendShort'), 'btn-friend', friendSheet));
+      acts.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(signedIn() ? T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase() : T('signInFree'))));
     } else {
-      var sb = h('button', { type: 'button', class: 'start-btn', id: 'btn-start' }, esc(T('playBot')));
-      sb.addEventListener('click', showBotSetup);
-      col.appendChild(sb);
-      col.appendChild(playRow2('pass', T('passPlay'), T('passPlaySub'), showLocalSetup, 'btn-pass'));
-      if (window.GC_SITE) col.appendChild(h('div', { class: 'offline-note' }, esc(T('onlineElsewhere')) + ' <a class="site-link" href="' + esc(window.GC_SITE) + '" target="_blank" rel="noopener">' + esc(window.GC_SITE.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>'));
+      acts.appendChild(bigBtn('start-btn', T('playBot'), 'btn-start', function () { go('bots'); }));
+      acts.appendChild(bigBtn('second-btn', T('passPlayLong'), 'btn-pass', showLocalSetup));
+      if (window.GC_SITE) acts.appendChild(h('div', { class: 'offline-note' }, esc(T('onlineElsewhere')) + ' <a class="site-link" href="' + esc(window.GC_SITE) + '" target="_blank" rel="noopener">' + esc(window.GC_SITE.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>'));
     }
     // wide screens: a board beside the menu, showing a golden move
     if (window.matchMedia && matchMedia('(min-width: 1100px)').matches && kit()) learnKit.heroBoard(bw, bwOld);
   }
-  function playRow2(icon, label, sub, fn, id) {
-    var b = h('button', { type: 'button', class: 'play-row', id: id }, '<span class="ic">' + ROW_ICON[icon] + '</span><span class="lbl">' + esc(label) + (sub ? '<span class="sub">' + esc(sub) + '</span>' : '') + '</span>');
+  function onlineTc() { return ONLINE_TCS.indexOf(lastSetup.otc) >= 0 ? lastSetup.otc : '3+2'; }
+  function bigBtn(cls, label, id, fn) {
+    var b = h('button', { type: 'button', class: cls, id: id }, esc(label));
     b.addEventListener('click', fn);
     return b;
   }
-  function tcPanel(cur) {
-    var p = h('div', { class: 'tc-panel', id: 'tc-panel' });
-    [['bullet', ['1+0', '2+1']], ['blitz', ['3+0', '3+2', '5+0', '5+3']], ['rapid', ['10+0', '10+5', '15+10']]].forEach(function (g) {
-      var grp = h('div', { class: 'tc-group' });
-      grp.appendChild(h('div', { class: 'tc-group-h' }, '<span class="ic-' + g[0] + '">' + POOL_ICON[g[0]] + '</span><span>' + esc(T(g[0])) + '</span>' + (signedIn() ? '<span class="r">' + esc(ratingText(g[0])) + '</span>' : '')));
-      var grid = h('div', { class: 'tc-grid' });
-      g[1].forEach(function (t) {
-        var b = h('button', { type: 'button', class: 'tc-opt', id: 'tc-' + t.replace('+', '-'), 'aria-pressed': String(t === cur) }, tcHtml(t));
-        b.addEventListener('click', function () { lastSetup.otc = t; save('setup', lastSetup); playUi.tcOpen = false; renderPlay(); });
-        grid.appendChild(b);
-      });
-      grp.appendChild(grid); p.appendChild(grp);
-    });
-    return p;
-  }
-  function resumeCard() {
-    if (!game || game.idle || game.status !== 'playing') return null;
-    var title, sub, label;
-    if (game.online) {
-      if (spectating()) return null;
-      title = T('gameOn'); sub = T('vsName', { name: game.cfg.names[game.cfg.human ^ 1] || '' }) + (game.cfg.tc ? ', ' + tcLabel(game.cfg.tc.label) : ''); label = T('returnBtn');
-    } else {
-      if (!game.records.length) return null;
-      title = T('continueGame'); sub = botGame() ? T('vsBot', { n: game.cfg.level }) : T('passPlay'); label = T('cont');
-    }
-    var c = h('div', { class: 'resume', id: 'resume' }, '<span class="t"><b>' + esc(title) + '</b><span>' + esc(sub) + '</span></span>');
-    var b = h('button', { type: 'button', class: 'sbtn', id: 'btn-resume' }, esc(label));
-    b.addEventListener('click', function () { go('game'); });
-    c.appendChild(b);
+  // a two-player game on this device that isn't finished (bot games resume on the Bots tab)
+  function localResume() {
+    if (!game || game.online || botGame() || game.idle || game.status !== 'playing' || !game.records.length) return null;
+    var c = h('div', { class: 'resume', id: 'resume' }, '<span class="t"><b>' + esc(T('unfinished')) + '</b><span>' + esc(T('passPlayLong')) + '</span></span>');
+    c.appendChild(bigBtn('sbtn', T('cont'), 'btn-resume', function () { go('game'); }));
     return c;
+  }
+  // time control: a sheet with the choices; picking one closes it
+  function tcSheet() {
+    var cur = onlineTc();
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'tc';
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('timeControl'))));
+      [['bullet', ['1+0', '2+1']], ['blitz', ['3+0', '3+2', '5+0', '5+3']], ['rapid', ['10+0', '10+5', '15+10']]].forEach(function (g) {
+        var grp = h('div', { class: 'tc-group' });
+        grp.appendChild(h('div', { class: 'tc-group-h' }, '<span class="ic-' + g[0] + '">' + POOL_ICON[g[0]] + '</span><span>' + esc(T(g[0])) + '</span>' + (signedIn() ? '<span class="r">' + esc(ratingText(g[0])) + '</span>' : '')));
+        var grid = h('div', { class: 'tc-grid' });
+        g[1].forEach(function (t) {
+          var b = h('button', { type: 'button', class: 'tc-opt', id: 'tc-' + t.replace('+', '-'), 'aria-pressed': String(t === cur) }, tcHtml(t));
+          b.addEventListener('click', function () { lastSetup.otc = t; save('setup', lastSetup); closeDialog(); renderPlay(); });
+          grid.appendChild(b);
+        });
+        grp.appendChild(grid); card.appendChild(grp);
+      });
+      var row = h('div', { class: 'toggle-row' }), lab = h('span', { id: 'set-rated-l' }, esc(T('rated')));
+      var sw = h('button', { class: 'sw', type: 'button', role: 'switch', id: 'set-rated', 'aria-labelledby': 'set-rated-l', 'aria-checked': String(lastSetup.rated !== false) });
+      sw.addEventListener('click', function () { lastSetup.rated = lastSetup.rated === false; save('setup', lastSetup); sw.setAttribute('aria-checked', String(lastSetup.rated !== false)); renderPlay(); });
+      row.appendChild(lab); row.appendChild(sw); card.appendChild(row);
+    });
+  }
+  // play a friend: by link (online) or on this device
+  function friendSheet() {
+    var tc = onlineTc(), rated = lastSetup.rated !== false;
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'friend';
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('friendT'))));
+      function opt(cls, icon, label, sub, id, fn) {
+        var b = h('button', { type: 'button', class: 'opt-btn ' + cls, id: id }, '<span class="ic">' + ROW_ICON[icon] + '</span><span class="lbl">' + esc(label) + '<span class="sub">' + esc(sub) + '</span></span>');
+        b.addEventListener('click', fn);
+        return b;
+      }
+      card.appendChild(opt('main', 'friend', T('friendLink'), T('friendLinkSub') + ' (' + tcLabel(tc) + ')', 'btn-invite-link', function () { closeDialog(); requireAccount({ kind: 'invite', tc: tc, rated: rated }); }));
+      card.appendChild(opt('', 'pass', T('friendHere'), T('friendHereSub'), 'btn-pass', function () { closeDialog(); showLocalSetup(); }));
+    });
+  }
+
+  // ---- Bots: pick a character, one Play button
+  function renderBots() {
+    var host = $('view-bots'), keep = host.scrollTop;
+    host.innerHTML = '';
+    var inn = h('div', { class: 'page-in bots-page' }); host.appendChild(inn);
+    inn.appendChild(h('h1', { class: 'page-h' }, esc(T('navBots'))));
+    if (game && !game.online && botGame() && game.status === 'playing' && !game.idle && game.records.length) {
+      var rb = h('div', { class: 'resume', id: 'resume' }, '<span class="av-s">' + GCBots.avatar(game.cfg.level - 1, lang) + '</span><span class="t"><b>' + esc(T('unfinished')) + '</b><span>' + esc(T('botOpp', { name: GCBots.name(game.cfg.level - 1, lang) })) + '</span></span>');
+      rb.appendChild(bigBtn('sbtn', T('cont'), 'btn-resume', function () { go('game'); }));
+      inn.appendChild(rb);
+    }
+    var hw = h('div', { class: 'bot-hero-wrap' }), hero = h('div', { class: 'bot-hero', id: 'bot-hero' });
+    hw.appendChild(hero); inn.appendChild(hw);
+    var tiles = [], pb;
+    function paint() {
+      var i = botsUi.sel, st = stats['L' + (i + 1)], nm = GCBots.name(i, lang);
+      hero.innerHTML = '<div class="bot-face">' + GCBots.avatar(i, lang) + '</div>' +
+        '<div class="bot-info"><div class="bot-name"><b>' + esc(nm) + '</b><span class="elo">' + Engine.LEVELS[i].elo + '</span></div>' +
+        '<div class="bot-lv">' + esc(T('lv' + (i + 1))) + '</div></div>' +
+        '<p class="bot-bio">' + esc(GCBots.bio(i, lang)) + '</p>';
+      var foot = h('div', { class: 'bot-foot' });
+      foot.appendChild(h('span', { class: 'bot-rec', id: 'bot-rec' }, esc(st ? T('botScore', { w: st.w, d: st.d, l: st.l }) : T('botNoGames', { name: nm }))));
+      var pick = h('div', { class: 'color-pick', role: 'group', 'aria-label': T('yourColor') });
+      [['w', '<i class="pc-ic p-wK"></i>', T('white')], ['r', COLOR_RANDOM_SVG, T('random')], ['b', '<i class="pc-ic p-bK"></i>', T('black')]].forEach(function (c) {
+        var b = h('button', { type: 'button', id: 'opt-' + c[0], title: c[2], 'aria-label': c[2], 'aria-pressed': String(botsUi.color === c[0]) }, c[1]);
+        b.addEventListener('click', function () {
+          botsUi.color = c[0]; lastSetup.color = c[0]; save('setup', lastSetup);
+          pick.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+        });
+        pick.appendChild(b);
+      });
+      foot.appendChild(pick); hero.appendChild(foot);
+      tiles.forEach(function (t, k) { t.setAttribute('aria-pressed', String(k === i)); });
+      if (pb) pb.textContent = GCBots.playWith(i, lang);
+    }
+    [[T('easier'), [0, 1, 2, 3]], [T('stronger'), [4, 5, 6, 7]]].forEach(function (g) {
+      inn.appendChild(h('h2', { class: 'bot-group' }, esc(g[0])));
+      var grid = h('div', { class: 'bot-grid' });
+      g[1].forEach(function (i) {
+        var t = h('button', { type: 'button', class: 'bot-tile', id: 'bot-' + (i + 1), 'aria-pressed': 'false', 'aria-label': GCBots.name(i, lang) + ', ' + Engine.LEVELS[i].elo },
+          '<span class="face">' + GCBots.avatar(i, lang) + '</span><span class="nm">' + esc(GCBots.name(i, lang)) + '</span><span class="el">' + Engine.LEVELS[i].elo + '</span>');
+        t.addEventListener('click', function () { Sound.unlock(); botsUi.sel = i; lastSetup.level = i + 1; save('setup', lastSetup); paint(); });
+        tiles[i] = t; grid.appendChild(t);
+      });
+      inn.appendChild(grid);
+    });
+    var bar = h('div', { class: 'cta-bar' });
+    pb = bigBtn('start-btn', '', 'btn-play', function () {
+      var s = { mode: 'bot', level: botsUi.sel + 1, color: botsUi.color, tc: 'none' };
+      lastSetup = Object.assign({}, lastSetup, { level: s.level, color: s.color }); save('setup', lastSetup);
+      startGame(s);
+    });
+    bar.appendChild(pb); inn.appendChild(bar);
+    paint();
+    host.scrollTop = keep;
   }
 
   // ---- sign in (a full page)
@@ -2844,6 +2922,6 @@
     get online() { return online; }, get me() { return me; }, get lobby() { return lobby; }, startSeek: startSeek, startInvite: startInvite,
     onlineAction: onlineAction, showNewGame: showNewGame, serverNow: serverNow, cancelPremoves: cancelPremoves,
     showAccount: showAccount, showSettings: showSettings, showOver: showOver,
-    go: go, get curView() { return curView; }, showBotSetup: showBotSetup, showLocalSetup: showLocalSetup
+    go: go, get curView() { return curView; }, showBotSetup: showBotSetup, showLocalSetup: showLocalSetup, botThinkMs: botThinkMs
   };
 })();

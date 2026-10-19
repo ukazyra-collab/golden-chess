@@ -308,7 +308,7 @@ var GCLearn = (function () {
         acts.innerHTML = '';
         if (kind === 'solved') {
           if (pIndex < PUZZLES.length - 1) acts.appendChild(btn(T('nextPuzzle'), 'hot', function () { open(pIndex + 1); }, 'try-next'));
-          else { status.textContent = T(PUZZLES[pIndex].good) + ' ' + T('allSolved'); acts.appendChild(btn(T('playNow'), 'hot', function () { ctx.go('play'); }, 'try-play')); }
+          else { status.textContent = T(PUZZLES[pIndex].good) + ' ' + T('allSolved'); acts.appendChild(btn(T('learnCta'), 'hot', function () { ctx.go('bots'); }, 'try-play')); }
           acts.appendChild(btn(T('tryAgain'), '', function () { open(pIndex); }, 'try-again'));
           return;
         }
@@ -339,9 +339,9 @@ var GCLearn = (function () {
       ['rule1', 'rule2', 'rule3', 'rule4', 'rule5', 'premoveRule'].forEach(function (k) { ol.appendChild(el('li', null, '<span>' + esc(T(k)) + '</span>')); });
       rr.appendChild(ol); inn.appendChild(rr);
 
-      var cta = el('button', 'start-btn learn-cta', esc(T('playNow')));
+      var cta = el('button', 'start-btn learn-cta', esc(T('learnCta')));
       cta.type = 'button'; cta.id = 'learn-play';
-      cta.addEventListener('click', function () { ctx.go('play'); });
+      cta.addEventListener('click', function () { ctx.go('bots'); });
       inn.appendChild(cta);
 
       demos.forEach(function (d) { d.wanted = view === 'learn'; watch(d); d.update(); });

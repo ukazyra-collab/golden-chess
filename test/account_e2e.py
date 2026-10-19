@@ -206,7 +206,7 @@ async def main():
             ok('signing out mid-game is refused', await wait_for(A, '/finish/i.test((document.getElementById("signout-err") || {}).textContent || "")', 3000))
             ok('still signed in and playing', await A.evaluate('__gc.me.uid') == uidA and await A.evaluate('__gc.game.status === "playing"'))
             await B.click('#btn-back')
-            ok('phone: back from the game shows it on Play', await wait_for(B, '__gc.curView === "play" && !!document.getElementById("resume")', 3000))
+            ok('phone: back from the game shows it on Play', await wait_for(B, '__gc.curView === "play" && !!document.getElementById("btn-resume")', 3000))
             await B.click('#btn-resume')
             ok('and returns to it', await wait_for(B, '__gc.curView === "game" && __gc.game.status === "playing"', 3000))
             await abort(B)

@@ -1,3 +1,5 @@
+// the bot replies at once in tests (players see it think; test/bot_think.py checks that)
+window.__gcFastBot = true;
 window.__t = {
   sqCenter(sq) {
     const r = document.getElementById('board').getBoundingClientRect(), s = r.width / 8, o = __gc.board.orient;

@@ -79,7 +79,9 @@ async def main(lang):
             await B.screenshot(path=OUT + f'on_{lang}_over_desktop.png')
             await B.evaluate('__gc.closeDialog()'); await B.click('#rail [data-nav=play]'); await B.wait_for_timeout(300)
             await B.screenshot(path=OUT + f'on_{lang}_play_desktop.png')
-            await B.click('#btn-friend'); await B.wait_for_timeout(900)
+            await B.click('#btn-friend'); await B.wait_for_timeout(400)
+            await B.screenshot(path=OUT + f'on_{lang}_friend_desktop.png')
+            await B.click('#btn-invite-link'); await B.wait_for_timeout(900)
             await B.screenshot(path=OUT + f'on_{lang}_invite_desktop.png')
             await B.evaluate('__gc.closeDialog()')
             for v in ('ratings', 'profile'):
