@@ -47,11 +47,11 @@ jobs:
         shell: bash
         run: |
           set +e
-          ./gradlew --no-daemon --stacktrace assembleDebug > build.log 2>&1
+          ./gradlew --no-daemon assembleDebug > build.log 2>&1
           code=$?
           tail -n 60 build.log
           if [ $code -ne 0 ]; then
-            msg=$( (grep -n -E "What went wrong|FAILURE|error:|Exception|^> |Could not|not found" build.log | head -n 40; echo ---; tail -n 40 build.log) | awk 'BEGIN{ORS="%0A"} {gsub(/%/,"%25"); gsub(/\r/,""); print}')
+            msg=$( (sed -n '/What went wrong/,/\* Try:/p' build.log | head -n 50; echo ---; grep -n -E "error:|ERROR|AAPT|^e: |FAILED" build.log | head -n 30) | awk 'BEGIN{ORS="%0A"} {gsub(/%/,"%25"); gsub(/\r/,""); print}')
             echo "::error title=Android build::$msg"
           fi
           exit $code
