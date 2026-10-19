@@ -1777,6 +1777,11 @@
       return NATIVE.openUrl(d.url).then(function () { return d; });
     });
   };
+  // the same with the ID token from Google's own button on the website (see gsiLoad): link it to this guest, or sign in
+  SupaNet.prototype.googleToken = function (token, nonce, link) {
+    var o = { provider: 'google', token: token, nonce: nonce };
+    return (link ? this.sb.auth.linkIdentity(o) : this.sb.auth.signInWithIdToken(o)).then(authFail);
+  };
   // the leaderboard: public data, read with the public key (no account needed)
   SupaNet.prototype.top = function (pool) {
     return this.sb.from('ratings').select('user_id, rating, rd, games, wins, draws, losses, profiles(username)').eq('pool', pool).gt('games', 0)
@@ -1834,7 +1839,7 @@
     try { localStorage.setItem('goldenchess.mockuid' + profileSuffix, this.uid); } catch (e) { /* ignore */ }
     return Promise.resolve();
   };
-  MockNet.prototype.google = function () { return Promise.reject(new Error('unsupported')); };
+  MockNet.prototype.google = MockNet.prototype.googleToken = function () { return Promise.reject(new Error('unsupported')); };
   MockNet.prototype.top = function (pool) { return this.call('top', { pool: pool }).then(function (r) { return r.rows || []; }); };
   MockNet.prototype.sub = function (topic, h) {
     var base = this.base, uid = this.uid;
@@ -2070,7 +2075,9 @@
           card.appendChild(h('div', { class: 'acct-or' }, esc(T('or'))));
           var gb = btn('secondary g-btn', T('continueGoogle'), google, 'btn-google'); gb.disabled = st.busy;
           gb.innerHTML = GOOGLE_G + '<span>' + esc(T('continueGoogle')) + '</span>';
-          card.appendChild(row([gb]));
+          var grow = row([gb]);
+          card.appendChild(grow);
+          if (!st.busy) gsiButton(grow, gb); // on the website: Google's own button (see gsiLoad)
         }
         if (o.page) {
           var alt = h('div', { class: 'signin-alt' }, esc(T('practise')) + ' ');
@@ -2233,6 +2240,74 @@
   function maybeAskName() {
     if (nameAsked || !signedIn() || nameChosen() || currentDialog || curView === 'game' || curView === 'signin' || load('nameLater', '') === me.uid) return;
     askName();
+  }
+
+  // ---- Google on the website: Google's own button (Google Identity Services) signs in right here, so Google shows
+  // golden-chess.com (the redirect through Supabase showed the Supabase project's address), and the session comes
+  // from Google's ID token. The app keeps the system browser (Google refuses sign-in inside an app's web view).
+  // If Google's script can't load, our own button stays and works the old way (through Supabase).
+  var gsi = null; // { ready: Promise of google.accounts.id, nonce: the raw nonce Supabase checks the token against }
+  function gsiOn() { return !NATIVE.on && !!(NETCFG && NETCFG.googleAuth && NETCFG.googleClientId && NETCFG.mock == null) && !!(window.crypto && crypto.subtle && window.TextEncoder); }
+  function gsiLoad() {
+    if (gsi) return gsi.ready;
+    var raw = '', bytes = crypto.getRandomValues(new Uint8Array(16));
+    for (var i = 0; i < bytes.length; i++) raw += (bytes[i] < 16 ? '0' : '') + bytes[i].toString(16);
+    gsi = { nonce: raw };
+    gsi.ready = new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+      s.onload = function () { if (window.google && google.accounts && google.accounts.id) res(); else rej(new Error('gsi')); };
+      s.onerror = function () { rej(new Error('gsi')); };
+      setTimeout(function () { rej(new Error('gsi')); }, 12000);
+      document.head.appendChild(s);
+    }).then(function () { return crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw)); }).then(function (buf) {
+      var hex = '', b = new Uint8Array(buf);
+      for (var j = 0; j < b.length; j++) hex += (b[j] < 16 ? '0' : '') + b[j].toString(16);
+      google.accounts.id.initialize({ client_id: NETCFG.googleClientId, callback: gsiCredential, nonce: hex, context: 'signin', ux_mode: 'popup',
+        auto_select: false, use_fedcm_for_button: true });
+      return google.accounts.id;
+    });
+    gsi.ready.catch(function () { gsi.failed = true; });
+    return gsi.ready;
+  }
+  // Google's button in place of ours (fb), once Google's script is there
+  function gsiButton(slot, fb) {
+    if (!gsiOn() || (gsi && gsi.failed)) return;
+    fb.style.visibility = 'hidden';
+    gsiLoad().then(function (id) {
+      if (!slot.isConnected) return;
+      var box = h('div', { class: 'gsi-box', id: 'gsi-box' });
+      slot.replaceChild(box, fb);
+      id.renderButton(box, { type: 'standard', theme: 'filled_black', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'center',
+        width: Math.max(200, Math.min(400, Math.round(slot.clientWidth || 320))), locale: lang === 'ru' ? 'ru' : 'en' });
+    }, function () { fb.style.visibility = ''; });
+  }
+  // Google answered: a guest gets Google on the same account (rating and games stay); if that Google account (or its
+  // email) already has a player, sign in to that player instead, as with an email code
+  function gsiCredential(resp) {
+    var tok = resp && resp.credential;
+    if (!tok || !gsi) return;
+    toast(T('connecting') + '…');
+    ensureNet().then(function () { return net.account(); }).then(function (a) {
+      if (a && a.guest) {
+        return net.googleToken(tok, gsi.nonce, true).then(function () { return 'same'; }, function (e) {
+          if (!/email_exists|identity_already_exists/.test(String(e && e.code)) && !/already (been )?(registered|linked)/i.test(String(e && e.message))) throw e;
+          if (liveOnlineGame()) { var f = new Error('finish'); f.code = 'finish'; throw f; }
+          return net.googleToken(tok, gsi.nonce, false).then(function () { return 'other'; });
+        });
+      }
+      return net.googleToken(tok, gsi.nonce, false).then(function () { return 'other'; });
+    }).then(function (how) {
+      // another player: start over as that one (as after an email code for another account)
+      if (how === 'other') { save('online', null); save('notice', 'signedIn'); setUrl(null); location.reload(); return; }
+      return refreshMe().then(function () {
+        if (currentDialog && currentDialog.dataset.kind === 'account') closeDialog();
+        toast(T('signedInAs', { email: (me && me.email) || '' }));
+        renderAll();
+        if (curView !== 'game' && curView !== 'signin') refreshView();
+        signedInNext();
+      });
+    }).catch(function (e) { toast(e && e.code === 'finish' ? T('finishFirst') : T('signInFailed')); });
   }
   // Back from the link in a sign-in email (or from Google): supabase-js has already taken the session (or the
   // error) from the address. Tidy the address and say what happened.

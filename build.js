@@ -18,6 +18,8 @@ const ONLINE = {
   region: 'eu-central-1',
   otpLength: 6, // digits in the email sign-in code (Supabase: Authentication > Sign In / Providers > Email > Email OTP length)
   googleAuth: true, // "Continue with Google" (Google Cloud project golden-chess-512108, client "Golden Chess web"; Supabase provider on)
+  // the same client for Google's own button on the website (public id; its authorised JavaScript origin is https://golden-chess.com)
+  googleClientId: '977363935890-q5rnfd17nih6agv3ha00af926ev6j275.apps.googleusercontent.com',
 };
 const SITE = 'https://golden-chess.com/';
 

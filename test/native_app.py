@@ -2,7 +2,7 @@
 # (window.Capacitor) and for supabase-js check what the page does in the app: Google opens in the system browser
 # and comes back through goldenchess://auth, the Android back button, the share sheet, the offline copy.
 # Run: python3 test/native_app.py   (after node build.js)
-import asyncio, json, os, re, sys
+import asyncio, hashlib, json, os, re, sys
 from playwright.async_api import async_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,6 +25,19 @@ window.__capFire = function (k, d) { (window.__capListeners[k] || []).forEach(fu
 """
 
 # supabase-js stand-in: the session lives in localStorage so it survives a reload, like the real one
+# Google Identity Services stand-in: initialize() keeps the options, the rendered button answers with an ID token
+FAKE_GSI = r"""
+window.google = { accounts: { id: {
+  initialize: function (o) { window.__gsiInit = o; },
+  renderButton: function (el, opts) {
+    window.__gsiOpts = opts;
+    var b = document.createElement('button'); b.type = 'button'; b.id = 'gsi-fake'; b.textContent = 'Continue with Google';
+    b.onclick = function () { window.__gsiInit.callback({ credential: 'fake.jwt.token', select_by: 'btn' }); };
+    el.appendChild(b);
+  }
+} } };
+"""
+
 FAKE_SUPABASE = r"""
 window.supabase = { createClient: function (url, key, opts) {
   var SK = opts.auth.storageKey;
@@ -45,7 +58,21 @@ window.supabase = { createClient: function (url, key, opts) {
       onAuthStateChange: function (cb) { lis.push(cb); return { data: { subscription: { unsubscribe: function () {} } } }; },
       getSession: function () { return ok({ session: sess() }); },
       signInAnonymously: function () { setU({ id: 'u1', email: null, is_anonymous: true }); return ok({ session: sess() }); },
-      linkIdentity: function (o) { calls.push(['linkIdentity', o]); return ok({ provider: 'google', url: 'https://accounts.google.com/o/oauth2/auth?fake=link' }); },
+      linkIdentity: function (o) {
+        calls.push(['linkIdentity', o]);
+        if (o.token) {  // Google's button on the website: the ID token links Google to this guest
+          if (localStorage.getItem('test.linkTaken')) return Promise.resolve({ data: { user: null, session: null }, error: { message: 'A user with this email address has already been registered', code: 'email_exists', status: 400 } });
+          var g = Object.assign({}, getU(), { is_anonymous: false, email: 'gina@example.com', user_metadata: { full_name: 'Gina Google' } });
+          setU(g); lis.forEach(function (cb) { cb('USER_UPDATED', sess()); });
+          return ok({ user: g, session: sess() });
+        }
+        return ok({ provider: 'google', url: 'https://accounts.google.com/o/oauth2/auth?fake=link' });
+      },
+      signInWithIdToken: function (o) {
+        calls.push(['signInWithIdToken', o]); localStorage.setItem('test.idToken', JSON.stringify(o));
+        var g = { id: 'u3', email: 'gina@example.com', is_anonymous: false, user_metadata: { full_name: 'Gina Google' } };
+        setU(g); return ok({ user: g, session: sess() });
+      },
       signInWithOAuth: function (o) { calls.push(['signInWithOAuth', o]); return ok({ provider: 'google', url: 'https://accounts.google.com/o/oauth2/auth?fake=signin' }); },
       setSession: function (t) {
         calls.push(['setSession', t]);
@@ -93,8 +120,10 @@ async def wait_for(pg, js, timeout=6000):
     return False
 
 
-async def setup(ctx, html, native=True):
+async def setup(ctx, html, native=True, gsi=None):
     pg = await ctx.new_page(); errs = []
+    if gsi == 'fake': await pg.route('https://accounts.google.com/gsi/client', lambda r: r.fulfill(status=200, body=FAKE_GSI, content_type='text/javascript'))
+    elif gsi == 'fail': await pg.route('https://accounts.google.com/gsi/client', lambda r: r.abort())
     pg.on('pageerror', lambda e: errs.append('PAGEERROR ' + str(e)))
     pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
     if native: await pg.add_init_script(FAKE_CAPACITOR)
@@ -290,12 +319,55 @@ async def main():
         check('iphone: no console errors', not [e for e in errs if 'Failed to load resource' not in e], errs[:5])
         await ctx.close()
 
-        # ---- the website (no app): Google leaves the page, back to the site's own address
+        # ---- the website: Google's own button signs in right on the site (Google shows golden-chess.com, not Supabase)
+        cid = re.search(r'"googleClientId":\s*"([^"]+)"', html).group(1)
         ctx = await br.new_context(**phone)
-        pg, errs = await setup(ctx, html, native=False)
+        pg, errs = await setup(ctx, html, native=False, gsi='fake')
+        await pg.goto(SITE + '#signin')
+        ok = await wait_for(pg, '!!document.getElementById("gsi-fake")')
+        check("gsi: Google's button in place of ours", ok and not await pg.evaluate('!!document.getElementById("btn-google")'))
+        init = await pg.evaluate('({ id: __gsiInit.client_id, nonce: __gsiInit.nonce, fedcm: __gsiInit.use_fedcm_for_button, text: __gsiOpts.text, theme: __gsiOpts.theme, w: __gsiOpts.width })')
+        check('gsi: our client, a hashed nonce, "Continue with", fits the card', init['id'] == cid and re.fullmatch(r'[0-9a-f]{64}', init['nonce'] or '') and init['text'] == 'continue_with' and 200 <= init['w'] <= 400, init)
+        await pg.screenshot(path=os.path.join(ROOT, 'test/shots/web-gsi.png'))
+        await pg.click('#gsi-fake')
+        ok = await wait_for(pg, '__sbCalls.some(function (c) { return c[0] === "linkIdentity" && c[1].token; })')
+        li = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "linkIdentity"; }).map(function (c) { return c[1]; })')
+        check('gsi: a guest links Google with the ID token (same player)', ok and li[0]['token'] == 'fake.jwt.token' and li[0]['provider'] == 'google', li)
+        check('gsi: the nonce Supabase checks is the one Google got (hashed)', ok and hashlib.sha256(li[0]['nonce'].encode()).hexdigest() == init['nonce'], li)
+        ok = await wait_for(pg, '__gc.dialogKind === "name"')
+        val = await pg.evaluate('(document.getElementById("acct-name") || {}).value')
+        check('gsi: then the name, the Google name offered', ok and val == 'Gina Google', val)
+        check('gsi: says who is signed in', 'gina@example.com' in await pg.evaluate('document.getElementById("toast").textContent'))
+        await pg.click('#btn-name')
+        ok = await wait_for(pg, '!__gc.dialogOpen && /Gina Google/.test((document.getElementById("acct-chip") || {}).textContent || "")')
+        check('gsi: name saved, back on Play signed in', ok and await pg.evaluate('__gc.curView') == 'play' and renames[-1] == 'Gina Google', renames)
+        check('gsi: no console errors', not [x for x in errs if 'Failed to load resource' not in x], errs[:5])
+        await ctx.close()
+
+        # the Google email already has a player: sign in to that player with the same token (no second trip to Google)
+        ctx = await br.new_context(**phone)
+        pg, errs = await setup(ctx, html, native=False, gsi='fake')
+        await pg.goto(SITE + '#signin')
+        await wait_for(pg, '!!document.getElementById("gsi-fake")')
+        await pg.evaluate('localStorage.setItem("test.linkTaken", "1"); window.__marker = 1')
+        await pg.click('#gsi-fake')
+        ok = await wait_for(pg, 'window.__marker === undefined', 8000)
+        await wait_for(pg, '!!window.__gc && !!__gc.me', 8000)
+        sid = await pg.evaluate('JSON.parse(localStorage.getItem("test.idToken") || "null")')
+        check('gsi: email taken -> signs in to that player with the ID token, page starts over as them', ok and sid and sid['token'] == 'fake.jwt.token' and await pg.evaluate('__gc.me.uid') == 'u3', sid)
+        ok = await wait_for(pg, '/gina@example.com/.test(document.getElementById("toast").textContent) && __gc.dialogKind === "name"', 6000)
+        check('gsi: ... says so and asks that player for a name', ok, await pg.evaluate('document.getElementById("toast").textContent'))
+        check('gsi: no console errors (switch)', not [x for x in errs if 'Failed to load resource' not in x], errs[:5])
+        await ctx.close()
+
+        # ---- the website when Google's script can't load: our button, through Supabase, back to the site's own address
+        ctx = await br.new_context(**phone)
+        pg, errs = await setup(ctx, html, native=False, gsi='fail')
         await pg.goto(SITE + '#signin'); await pg.wait_for_timeout(500)
         cls = await pg.evaluate('document.documentElement.className')
         check('web: not marked native', 'native' not in cls, cls)
+        ok = await wait_for(pg, '!!document.getElementById("btn-google") && getComputedStyle(document.getElementById("btn-google")).visibility === "visible"')
+        check("web: Google's script blocked -> our button stays", ok)
         await pg.click('#btn-google'); await pg.wait_for_timeout(400)
         sb = await pg.evaluate('__sbCalls')
         link = [c for c in sb if c[0] == 'linkIdentity']
