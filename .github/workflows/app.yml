@@ -33,7 +33,12 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
+      - name: Android SDK
+        shell: bash
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          if [ -z "$ANDROID_HOME" ] || [ ! -d "$ANDROID_HOME" ]; then echo "::error title=Android SDK::no Android SDK on this runner"; exit 1; fi
+          ls "$ANDROID_HOME/platforms" | tail -n 4
       - name: Install and sync
         working-directory: app
         run: npm ci && npx cap sync android
