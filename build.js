@@ -19,7 +19,7 @@ const ONLINE = {
   otpLength: 6, // digits in the email sign-in code (Supabase: Authentication > Sign In / Providers > Email > Email OTP length)
   // the stores' reviewers can't receive our emails: this one account signs in with a password (a Supabase user created
   // with a password in the dashboard); everyone else signs in with an email code
-  reviewEmail: 'review@golden-chess.com',
+  reviewEmail: 'review@kozyramedia.com',
   googleAuth: true, // "Continue with Google" (Google Cloud project golden-chess-512108, client "Golden Chess web"; Supabase provider on)
   // the Google client (public id): Google's own button on the website (authorised JavaScript origin https://golden-chess.com)
   googleClientId: '977363935890-q5rnfd17nih6agv3ha00af926ev6j275.apps.googleusercontent.com',
@@ -59,7 +59,7 @@ const webBody = body.replace(/^<title>[^<]*<\/title>\n/, '').replace(/^<meta nam
 write('dist/golden-chess.html', artifactBody);
 write('dist/preview.html', doc('', artifactBody));
 write('dist/web/index.html', doc(webHead + '<script>' + supa + '</script><script>window.GC_ONLINE=' + JSON.stringify(ONLINE) + '</script>', webBody));
-write('dist/mock/index.html', doc('<title>Golden Chess (local server)</title><script>window.GC_ONLINE={mock:"",reviewEmail:"review@golden-chess.com"}</script>', webBody));
+write('dist/mock/index.html', doc('<title>Golden Chess (local server)</title><script>window.GC_ONLINE={mock:"",reviewEmail:"review@kozyramedia.com"}</script>', webBody));
 // the app shows the live site; this copy (bots and two players, no online play) is what it opens without internet
 const appBody = page('window.GC_SITE = ' + JSON.stringify(SITE) + ';\nwindow.GC_APP_OFFLINE = true;\n').replace(/^<title>[^<]*<\/title>\n/, '').replace(/^<meta name="claude:viewport-fit-sides"[^>]*>\n/m, '');
 write('app/www/index.html', doc('<title>Golden Chess</title><meta name="theme-color" content="#2a2f2d">', appBody));

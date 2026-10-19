@@ -255,15 +255,15 @@ async def main():
             ok('Russian sign-in page', await wait_for(D, '/Войдите/.test(document.querySelector("#signin-card .dlg-title").textContent) && /почт/i.test(document.querySelector("#signin-card .dlg-sub").textContent)', 4000))
 
             # ---- 10. the stores' review account (it can't get our emails): a password instead of a code (in Russian here)
-            await D.fill('#acct-email', 'Review@golden-chess.com')
+            await D.fill('#acct-email', 'Review@kozyramedia.com')
             await D.click('#btn-send-code')
-            ok('review account: a password field, no email sent', await wait_for(D, '!!document.getElementById("acct-password")', 3000) and not admin('outbox', to='review@golden-chess.com'))
+            ok('review account: a password field, no email sent', await wait_for(D, '!!document.getElementById("acct-password")', 3000) and not admin('outbox', to='review@kozyramedia.com'))
             await D.fill('#acct-password', 'nope')
             await D.click('#btn-password')
             ok('wrong password: said so', await wait_for(D, '/Неверный пароль/.test((document.getElementById("acct-err") || {}).textContent || "")', 4000), await text(D, '#acct-err'))
             await D.fill('#acct-password', 'review-test-pass')
             await D.click('#btn-password')
-            ok('right password: signed in as the review account', await wait_for(D, '!!window.__gc && !!__gc.me && __gc.me.guest === false && __gc.me.email === "review@golden-chess.com"', 8000), await D.evaluate('window.__gc && __gc.me'))
+            ok('right password: signed in as the review account', await wait_for(D, '!!window.__gc && !!__gc.me && __gc.me.guest === false && __gc.me.email === "review@kozyramedia.com"', 8000), await D.evaluate('window.__gc && __gc.me'))
 
             for nm in errs:
                 bad = [e for e in errs[nm] if 'favicon' not in e]

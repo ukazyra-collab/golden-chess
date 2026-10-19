@@ -48,7 +48,7 @@ const logic = createLogic({ repo, broadcast, GC, now });
 // requested again within a minute.
 const accounts = { emailOf: new Map(), uidOf: new Map(), pending: new Map(), lastSent: new Map(), outbox: [] };
 const OTP_TTL = 10 * 60000, RESEND_MS = 60000;
-const REVIEW = { email: 'review@golden-chess.com', password: 'review-test-pass' }; // the stores' review account (test only)
+const REVIEW = { email: 'review@kozyramedia.com', password: 'review-test-pass' }; // the stores' review account (test only)
 function sendCode(email, uid, type) {
   const t = now();
   if (t - (accounts.lastSent.get(email) ?? -Infinity) < RESEND_MS) return { status: 429, body: { error: 'over_email_send_rate_limit' } };
