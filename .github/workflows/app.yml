@@ -1,0 +1,78 @@
+# The iPhone / Android app (app/): every change to it builds
+#  - an Android test APK, published as the release "android-test" (a direct link to install on a phone), and
+#  - the iPhone project for the simulator without signing, to catch a broken Xcode project early.
+# Store builds are signed on the Mac (app/README.md).
+name: App builds
+
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', '.github/workflows/app.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: app-builds
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install and sync
+        working-directory: app
+        run: npm ci && npx cap sync android
+      - name: Build the test APK
+        working-directory: app/android
+        run: ./gradlew --no-daemon assembleDebug
+      - name: Publish the APK
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/android/app/build/outputs/apk/debug/app-debug.apk golden-chess.apk
+          notes="Test build of the Golden Chess Android app from ${GITHUB_SHA::7} ($(date -u +'%Y-%m-%d %H:%M UTC')). Install: open this page on the phone, tap golden-chess.apk, allow installing from the browser."
+          if gh release view android-test >/dev/null 2>&1; then
+            gh release edit android-test --notes "$notes"
+          else
+            gh release create android-test --prerelease --title "Android test build" --notes "$notes"
+          fi
+          gh release upload android-test golden-chess.apk --clobber
+      - uses: actions/upload-artifact@v4
+        with:
+          name: golden-chess-android
+          path: golden-chess.apk
+
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install and sync
+        working-directory: app
+        run: npm ci && npx cap sync ios
+      - name: Build for the simulator (no signing)
+        working-directory: app/ios/App
+        shell: bash
+        run: |
+          xcodebuild -version
+          xcodebuild -project App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tail -40
