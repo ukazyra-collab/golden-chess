@@ -17,7 +17,7 @@ const ONLINE = {
   fn: 'play',
   region: 'eu-central-1',
   otpLength: 6, // digits in the email sign-in code (Supabase: Authentication > Sign In / Providers > Email > Email OTP length)
-  googleAuth: false, // "Continue with Google": switch on once the Google provider is set up (supabase/emails/README.md)
+  googleAuth: true, // "Continue with Google" (Google Cloud project golden-chess-512108, client "Golden Chess web"; Supabase provider on)
 };
 const SITE = 'https://golden-chess.com/';
 
@@ -40,7 +40,9 @@ const doc = (head, b) => '<!doctype html>\n<html lang="en"><head><meta charset="
 // the same mark as the logo in the page (LOGO_SVG in app.js)
 const ICON = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="2" y="2" width="28" height="28" rx="7" fill="#3a423f"/><path d="M2 9a7 7 0 0 1 7-7h7v14H2z" fill="#4a5350"/><path d="M16 16h14v7a7 7 0 0 1-7 7h-7z" fill="#4a5350"/><path d="M16 5.5c.9 5.4 3.6 8.1 9 9-5.4.9-8.1 3.6-9 9-.9-5.4-3.6-8.1-9-9 5.4-.9 8.1-3.6 9-9z" fill="#e7b44a"/></svg>');
 const DESC = 'Chess with one golden move per game: teleport a queen, rook, bishop or knight to any empty square. Play the bot, a friend, or rated games online.';
-const webHead = '<title>Golden Chess</title><meta name="description" content="' + DESC + '"><meta name="theme-color" content="#2a2f2d">' +
+// plain http (an old link, the github.io redirect before HTTPS is enforced) goes to https: one origin, one saved session
+const TO_HTTPS = '<script>if(location.protocol==="http:"&&/(^|\\.)golden-chess\\.com$/.test(location.hostname))location.replace("https://golden-chess.com"+location.pathname+location.search+location.hash)</script>';
+const webHead = TO_HTTPS + '<title>Golden Chess</title><meta name="description" content="' + DESC + '"><meta name="theme-color" content="#2a2f2d">' +
   '<link rel="icon" href="' + ICON + '"><link rel="apple-touch-icon" href="apple-touch-icon.png">' +
   '<meta property="og:title" content="Golden Chess"><meta property="og:description" content="' + DESC + '">' +
   '<meta property="og:type" content="website"><meta property="og:url" content="' + SITE + '"><meta property="og:image" content="' + SITE + 'og.png">' +
