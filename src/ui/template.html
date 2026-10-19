@@ -383,9 +383,8 @@ svg { display: block; }
 .prof { display: flex; flex-direction: column; gap: 6px; min-height: 36px; justify-content: center; }
 .prof-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; }
 .prof-line b { font-weight: 800; }
-.prof-edit { display: flex; gap: 8px; }
-.prof-edit input, .linkbox input { flex: 1; min-width: 0; height: 42px; box-sizing: border-box; border-radius: 11px; border: 1px solid var(--line); background: #262b29; color: var(--bone); padding: 0 10px; font: 600 14px var(--f-ui); }
-.prof-edit input:focus, .linkbox input:focus { outline: 2px solid var(--gold-hi); outline-offset: 1px; }
+.linkbox input { flex: 1; min-width: 0; height: 42px; box-sizing: border-box; border-radius: 11px; border: 1px solid var(--line); background: #262b29; color: var(--bone); padding: 0 10px; font: 600 14px var(--f-ui); }
+.linkbox input:focus { outline: 2px solid var(--gold-hi); outline-offset: 1px; }
 .err { color: #f0a59b; font-size: 12.5px; }
 .muted { color: var(--muted); }
 .linkbtn { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-weight: 700; font-size: 14px; color: var(--muted); padding: 6px 0; }
@@ -606,6 +605,8 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 .prof-who { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .prof-name { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 22px; overflow-wrap: anywhere; }
 .prof-sub { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.name-btn { align-self: flex-start; display: inline-flex; align-items: center; gap: 7px; height: 38px; margin-top: 6px; padding: 0 14px 0 12px; }
+.name-btn svg { width: 17px; height: 17px; flex: none; }
 .pool-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .pool-card { background: var(--panel); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .pool-card .h { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); font-weight: 700; }

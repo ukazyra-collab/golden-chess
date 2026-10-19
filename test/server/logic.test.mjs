@@ -37,15 +37,23 @@ for (const u of [A, B, C]) await ok(u, { action: 'hello' });
 const profs = await inspect.profiles();
 check('profiles created', profs.length === 3);
 check('names unique', new Set(profs.map((p) => p.username.toLowerCase())).size === 3);
+check('a made-up name is not one the player chose', profs.every((p) => p.name_chosen === false), profs);
 
 // rename
 let r = await call(A, { action: 'rename', name: 'x' });
 check('short name rejected', r.body.error && r.body.error === 'bad_name');
 r = await call(A, { action: 'rename', name: 'Алиса_1' });
 check('unicode name ok', r.status === 200 && r.body.profile.username === 'Алиса_1');
+check('a picked name is marked as chosen', r.body.profile.name_chosen === true, r.body.profile);
 r = await call(B, { action: 'rename', name: 'алиса_1' });
 check('case-insensitive taken', r.body.error && r.body.error === 'name_taken');
+check('a refused name changes nothing', (await ok(B, { action: 'hello' })).profile.name_chosen === false);
 await ok(B, { action: 'rename', name: 'Bob' });
+// keeping the made-up name is a choice too
+const cName = (await ok(C, { action: 'hello' })).profile.username;
+r = await call(C, { action: 'rename', name: ' ' + cName.toLowerCase() + ' ' });
+check('keeping the made-up name (any case): accepted, marked as chosen', r.status === 200 && r.body.profile.name_chosen === true && r.body.profile.username === cName.toLowerCase(), r.body);
+check('hello returns the mark', (await ok(C, { action: 'hello' })).profile.name_chosen === true);
 
 // auth
 r = await logic.handle(Promise.reject({ code: 'auth' }), { action: 'hello' });

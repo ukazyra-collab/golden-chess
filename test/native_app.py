@@ -50,7 +50,7 @@ window.supabase = { createClient: function (url, key, opts) {
       setSession: function (t) {
         calls.push(['setSession', t]);
         var nu = null; try { nu = JSON.parse(localStorage.getItem('test.nextUser') || 'null'); } catch (e) { /* none */ }
-        var u = nu || { id: 'u1', email: 'me@example.com', is_anonymous: false };
+        var u = nu || { id: 'u1', email: 'me@example.com', is_anonymous: false, user_metadata: { full_name: 'Uladzislau Kazyra', name: 'Uladzislau Kazyra' } };
         setU(u); lis.forEach(function (cb) { cb('SIGNED_IN', sess()); });
         return ok({ user: u, session: sess() });
       },
@@ -78,6 +78,7 @@ def site_html():
 
 
 results = []
+renames = []
 def check(name, ok, extra=''):
     results.append((name, bool(ok))); print(('PASS ' if ok else 'FAIL ') + name, extra if not ok else '')
 
@@ -102,9 +103,14 @@ async def setup(ctx, html, native=True):
     async def page_route(r):
         await r.fulfill(status=200, body=html, content_type='text/html')
     await pg.route(SITE + '**', page_route)
+    names = {}  # per player (token): the name and whether they picked it, as the play function keeps them
     async def fn_route(r):
         body = json.loads(r.request.post_data or '{}'); a = body.get('action')
-        if a == 'hello': out = {'profile': {'username': 'Player1'}, 'ratings': [], 'live': None, 'now': 0}
+        p = names.setdefault(body.get('token') or '?', {'username': 'Player1', 'name_chosen': False})
+        if a == 'hello': out = {'profile': dict(p), 'ratings': [], 'live': None, 'now': 0}
+        elif a == 'rename':
+            p.update(username=' '.join(str(body.get('name', '')).split()), name_chosen=True); renames.append(p['username'])
+            out = {'profile': dict(p)}
         elif a == 'challenge': out = {'game': {'id': 'g1', 'status': 'waiting'}}
         else: out = {}
         await r.fulfill(status=200, body=json.dumps(out), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
@@ -164,6 +170,19 @@ async def main():
         check('app: the in-app browser is closed', closed)
         chip = await pg.evaluate('(document.getElementById("acct-chip") || {}).textContent || ""')
         check('app: Play shows the player, not "Sign in"', 'Player1' in chip, chip)
+        # a made-up name: right after signing in the player picks their own (the name on the Google account is offered)
+        ok = await wait_for(pg, '__gc.dialogKind === "name"')
+        val = await pg.evaluate('(document.getElementById("acct-name") || {}).value')
+        check('name: asked right after signing in, the Google name offered', ok and val == 'Uladzislau Kazyra', val)
+        await pg.screenshot(path=os.path.join(ROOT, 'test/shots/native-name.png'))
+        await pg.fill('#acct-name', ''); await pg.click('#btn-name')
+        er = await pg.evaluate('(document.getElementById("acct-err") || {}).textContent || ""')
+        check('name: an empty name is refused', 'name' in er.lower() and not renames, er)
+        await pg.fill('#acct-name', '  Uladzislau   K '); await pg.click('#btn-name')
+        ok = await wait_for(pg, '!__gc.dialogOpen')
+        check('name: saved (spaces tidied), the dialog closes', ok and renames == ['Uladzislau K'], renames)
+        chip = await pg.evaluate('(document.getElementById("acct-chip") || {}).textContent || ""')
+        check('name: Play shows the new name', 'Uladzislau K' in chip, chip)
         # the same link again (the launch address is read once per run) changes nothing
         await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#access_token=AT1&expires_in=3600&refresh_token=RT1&token_type=bearer" })')
         await pg.wait_for_timeout(300)
@@ -200,6 +219,23 @@ async def main():
         check('app: after the reload it says who is signed in', ok, await pg.evaluate('document.getElementById("toast").textContent'))
         n3 = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "setSession"; }).length')
         check('app: the launch link is not taken again after the reload', n3 == 0, n3)
+        # that player has a made-up name too: asked after the reload; closed without a name, not asked again on opening
+        ok = await wait_for(pg, '__gc.dialogKind === "name"')
+        val = await pg.evaluate('(document.getElementById("acct-name") || {}).value')
+        check('name: another account with a made-up name is asked too (no Google name: empty field)', ok and val == '', val)
+        await pg.evaluate('__gc.closeDialog()')
+        await pg.reload()
+        await wait_for(pg, '!!window.__gc && !!__gc.me && __gc.me.uid === "u2"', 8000); await pg.wait_for_timeout(600)
+        check('name: closed once, not asked again when the app opens', await pg.evaluate('__gc.dialogKind') is None, await pg.evaluate('__gc.dialogKind'))
+        await pg.evaluate('__gc.go("profile")')
+        ok = await wait_for(pg, '!!document.getElementById("btn-rename")')
+        check('name: Profile has "Change name"', ok and 'Change name' in await pg.evaluate('document.getElementById("btn-rename").textContent'))
+        await pg.screenshot(path=os.path.join(ROOT, 'test/shots/native-profile.png'))
+        await pg.click('#btn-rename')
+        ok = await wait_for(pg, '__gc.dialogKind === "name"')
+        await pg.fill('#acct-name', 'Sasha'); await pg.click('#btn-name')
+        ok = ok and await wait_for(pg, '!__gc.dialogOpen && /Sasha/.test(document.getElementById("prof-name").textContent)')
+        check('name: changed from Profile', ok and renames[-1] == 'Sasha', renames)
 
         # ---- the Android back button
         await pg.evaluate('location.hash = "play"'); await pg.wait_for_timeout(300)

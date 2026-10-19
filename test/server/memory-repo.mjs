@@ -29,7 +29,7 @@ export function createMemoryRepo(now) {
     async insertProfile(uid, name, guest = true) {
       if (db.profiles.has(uid)) return null;
       for (const p of db.profiles.values()) if (p.username.toLowerCase() === name.toLowerCase()) return null;
-      const p = { id: uid, username: name, is_guest: !!guest, created_at: iso(now()) };
+      const p = { id: uid, username: name, is_guest: !!guest, name_chosen: false, created_at: iso(now()) };
       db.profiles.set(uid, p);
       return clone(p);
     },
@@ -37,7 +37,7 @@ export function createMemoryRepo(now) {
     async renameProfile(uid, name) {
       for (const p of db.profiles.values()) if (p.id !== uid && p.username.toLowerCase() === name.toLowerCase()) return { taken: true };
       const p = db.profiles.get(uid);
-      p.username = name;
+      p.username = name; p.name_chosen = true;
       return { row: clone(p) };
     },
     async getRating(uid, pool) { return clone(db.ratings.get(uid + '|' + pool) || null); },

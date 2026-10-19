@@ -79,7 +79,7 @@
       signInToRate: 'Sign in to play online and get a rating', ratingIn: '{pool} rating: {r}', botSetupTitle: 'Play a bot',
       signInTitle: 'Sign in to play', signInPageSub: 'It\u2019s free, with no password: we email you a code. Your rating and games stay with your account on any device.',
       practise: 'Just practising?', playTheBot: 'Play the bot without an account',
-      nameTitle: 'Choose your name', nameSub: 'Opponents and the ratings will see it. You can change it later.', signedInTitle: 'You\u2019re signed in',
+      nameTitle: 'Your name in the game', nameSub: 'Opponents and the ratings see it. You can change it in Profile.', namePh: 'Your name', nameEmpty: 'Type your name', changeName: 'Change name', signedInTitle: 'You\u2019re signed in',
       yourRating: 'Your rating', wdl: '{w} wins, {d} draws, {l} losses', provisional: 'provisional', noGamesYet: 'no games yet',
       profileGuest: 'Guest', profileSignedOut: 'Sign in to play online. Your rating and games are saved to your account.', howItWorks: 'How the golden move works',
       learnTitle: 'One move that changes the game',
@@ -185,7 +185,7 @@
       signInToRate: 'Войдите, чтобы играть онлайн и получить рейтинг', ratingIn: 'Рейтинг ({pool}): {r}', botSetupTitle: 'Игра с ботом',
       signInTitle: 'Войдите, чтобы играть', signInPageSub: 'Бесплатно и без пароля: пришлём код на почту. Рейтинг и партии сохранятся в аккаунте на любом устройстве.',
       practise: 'Просто потренироваться?', playTheBot: 'Сыграйте с ботом без аккаунта',
-      nameTitle: 'Выберите имя', nameSub: 'Его увидят соперники и таблица рейтинга. Поменять можно потом.', signedInTitle: 'Вы вошли',
+      nameTitle: 'Ваше имя в игре', nameSub: 'Его видят соперники и таблица рейтинга. Поменять можно в профиле.', namePh: 'Ваше имя', nameEmpty: 'Введите имя', changeName: 'Изменить имя', signedInTitle: 'Вы вошли',
       yourRating: 'Ваш рейтинг', wdl: 'побед {w}, ничьих {d}, поражений {l}', provisional: 'предварительный', noGamesYet: 'партий ещё нет',
       profileGuest: 'Гость', profileSignedOut: 'Войдите, чтобы играть онлайн. Рейтинг и партии сохранятся в аккаунте.', howItWorks: 'Как работает золотой ход',
       learnTitle: 'Один ход, который меняет партию',
@@ -1756,8 +1756,9 @@
   function authFail(r) { if (r && r.error) { var e = new Error(r.error.message || 'auth'); e.code = r.error.code || ''; e.status = r.error.status; throw e; } return r && r.data; }
   SupaNet.prototype.account = function () {
     return this.sb.auth.getSession().then(function (r) {
-      var u = r.data && r.data.session && r.data.session.user;
-      return u ? { uid: u.id, email: u.email || null, guest: !!u.is_anonymous } : null;
+      var u = r.data && r.data.session && r.data.session.user, md = (u && u.user_metadata) || {};
+      // gname: the name on the Google account, offered when the player picks their name
+      return u ? { uid: u.id, email: u.email || null, guest: !!u.is_anonymous, gname: md.full_name || md.name || '' } : null;
     });
   };
   SupaNet.prototype.linkEmail = function (email) { return this.sb.auth.updateUser({ email: email }, { emailRedirectTo: authRedirect() }).then(authFail); };
@@ -1858,7 +1859,7 @@
     try { getClient(); } catch (e) { return Promise.reject(e); }
     netReady = net.ready().then(function () { return Promise.all([net.call('hello'), net.account().catch(function () { return null; })]); }).then(function (rr) {
       var r = rr[0], a = rr[1];
-      me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest };
+      me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest, gname: a && a.gname || '' };
       (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; });
       if (!userSub) userSub = net.sub('u:' + net.uid, { event: function (ev, p) { if (ev === 'paired' && p && p.game && lobby) onPaired(p.game); } });
       return r;
@@ -1871,7 +1872,7 @@
     return Promise.all([net.call('hello'), net.account().catch(function () { return null; })]).then(function (rr) {
       var r = rr[0], a = rr[1];
       me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; });
-      if (a) { me.email = a.email || null; me.guest = a.guest; }
+      if (a) { me.email = a.email || null; me.guest = a.guest; me.gname = a.gname || ''; }
     }, function () { /* ignore */ });
   }
   function setUrl(key, val) {
@@ -2010,7 +2011,7 @@
   }
   // o: { page: the full-page sign-in, onDone(), onCancel() }
   function accountFlow(card, o) {
-    var st = { step: 'form', email: '', code: '', type: '', existing: false, err: '', busy: false, sentAt: 0, acct: null, name: '' };
+    var st = { step: 'form', email: '', code: '', type: '', existing: false, err: '', busy: false, sentAt: 0, acct: null };
     var timer = 0, again = null, alive = true;
     if (me && !me.guest) { st.step = 'signed'; st.acct = { email: me.email, guest: false }; }
     else if (hasNetSession() && !me) {
@@ -2051,20 +2052,7 @@
         card.appendChild(row([so, btn('primary', T('done'), o.onDone, 'btn-acct-done')]));
         return;
       }
-      if (st.step === 'name') {
-        card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('nameSub'))));
-        var nf = h('form', { class: 'acct-form', novalidate: '' });
-        var ni = h('input', { type: 'text', class: 'acct-input', id: 'acct-name', maxlength: '20', autocomplete: 'nickname', spellcheck: 'false', 'aria-label': T('nameTitle') });
-        ni.value = st.name;
-        nf.appendChild(ni);
-        if (err) nf.appendChild(err);
-        var nb = h('button', { type: 'submit', class: 'primary', id: 'btn-name' }, esc(T('cont')));
-        nb.disabled = st.busy;
-        nf.appendChild(nb);
-        nf.addEventListener('submit', function (e) { e.preventDefault(); saveName(ni.value); });
-        card.appendChild(nf);
-        return;
-      }
+      if (st.step === 'name') { focus(nameForm(card, o.onDone)); return; }
       if (st.step === 'form') {
         card.appendChild(h('div', { class: 'dlg-sub' }, esc(o.page ? T('signInPageSub') : T('signInSub'))));
         var form = h('form', { class: 'acct-form', novalidate: '' });
@@ -2149,7 +2137,7 @@
             if (!me || me.guest) { st.code = ''; st.err = T('signInFailed'); render(); return; } // the account didn't change after all
             st.acct = { email: me.email || st.email, guest: false };
             toast(o.page ? T('signedInAs', { email: st.acct.email }) : T('progressSaved')); renderAll();
-            if (o.page && !hasProgress()) { st.step = 'name'; st.name = me.profile ? me.profile.username : ''; render(); return; } // a new account: let them pick a name
+            if (!nameChosen()) { st.step = 'name'; render(); return; } // their own name instead of the made-up one
             if (o.page) { o.onDone(); return; }
             st.step = 'signed'; render();
           });
@@ -2158,16 +2146,6 @@
         save('online', null); save('notice', 'signedIn'); setUrl(null); // don't reopen the previous player's game
         location.reload();
       }).catch(function (e) { if (!alive) return; st.busy = false; st.code = ''; st.err = authMsg(e); render(); });
-    }
-    function saveName(name) {
-      name = String(name || '').trim();
-      if (st.busy) return;
-      if (!name || (me && me.profile && name === me.profile.username)) { o.onDone(); return; }
-      st.busy = true; st.err = ''; st.name = name; render();
-      net.call('rename', { name: name }).then(function (r) { me.profile = r.profile; st.busy = false; o.onDone(); }, function (er) {
-        var c = er && er.data && er.data.error;
-        st.busy = false; st.err = c === 'name_taken' ? T('nameTaken') : c === 'bad_name' ? T('badName') : T('netError'); render();
-      });
     }
     function signOut() {
       if (liveOnlineGame()) { st.err = T('finishFirst'); render(); return; }
@@ -2186,6 +2164,75 @@
   }
   function doSignOut(onErr) {
     net.signOut().then(function () { save('online', null); save('notice', 'signedOut'); save('pending', null); setUrl(null); location.hash = 'play'; location.reload(); }, onErr);
+  }
+
+  // ---- the player's own name. A made-up one (SharpGambit43) is only for guests: after every sign-in the player is
+  // asked for their name until they pick one (keeping the made-up one counts), and Profile can change it any time.
+  // An older server doesn't say (name_chosen missing): then nothing is asked.
+  function nameChosen() { return !me || !me.profile || me.profile.name_chosen !== false; }
+  // the name on the Google account, if it fits the rules (2-20 letters, digits, spaces, _ or -)
+  function nameHint() {
+    var g = String((me && me.gname) || '').replace(/[.'’]/g, '').replace(/\s+/g, ' ').trim();
+    if (g.length > 20) g = g.split(' ')[0];
+    return g.length >= 2 && g.length <= 20 ? g : '';
+  }
+  // the form itself (sign-in page, account dialog, name dialog); done() once saved. Returns the field.
+  function nameForm(card, done) {
+    card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('nameSub'))));
+    var f = h('form', { class: 'acct-form', novalidate: '' });
+    var inp = h('input', { type: 'text', class: 'acct-input', id: 'acct-name', maxlength: '20', autocomplete: 'nickname', autocapitalize: 'words',
+      spellcheck: 'false', placeholder: T('namePh'), 'aria-label': T('nameTitle') });
+    inp.value = nameChosen() && me && me.profile ? me.profile.username : nameHint();
+    var er = h('div', { class: 'err', id: 'acct-err', role: 'alert' }); er.hidden = true;
+    var sv = h('button', { type: 'submit', class: 'primary', id: 'btn-name' }, esc(T('save')));
+    f.appendChild(inp); f.appendChild(er); f.appendChild(sv); card.appendChild(f);
+    function fail(msg) { er.textContent = msg; er.hidden = false; inp.disabled = false; sv.disabled = false; try { inp.focus(); } catch (e) { /* ignore */ } }
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (sv.disabled) return;
+      var name = inp.value.replace(/\s+/g, ' ').trim();
+      if (!name) { fail(T('nameEmpty')); return; }
+      if (nameChosen() && me && me.profile && name === me.profile.username) { done(); return; }
+      inp.disabled = true; sv.disabled = true; er.hidden = true;
+      ensureNet().then(function () { return net.call('rename', { name: name }); }).then(function (r) { me.profile = r.profile; done(); }, function (x) {
+        var c = x && x.data && x.data.error;
+        fail(c === 'name_taken' ? T('nameTaken') : c === 'bad_name' ? T('badName') : T('netError'));
+      });
+    });
+    return inp;
+  }
+  // as a dialog; then(): what comes next (the action that waited for the sign-in), after saving or closing it.
+  // Closed without saving: not asked again when the page opens, only at the next sign-in (and Profile has it).
+  var nameAsked = false;
+  function askName(then) {
+    nameAsked = true;
+    var saved = false, over = false;
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'name';
+      currentDialog.onClose = function () {
+        if (over) return; over = true;
+        if (!saved && me) save('nameLater', me.uid);
+        if (then) then();
+      };
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('nameTitle'))));
+      var inp = nameForm(card, function () {
+        saved = true; save('nameLater', null);
+        if (curView !== 'game' && curView !== 'signin') refreshView();
+        closeDialog();
+      });
+      setTimeout(function () { if (inp.isConnected) try { inp.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 30);
+    });
+  }
+  // right after a sign-in: off the sign-in page, the name (unless they have their own), then what they were doing
+  function signedInNext() {
+    if (curView === 'signin') go('play', true);
+    function next() { var a = takePending(); if (a) runPending(a); }
+    if (signedIn() && !nameChosen()) askName(next); else next();
+  }
+  // opening the site already signed in, with a made-up name: ask once (not over a game or another dialog)
+  function maybeAskName() {
+    if (nameAsked || !signedIn() || nameChosen() || currentDialog || curView === 'game' || curView === 'signin' || load('nameLater', '') === me.uid) return;
+    askName();
   }
   // Back from the link in a sign-in email (or from Google): supabase-js has already taken the session (or the
   // error) from the address. Tidy the address and say what happened.
@@ -2212,7 +2259,7 @@
       if (err) toast(/expired|invalid/i.test(err + ' ' + desc) ? T('linkExpired') : T('signInFailed'));
       else if (me && !me.guest) {
         toast(type === 'email_change' ? T('progressSaved') : T('signedInAs', { email: me.email || '' }));
-        var a = takePending(); if (a) runPending(a);
+        signedInNext();
       }
       renderAll(); if (curView !== 'game') refreshView();
     }, function () { toast(T('netError')); });
@@ -2258,8 +2305,8 @@
         if (currentDialog && currentDialog.dataset.kind === 'account') closeDialog();
         toast(type === 'email_change' ? T('progressSaved') : T('signedInAs', { email: (me && me.email) || '' }));
         renderAll();
-        var a = takePending();
-        if (a) runPending(a); else if (curView === 'signin') go('play'); else if (curView !== 'game') refreshView();
+        if (curView !== 'game' && curView !== 'signin') refreshView();
+        signedInNext();
       });
     }).catch(function () { toast(T('signInFailed')); });
   }
@@ -2584,6 +2631,7 @@
   var COLOR_RANDOM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6" fill="#1f2422"/><path d="M12 3.4a8.6 8.6 0 0 0 0 17.2z" fill="#f4efe4"/><circle cx="12" cy="12" r="8.6" fill="none" stroke="#8d9691" stroke-width="1.2"/></svg>';
   // Google's "G" for the sign-in button (their branding asks for it on "Continue with Google")
   var GOOGLE_G = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+  var PENCIL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5h4l10.3-10.3a2.83 2.83 0 0 0-4-4L4.5 15.5z"/><path d="M13.3 6.7l4 4"/></svg>';
   var STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c1 6.1 3.4 8.5 9.5 9.5-6.1 1-8.5 3.4-9.5 9.5-1-6.1-3.4-8.5-9.5-9.5 6.1-1 8.5-3.4 9.5-9.5z" fill="#e7b44a"/></svg>';
   var LOGO_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="#3a423f"/><path d="M2 9a7 7 0 0 1 7-7h7v14H2z" fill="#4a5350"/><path d="M16 16h14v7a7 7 0 0 1-7 7h-7z" fill="#4a5350"/><path d="M16 5.5c.9 5.4 3.6 8.1 9 9-5.4.9-8.1 3.6-9 9-.9-5.4-3.6-8.1-9-9 5.4-.9 8.1-3.6 9-9z" fill="#e7b44a"/></svg>';
   var CHEV_SVG = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
@@ -2917,9 +2965,9 @@
       who.appendChild(h('div', { class: 'prof-sub', id: 'prof-sub' }, esc(signedIn() ? (me.email || '') : T('profileSignedOut'))));
       hero.appendChild(who); inn.appendChild(hero);
       if (signedIn()) {
-        var ch = h('button', { type: 'button', class: 'linkbtn', id: 'btn-rename' }, esc(T('change')));
-        ch.addEventListener('click', function () { renameForm(who, nameEl); });
-        nameEl.appendChild(ch);
+        var ch = h('button', { type: 'button', class: 'sbtn name-btn', id: 'btn-rename' }, PENCIL_SVG + '<span>' + esc(T('changeName')) + '</span>');
+        ch.addEventListener('click', function () { askName(); });
+        who.appendChild(ch);
         var grid = h('div', { class: 'pool-grid' });
         ['bullet', 'blitz', 'rapid'].forEach(function (p) {
           var r = me.ratings[p];
@@ -2952,24 +3000,6 @@
     var pv = NETCFG ? 'privacy.html' : window.GC_SITE ? window.GC_SITE + 'privacy.html' : '';
     if (pv) inn.appendChild(h('a', { class: 'credit privacy-link', id: 'privacy-link', href: pv, target: '_blank', rel: 'noopener' }, esc(T('privacy'))));
   }
-  function renameForm(who, nameEl) {
-    var form = h('form', { class: 'prof-edit' });
-    var inp = h('input', { type: 'text', maxlength: '20', id: 'name-input', autocomplete: 'nickname', spellcheck: 'false', 'aria-label': T('playingAs') });
-    inp.value = me.profile.username;
-    var sv = h('button', { type: 'submit', class: 'sbtn' }, esc(T('save')));
-    var er = h('div', { class: 'err' });
-    form.appendChild(inp); form.appendChild(sv);
-    nameEl.replaceWith(form); form.after(er);
-    form.addEventListener('submit', function (e) {
-      e.preventDefault(); sv.disabled = true;
-      net.call('rename', { name: inp.value }).then(function (r) { me.profile = r.profile; renderProfile(); }, function (x) {
-        var code = x && x.data && x.data.error; sv.disabled = false;
-        er.textContent = code === 'name_taken' ? T('nameTaken') : code === 'bad_name' ? T('badName') : T('netError');
-      });
-    });
-    setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) { /* ignore */ } }, 20);
-  }
-
   // ---- Learn
   function renderLearn() {
     var k = kit();
@@ -2988,7 +3018,7 @@
         if (note === 'signedOut') toast(T('signedOutToast'));
         else {
           toast(signedIn() ? T('signedInAs', { email: me.email || '' }) : T('signInFailed'));
-          if (signedIn()) { var a = takePending(); if (a) runPending(a); else if (curView === 'signin') go('play', true); }
+          if (signedIn()) signedInNext();
         }
         refreshView();
       }, function () { /* offline */ });
@@ -3001,6 +3031,7 @@
         if (r.live && r.live.status === 'playing') openOnlineGame(r.live.id);
         else if (saved && saved.id) save('online', null);
         if (curView !== 'game') refreshView(); // the name and rating on the Play tab
+        if (!(r.live && r.live.status === 'playing')) maybeAskName();
       }, function () { /* offline: stay with the local game */ });
     }
   }
