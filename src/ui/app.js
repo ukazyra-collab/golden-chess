@@ -48,7 +48,7 @@
       reviewHint: 'Tap the graph or step through the moves. You can also move pieces to try your own lines.',
       eloApprox: '\u2248{n} Elo',
       online: 'Online', findOpp: 'Find opponent', invite: 'Invite a friend', searching: 'Looking for an opponent', rated: 'Rated', casual: 'Casual',
-      playingAs: 'Playing as', change: 'Change', save: 'Save', nameTaken: 'That name is taken', badName: 'Use 2\u201320 letters, digits, spaces, _ or -',
+      playingAs: 'Playing as', change: 'Change', save: 'Save', nameTaken: 'That name is taken by another player. If it’s you on another account, sign in with that account instead.', nameAcct: 'Account: {email}', badName: 'Use 2\u201320 letters, digits, spaces, _ or -',
       inviteSub: 'Send this link to a friend. The game starts when they open it.', copyLink: 'Copy link', linkCopied: 'Link copied', share: 'Share',
       shareText: 'Play Golden Chess with me', waitingFriend: 'Waiting for your friend', connecting: 'Connecting', netError: 'Can\u2019t reach the server. Check your connection and try again.',
       oppMove: 'Opponent\u2019s move', offerDraw: 'Offer draw', drawOffered: 'Draw offered', drawDeclined: 'Draw declined', oppOffersDraw: '{name} offers a draw',
@@ -184,7 +184,7 @@
       reviewHint: 'Коснитесь графика или листайте ходы. Можно двигать фигуры и пробовать свои варианты.',
       eloApprox: '\u2248{n} Elo',
       online: 'Онлайн', findOpp: 'Найти соперника', invite: 'Пригласить друга', searching: 'Ищем соперника', rated: 'На рейтинг', casual: 'Без рейтинга',
-      playingAs: 'Ваше имя:', change: 'Изменить', save: 'Сохранить', nameTaken: 'Это имя занято', badName: 'Нужно 2–20 букв, цифр, пробелов, _ или -',
+      playingAs: 'Ваше имя:', change: 'Изменить', save: 'Сохранить', nameTaken: 'Это имя уже у другого игрока. Если это вы с другого аккаунта, войдите через него.', nameAcct: 'Аккаунт: {email}', badName: 'Нужно 2–20 букв, цифр, пробелов, _ или -',
       inviteSub: 'Отправьте ссылку другу. Партия начнётся, когда он её откроет.', copyLink: 'Скопировать', linkCopied: 'Ссылка скопирована', share: 'Поделиться',
       shareText: 'Сыграем в Golden Chess', waitingFriend: 'Ждём друга', connecting: 'Подключение', netError: 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.',
       oppMove: 'Ход соперника', offerDraw: 'Предложить ничью', drawOffered: 'Ничья предложена', drawDeclined: 'Ничью отклонили', oppOffersDraw: '{name} предлагает ничью',
@@ -2609,6 +2609,7 @@
   // the form itself (sign-in page, account dialog, name dialog); done() once saved. Returns the field.
   function nameForm(card, done) {
     card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('nameSub'))));
+    if (me && me.email) card.appendChild(h('div', { class: 'dlg-note name-acct', id: 'name-acct' }, esc(T('nameAcct', { email: me.email }))));
     var f = h('form', { class: 'acct-form', novalidate: '' });
     var inp = h('input', { type: 'text', class: 'acct-input', id: 'acct-name', maxlength: '20', autocomplete: 'nickname', autocapitalize: 'words',
       spellcheck: 'false', placeholder: T('namePh'), 'aria-label': T('nameTitle') });
