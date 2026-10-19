@@ -4360,7 +4360,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       emailInvalid: 'Enter a valid email address', codeWrong: 'That code is wrong or has expired', tooMany: 'Too many tries. Wait a minute and try again.',
       sendFailed: 'Couldn\u2019t send the email. Try again later.', finishFirst: 'Finish your online game first',
       linkExpired: 'That sign-in link has expired. Ask for a new code.', signInFailed: 'Couldn\u2019t sign in. Try again.',
-      continueGoogle: 'Continue with Google', or: 'or', googleExists: 'You already have a player with this Google email. Signing in to it\u2026',
+      continueGoogle: 'Continue with Google', or: 'or',
       guestNote: 'Guest: your rating is kept on this device only.', saveProgress: 'Save progress',
       guestRatingNote: 'Your rating is kept on this device only. Add your email to keep it.',
       back: 'Back', navPlay: 'Play', navLearn: 'Learn', navRatings: 'Ratings', navProfile: 'Profile',
@@ -4466,7 +4466,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       emailInvalid: 'Введите корректную почту', codeWrong: 'Код неверный или устарел', tooMany: 'Слишком много попыток. Подождите минуту и попробуйте снова.',
       sendFailed: 'Не удалось отправить письмо. Попробуйте позже.', finishFirst: 'Сначала доиграйте онлайн-партию',
       linkExpired: 'Ссылка для входа устарела. Запросите новый код.', signInFailed: 'Не удалось войти. Попробуйте ещё раз.',
-      continueGoogle: 'Войти через Google', or: 'или', googleExists: 'С этой почтой Google уже есть игрок. Входим в него…',
+      continueGoogle: 'Войти через Google', or: 'или',
       guestNote: 'Гость: рейтинг хранится только на этом устройстве.', saveProgress: 'Сохранить прогресс',
       guestRatingNote: 'Рейтинг хранится только на этом устройстве. Добавьте почту, чтобы не потерять его.',
       back: 'Назад', navPlay: 'Играть', navLearn: 'Обучение', navRatings: 'Рейтинг', navProfile: 'Профиль',
@@ -5966,6 +5966,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   var clockOffset = 0, bestRtt = Infinity;
   var urlQ = (function () { try { return new URLSearchParams(location.search); } catch (e) { return { get: function () { return null; } }; } })();
   var profileSuffix = String(urlQ.get('p') || '').replace(/[^a-z0-9]/gi, '').slice(0, 8);
+  // Google's answer back through google.html (#g_state=…&g_id_token=…), taken before boot tidies the address
+  var googleBack = (function () {
+    var hh = (location.hash || '').replace(/^#/, '');
+    if (!/(^|&)g_state=/.test(hh)) return null;
+    try { return new URLSearchParams(hh); } catch (e) { return null; }
+  })();
 
   function poolOfMs(base, inc) { var s = base / 1000 + 40 * inc / 1000; return s < 180 ? 'bullet' : s < 480 ? 'blitz' : 'rapid'; }
   function poolOfLabel(label) { var t = parseTc(label); return t ? poolOfMs(t.base, t.inc) : 'blitz'; }
@@ -6058,17 +6064,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   };
   SupaNet.prototype.verifyCode = function (email, code, type) { return this.sb.auth.verifyOtp({ email: email, token: code, type: type }).then(authFail); };
   SupaNet.prototype.signOut = function () { return this.sb.auth.signOut({ scope: 'local' }).then(authFail); };
-  SupaNet.prototype.google = function (link) {
-    var o = { provider: 'google', options: { redirectTo: authRedirect() } };
-    save('googleTry', link ? 'link' : 'signin'); // what the answer from Google belongs to (see googleTaken)
-    if (NATIVE.on) o.options.skipBrowserRedirect = true; // the app opens the system browser itself
-    return (link ? this.sb.auth.linkIdentity(o) : this.sb.auth.signInWithOAuth(o)).then(authFail).then(function (d) {
-      if (!NATIVE.on) return d;
-      if (!d || !d.url) throw new Error('no_url');
-      return NATIVE.openUrl(d.url).then(function () { return d; });
-    });
-  };
-  // the same with the ID token from Google's own button on the website (see gsiLoad): link it to this guest, or sign in
+  // Google: the ID token Google gave us (see googleIdToken) is linked to this guest, or signs in
   SupaNet.prototype.googleToken = function (token, nonce, link) {
     var o = { provider: 'google', token: token, nonce: nonce };
     return (link ? this.sb.auth.linkIdentity(o) : this.sb.auth.signInWithIdToken(o)).then(authFail);
@@ -6130,7 +6126,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     try { localStorage.setItem('goldenchess.mockuid' + profileSuffix, this.uid); } catch (e) { /* ignore */ }
     return Promise.resolve();
   };
-  MockNet.prototype.google = MockNet.prototype.googleToken = function () { return Promise.reject(new Error('unsupported')); };
+  MockNet.prototype.googleToken = function () { return Promise.reject(new Error('unsupported')); };
   MockNet.prototype.top = function (pool) { return this.call('top', { pool: pool }).then(function (r) { return r.rows || []; }); };
   MockNet.prototype.sub = function (topic, h) {
     var base = this.base, uid = this.uid;
@@ -6453,9 +6449,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     function google() {
       if (st.busy) return;
       st.busy = true; st.err = ''; render();
-      // a guest links Google to the same account; otherwise Google signs in (the page leaves for Google here;
-      // in the app the system browser opens over the page and the answer comes back through nativeUrl)
-      ensureNet().then(function () { return net.account(); }).then(function (a) { return net.google(!!(a && a.guest)); })
+      // Google's sign-in page (the page leaves for it here; in the app the system browser opens over the page) answers
+      // through google.html; googleIdToken then links Google to this guest or signs in (see googleRedirect)
+      ensureNet().then(googleRedirect)
         .then(function () { if (NATIVE.on && alive) { st.busy = false; render(); } }, function (e) { st.busy = false; st.err = authMsg(e); render(); });
     }
     return { stop: function () { alive = false; clearInterval(timer); } };
@@ -6533,16 +6529,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     askName();
   }
 
-  // ---- Google on the website: Google's own button (Google Identity Services) signs in right here, so Google shows
+  // ---- Google, without the Supabase address. Google only ever talks to golden-chess.com, so its pages name
   // golden-chess.com (the redirect through Supabase showed the Supabase project's address), and the session comes
-  // from Google's ID token. The app keeps the system browser (Google refuses sign-in inside an app's web view).
-  // If Google's script can't load, our own button stays and works the old way (through Supabase).
-  var gsi = null; // { ready: Promise of google.accounts.id, nonce: the raw nonce Supabase checks the token against }
-  function gsiOn() { return !NATIVE.on && !!(NETCFG && NETCFG.googleAuth && NETCFG.googleClientId && NETCFG.mock == null) && !!(window.crypto && crypto.subtle && window.TextEncoder); }
+  // from Google's ID token (Supabase checks it against our nonce):
+  //  - the website: Google's own button (Google Identity Services);
+  //  - the app (Google refuses sign-in inside an app's web view), and the website if Google's script can't load:
+  //    Google's sign-in page answers to golden-chess.com/google.html, which hands the token back here
+  //    (the app: through goldenchess://auth).
+  function randHex(n) { var b = crypto.getRandomValues(new Uint8Array(n)), s = ''; for (var i = 0; i < b.length; i++) s += (b[i] < 16 ? '0' : '') + b[i].toString(16); return s; }
+  function sha256hex(str) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)).then(function (buf) {
+      var b = new Uint8Array(buf), s = '';
+      for (var i = 0; i < b.length; i++) s += (b[i] < 16 ? '0' : '') + b[i].toString(16);
+      return s;
+    });
+  }
+  function googleOn() { return !!(NETCFG && NETCFG.googleAuth && NETCFG.googleClientId && NETCFG.mock == null) && !!(window.crypto && crypto.subtle && window.TextEncoder); }
+  var gsi = null; // { ready: Promise of google.accounts.id, nonce: the raw nonce for Supabase, failed }
   function gsiLoad() {
     if (gsi) return gsi.ready;
-    var raw = '', bytes = crypto.getRandomValues(new Uint8Array(16));
-    for (var i = 0; i < bytes.length; i++) raw += (bytes[i] < 16 ? '0' : '') + bytes[i].toString(16);
+    var raw = randHex(16);
     gsi = { nonce: raw };
     gsi.ready = new Promise(function (res, rej) {
       var s = document.createElement('script');
@@ -6551,19 +6557,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       s.onerror = function () { rej(new Error('gsi')); };
       setTimeout(function () { rej(new Error('gsi')); }, 12000);
       document.head.appendChild(s);
-    }).then(function () { return crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw)); }).then(function (buf) {
-      var hex = '', b = new Uint8Array(buf);
-      for (var j = 0; j < b.length; j++) hex += (b[j] < 16 ? '0' : '') + b[j].toString(16);
-      google.accounts.id.initialize({ client_id: NETCFG.googleClientId, callback: gsiCredential, nonce: hex, context: 'signin', ux_mode: 'popup',
+    }).then(function () { return sha256hex(raw); }).then(function (hashed) {
+      google.accounts.id.initialize({ client_id: NETCFG.googleClientId, callback: gsiCredential, nonce: hashed, context: 'signin', ux_mode: 'popup',
         auto_select: false, use_fedcm_for_button: true });
       return google.accounts.id;
     });
     gsi.ready.catch(function () { gsi.failed = true; });
     return gsi.ready;
   }
-  // Google's button in place of ours (fb), once Google's script is there
+  // the website: Google's button in place of ours (fb), once Google's script is there
   function gsiButton(slot, fb) {
-    if (!gsiOn() || (gsi && gsi.failed)) return;
+    if (NATIVE.on || !googleOn() || (gsi && gsi.failed)) return;
     fb.style.visibility = 'hidden';
     gsiLoad().then(function (id) {
       if (!slot.isConnected) return;
@@ -6573,21 +6577,42 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
         width: Math.max(200, Math.min(400, Math.round(slot.clientWidth || 320))), locale: lang === 'ru' ? 'ru' : 'en' });
     }, function () { fb.style.visibility = ''; });
   }
-  // Google answered: a guest gets Google on the same account (rating and games stay); if that Google account (or its
-  // email) already has a player, sign in to that player instead, as with an email code
-  function gsiCredential(resp) {
-    var tok = resp && resp.credential;
-    if (!tok || !gsi) return;
+  function gsiCredential(resp) { if (resp && resp.credential && gsi) googleIdToken(resp.credential, gsi.nonce); }
+  // our button (the app; the website without Google's script): Google's sign-in page, answering to google.html.
+  // The state says where the answer goes on (a: the app, w: this site, after the dot the ?p= profile); the nonce stays here.
+  function googleRedirect() {
+    if (!googleOn()) return Promise.reject(new Error('unsupported'));
+    var raw = randHex(16), st = (NATIVE.on ? 'a' : 'w') + randHex(8) + (profileSuffix ? '.' + profileSuffix : '');
+    save('gFlow', { nonce: raw, state: st, at: Date.now() });
+    return sha256hex(raw).then(function (hashed) {
+      var u = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=' + encodeURIComponent(NETCFG.googleClientId) +
+        '&redirect_uri=' + encodeURIComponent(NETCFG.googleReturn) + '&response_type=id_token&scope=' + encodeURIComponent('openid email profile') +
+        '&nonce=' + hashed + '&state=' + encodeURIComponent(st) + '&prompt=select_account';
+      if (NATIVE.on) return NATIVE.openUrl(u);
+      location.assign(u);
+    });
+  }
+  // the answer from google.html: only for the sign-in started here (same state, not stale); cancelled: nothing to say
+  function googleIdReturn(get) {
+    var f = load('gFlow', null), st = get('g_state'), tok = get('g_id_token'), err = get('g_error');
+    if (!f || f.state !== st || Date.now() - f.at > 30 * 60000) { toast(T('signInFailed')); return; }
+    save('gFlow', null);
+    if (err || !tok) { if (err !== 'access_denied') toast(T('signInFailed')); return; }
+    googleIdToken(tok, f.nonce);
+  }
+  // Google answered with an ID token: a guest gets Google on the same account (rating and games stay); if that Google
+  // account (or its email) already has a player, sign in to that player instead, as with an email code
+  function googleIdToken(tok, nonce) {
     toast(T('connecting') + '…');
     ensureNet().then(function () { return net.account(); }).then(function (a) {
       if (a && a.guest) {
-        return net.googleToken(tok, gsi.nonce, true).then(function () { return 'same'; }, function (e) {
+        return net.googleToken(tok, nonce, true).then(function () { return 'same'; }, function (e) {
           if (!/email_exists|identity_already_exists/.test(String(e && e.code)) && !/already (been )?(registered|linked)/i.test(String(e && e.message))) throw e;
           if (liveOnlineGame()) { var f = new Error('finish'); f.code = 'finish'; throw f; }
-          return net.googleToken(tok, gsi.nonce, false).then(function () { return 'other'; });
+          return net.googleToken(tok, nonce, false).then(function () { return 'other'; });
         });
       }
-      return net.googleToken(tok, gsi.nonce, false).then(function () { return 'other'; });
+      return net.googleToken(tok, nonce, false).then(function () { return 'other'; });
     }).then(function (how) {
       // another player: start over as that one (as after an email code for another account)
       if (how === 'other') { save('online', null); save('notice', 'signedIn'); setUrl(null); location.reload(); return; }
@@ -6600,17 +6625,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       });
     }).catch(function (e) { toast(e && e.code === 'finish' ? T('finishFirst') : T('signInFailed')); });
   }
-  // Back from the link in a sign-in email (or from Google): supabase-js has already taken the session (or the
-  // error) from the address. Tidy the address and say what happened.
+  // Back from the link in a sign-in email: supabase-js has already taken the session (or the error) from the
+  // address. Tidy the address and say what happened.
   var AUTH_HASH = /(access_token|error_code|error_description)=/;
-  // A guest's "Continue with Google" links Google to the guest. When that Google account (or its email) already
-  // has a player, sign in to that player instead: once, never again after a sign-in attempt (no loop)
-  function googleTaken(err, desc) {
-    if (!(err === 'identity_already_exists' || err === 'email_exists' || /already (been )?(registered|linked)/i.test(desc || ''))) return false;
-    if (load('googleTry', '') !== 'link') return false;
-    save('googleTry', 'signin');
-    return true;
-  }
   function authReturn() {
     var hsh = location.hash || '';
     if (!AUTH_HASH.test(hsh)) return false;
@@ -6621,7 +6638,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     var rest = (location.search || '').replace(/^\?/, '').split('&').filter(function (kv) { return kv && !/^error(_code|_description)?=/.test(kv); }).join('&');
     ensureNet().then(function () {
       try { history.replaceState({ v: curView }, '', location.pathname + (rest ? '?' + rest : '') + '#' + (curView || 'play')); } catch (e) { /* ignore */ }
-      if (net.google && googleTaken(err, desc)) { toast(T('googleExists')); net.google(false).catch(function () { toast(T('signInFailed')); }); return; }
       if (err) toast(/expired|invalid/i.test(err + ' ' + desc) ? T('linkExpired') : T('signInFailed'));
       else if (me && !me.guest) {
         toast(type === 'email_change' ? T('progressSaved') : T('signedInAs', { email: me.email || '' }));
@@ -6632,8 +6648,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     return true;
   }
 
-  // ---- the app: what the system browser sends back (goldenchess://auth#access_token=…), the Android back
-  // button, the splash screen
+  // ---- the app: what the system browser sends back (goldenchess://auth: Google's ID token from google.html, or the
+  // session from a sign-in email's link), the Android back button, the splash screen
   var nativeSeen = {};
   function nativeUrl(url, launch) {
     url = String(url || '');
@@ -6650,9 +6666,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     function g(k) { return hp.get(k) || qp.get(k) || ''; }
     var at = g('access_token'), rt = g('refresh_token'), err = g('error_code') || g('error'), desc = g('error_description'), type = g('type');
     if (!NETCFG || NETCFG.mock != null) return;
+    if (g('g_state')) { googleIdReturn(g); return; } // Google (see googleRedirect)
     if (err) {
-      // this Google account already belongs to another player: sign in to that one (one more trip to the browser)
-      if (googleTaken(err, desc)) { toast(T('googleExists')); ensureNet().then(function () { return net.google(false); }).catch(function () { toast(T('signInFailed')); }); return; }
       toast(/expired|invalid/i.test(err + ' ' + desc) ? T('linkExpired') : T('signInFailed'));
       return;
     }
@@ -7390,6 +7405,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       }, function () { /* offline */ });
     }
     var fromLink = authReturn();
+    if (googleBack) { googleIdReturn(function (k) { return googleBack.get(k) || ''; }); googleBack = null; fromLink = true; }
     if (join) { requireAccount({ kind: 'join', id: join }); return; }
     if (gid) { openOnlineGame(gid); return; }
     if (fromLink || note || (saved && saved.id) || hasNetSession()) {

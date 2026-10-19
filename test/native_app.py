@@ -2,7 +2,7 @@
 # (window.Capacitor) and for supabase-js check what the page does in the app: Google opens in the system browser
 # and comes back through goldenchess://auth, the Android back button, the share sheet, the offline copy.
 # Run: python3 test/native_app.py   (after node build.js)
-import asyncio, hashlib, json, os, re, sys
+import asyncio, hashlib, json, os, re, sys, urllib.parse
 from playwright.async_api import async_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -106,6 +106,8 @@ def site_html():
 
 results = []
 renames = []
+GOOGLE_HTML = open(os.path.join(ROOT, 'google.html')).read()
+sha256 = lambda x: hashlib.sha256(x.encode()).hexdigest()
 def check(name, ok, extra=''):
     results.append((name, bool(ok))); print(('PASS ' if ok else 'FAIL ') + name, extra if not ok else '')
 
@@ -130,7 +132,8 @@ async def setup(ctx, html, native=True, gsi=None):
     await pg.route('**/fonts.googleapis.com/**', lambda r: r.fulfill(status=200, body='', content_type='text/css'))
     await pg.route('**/fonts.gstatic.com/**', lambda r: r.fulfill(status=404, body=''))
     async def page_route(r):
-        await r.fulfill(status=200, body=html, content_type='text/html')
+        body = GOOGLE_HTML if r.request.url.split('#')[0].split('?')[0].endswith('/google.html') else html
+        await r.fulfill(status=200, body=body, content_type='text/html')
     await pg.route(SITE + '**', page_route)
     names = {}  # per player (token): the name and whether they picked it, as the play function keeps them
     async def fn_route(r):
@@ -168,76 +171,73 @@ async def main():
         pad = await pg.evaluate('getComputedStyle(document.documentElement).paddingBottom')
         check('app: tab bar reaches the bottom edge', pad == '0px', pad)
 
+        # Google in the app: the system browser opens Google's own sign-in page (no Supabase in between), which answers
+        # to golden-chess.com/google.html (so Google names golden-chess.com); that page hands the ID token back here
+        cid = re.search(r'"googleClientId":\s*"([^"]+)"', html).group(1)
         await pg.evaluate('location.hash = "signin"'); await pg.wait_for_timeout(500)
         ok = await wait_for(pg, '!!document.getElementById("btn-google")')
-        check('app: Google button on the sign-in page', ok)
+        check("app: our Google button (Google's own one doesn't work inside an app)", ok and not await pg.evaluate('!!document.getElementById("gsi-box")'))
         await pg.click('#btn-google')
         ok = await wait_for(pg, '__capCalls.some(function (c) { return c[0] === "Browser" && c[1] === "open"; })')
-        sb = await pg.evaluate('__sbCalls')
-        link = [c for c in sb if c[0] == 'linkIdentity']
-        check('app: a guest links Google (same account)', link and link[0][1]['provider'] == 'google', sb)
-        check('app: Google comes back to goldenchess://auth', link and link[0][1]['options'].get('redirectTo') == 'goldenchess://auth', link)
-        check('app: supabase-js does not navigate the web view', link and link[0][1]['options'].get('skipBrowserRedirect') is True, link)
-        bo = await pg.evaluate('__capCalls.filter(function (c) { return c[0] === "Browser" && c[1] === "open"; }).map(function (c) { return c[2]; })')
-        check('app: the system browser opens Google', ok and bo and 'fake=link' in bo[0]['url'], bo)
+        bo = await pg.evaluate('__capCalls.filter(function (c) { return c[0] === "Browser" && c[1] === "open"; }).map(function (c) { return c[2].url; })')
+        flow = await pg.evaluate('JSON.parse(localStorage.getItem("goldenchess.gFlow") || "null")')
+        gu = urllib.parse.urlparse(bo[0] if bo else ''); gq = urllib.parse.parse_qs(gu.query)
+        check("app: the system browser opens Google's sign-in page itself", ok and gu.netloc == 'accounts.google.com' and gq.get('client_id') == [cid] and gq.get('response_type') == ['id_token'], bo)
+        check('app: Google answers to golden-chess.com/google.html', gq.get('redirect_uri') == ['https://golden-chess.com/google.html'], gq.get('redirect_uri'))
+        check('app: hashed nonce sent, state marked for the app', flow and gq.get('nonce') == [sha256(flow['nonce'])] and gq.get('state') == [flow['state']] and flow['state'].startswith('a'), [flow, gq.get('state')])
+        check('app: nothing sent to Supabase yet', not await pg.evaluate('__sbCalls.some(function (c) { return /linkIdentity|signInWith/.test(c[0]); })'))
         ok = await wait_for(pg, '!document.getElementById("btn-google").disabled')
         check('app: the button is usable again when the browser is closed without signing in', ok)
         await pg.screenshot(path=os.path.join(ROOT, 'test/shots/native-signin.png'))
-
-        # the browser comes back: the same player, now signed in with Google
-        await pg.evaluate('localStorage.removeItem("test.nextUser")')
+        # an answer to a sign-in this app didn't start (another state) is refused, the real one still works after it
+        await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#g_state=a0000&g_id_token=stolen.token" })')
+        await pg.wait_for_timeout(300)
+        check('app: an answer with a foreign state is refused', not await pg.evaluate('__sbCalls.some(function (c) { return c[0] === "linkIdentity"; })') and 'Couldn' in await pg.evaluate('document.getElementById("toast").textContent'))
+        # the answer: the same player, now with Google
         await pg.evaluate('window.__marker = 1')
-        n = await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#access_token=AT1&expires_in=3600&refresh_token=RT1&token_type=bearer" })')
-        ok = await wait_for(pg, '__gc.curView === "play"')
-        sb = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "setSession"; })')
-        check('app: tokens from the link start the session', sb and sb[0][1] == {'access_token': 'AT1', 'refresh_token': 'RT1'}, sb)
-        check('app: back on Play after signing in', ok)
-        toast = await pg.evaluate('document.getElementById("toast").textContent')
-        check('app: says who is signed in', 'me@example.com' in toast, toast)
-        check('app: no reload for the same account', await pg.evaluate('window.__marker === 1'))
-        closed = await pg.evaluate('__capCalls.some(function (c) { return c[0] === "Browser" && c[1] === "close"; })')
-        check('app: the in-app browser is closed', closed)
+        await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#g_state=" + %s + "&g_id_token=fake.jwt.token" })' % json.dumps(flow['state']))
+        ok = await wait_for(pg, '__sbCalls.some(function (c) { return c[0] === "linkIdentity"; })')
+        li = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "linkIdentity"; }).map(function (c) { return c[1]; })')
+        check('app: the ID token links Google to this guest, with the nonce kept here', ok and li[0]['token'] == 'fake.jwt.token' and li[0]['nonce'] == flow['nonce'], li)
+        ok = await wait_for(pg, '__gc.curView === "play" && !!__gc.me && __gc.me.guest === false')
+        check('app: back on Play, signed in, no reload', ok and await pg.evaluate('window.__marker === 1'))
+        check('app: the in-app browser is closed', await pg.evaluate('__capCalls.some(function (c) { return c[0] === "Browser" && c[1] === "close"; })'))
+        check('app: says who is signed in', 'gina@example.com' in await pg.evaluate('document.getElementById("toast").textContent'))
+        check('app: the sign-in is used up', await pg.evaluate('localStorage.getItem("goldenchess.gFlow")') in (None, 'null'))
         chip = await pg.evaluate('(document.getElementById("acct-chip") || {}).textContent || ""')
         check('app: Play shows the player, not "Sign in"', 'Player1' in chip, chip)
         # a made-up name: right after signing in the player picks their own (the name on the Google account is offered)
         ok = await wait_for(pg, '__gc.dialogKind === "name"')
         val = await pg.evaluate('(document.getElementById("acct-name") || {}).value')
-        check('name: asked right after signing in, the Google name offered', ok and val == 'Uladzislau Kazyra', val)
+        check('name: asked right after signing in, the Google name offered', ok and val == 'Gina Google', val)
         await pg.screenshot(path=os.path.join(ROOT, 'test/shots/native-name.png'))
         await pg.fill('#acct-name', ''); await pg.click('#btn-name')
         er = await pg.evaluate('(document.getElementById("acct-err") || {}).textContent || ""')
         check('name: an empty name is refused', 'name' in er.lower() and not renames, er)
-        await pg.fill('#acct-name', '  Uladzislau   K '); await pg.click('#btn-name')
+        await pg.fill('#acct-name', '  Gina   G '); await pg.click('#btn-name')
         ok = await wait_for(pg, '!__gc.dialogOpen')
-        check('name: saved (spaces tidied), the dialog closes', ok and renames == ['Uladzislau K'], renames)
+        check('name: saved (spaces tidied), the dialog closes', ok and renames == ['Gina G'], renames)
         chip = await pg.evaluate('(document.getElementById("acct-chip") || {}).textContent || ""')
-        check('name: Play shows the new name', 'Uladzislau K' in chip, chip)
-        # the same link again (the launch address is read once per run) changes nothing
-        await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#access_token=AT1&expires_in=3600&refresh_token=RT1&token_type=bearer" })')
+        check('name: Play shows the new name', 'Gina G' in chip, chip)
+        # the same answer again (it can arrive twice) changes nothing
+        await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#g_state=" + %s + "&g_id_token=fake.jwt.token" })' % json.dumps(flow['state']))
         await pg.wait_for_timeout(300)
-        n2 = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "setSession"; }).length')
-        check('app: one link is taken once', n2 == 1, n2)
-
-        # this Google account already has another player: sign in to that one
-        await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#error=server_error&error_code=identity_already_exists&error_description=Identity+is+already+linked+to+another+user" })')
-        ok = await wait_for(pg, '__sbCalls.some(function (c) { return c[0] === "signInWithOAuth"; })')
-        so = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "signInWithOAuth"; }).map(function (c) { return c[1]; })')
-        check('app: identity elsewhere -> sign in to that account', ok and so[0]['options']['redirectTo'] == 'goldenchess://auth' and so[0]['options']['skipBrowserRedirect'], so)
-        ok = await wait_for(pg, '__capCalls.some(function (c) { return c[0] === "Browser" && c[1] === "open" && /fake=signin/.test(c[2].url); })')
-        check('app: ... through the system browser again', ok)
-        toast = await pg.evaluate('document.getElementById("toast").textContent')
-        check('app: explains the switch', 'Google' in toast, toast)
-        # the sign-in to that account fails the same way: no loop, just say so
-        await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#error=invalid_request&error_code=email_exists&error_description=A+user+with+this+email+address+has+already+been+registered" })')
-        await pg.wait_for_timeout(600)
-        n = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "signInWithOAuth"; }).length')
-        toast = await pg.evaluate('document.getElementById("toast").textContent')
-        check('app: no second automatic sign-in after a failed one (no loop)', n == 1 and "Couldn" in toast, [n, toast])
-        # a new link attempt whose Google email already has a player (email_exists): sign in to that player
-        await pg.evaluate('localStorage.setItem("goldenchess.googleTry", JSON.stringify("link"))')
-        await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#error=invalid_request&error_code=email_exists&error_description=A+user+with+this+email+address+has+already+been+registered&x=2" })')
-        ok = await wait_for(pg, '__sbCalls.filter(function (c) { return c[0] === "signInWithOAuth"; }).length === 2')
-        check('app: Google email already has a player -> sign in to it', ok)
+        check('app: one answer is taken once', await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "linkIdentity"; }).length') == 1)
+        # cancelled on Google's page: nothing happens, no error
+        await pg.evaluate('location.hash = "signin"'); await pg.wait_for_timeout(300)
+        await pg.evaluate('__gc.closeDialog(); localStorage.setItem("goldenchess.gFlow", JSON.stringify({ nonce: "n2", state: "a2222", at: Date.now() })); document.getElementById("toast").textContent = ""')
+        await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#g_state=a2222&g_error=access_denied" })')
+        await pg.wait_for_timeout(300)
+        check('app: cancelled at Google: no error, nothing sent', await pg.evaluate('document.getElementById("toast").textContent') == '' and await pg.evaluate('localStorage.getItem("goldenchess.gFlow")') in (None, 'null'))
+        await pg.evaluate('__gc.go("play")')
+        # a sign-in email's link (Supabase sends the session back through goldenchess://auth): same player, no reload
+        await pg.evaluate('localStorage.removeItem("test.nextUser")')
+        await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#access_token=AT1&expires_in=3600&refresh_token=RT1&token_type=bearer" })')
+        ok = await wait_for(pg, '__sbCalls.some(function (c) { return c[0] === "setSession"; })')
+        sb = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "setSession"; })')
+        check('app: tokens from an email link start the session', ok and sb[0][1] == {'access_token': 'AT1', 'refresh_token': 'RT1'}, sb)
+        await pg.wait_for_timeout(300)
+        check('app: no reload for the same account', await pg.evaluate('window.__marker === 1'))
 
         # comes back as another player: start over as that player (reload), then say who
         await pg.evaluate('localStorage.setItem("test.nextUser", JSON.stringify({ id: "u2", email: "other@example.com", is_anonymous: false }))')
@@ -368,25 +368,34 @@ async def main():
         check('web: not marked native', 'native' not in cls, cls)
         ok = await wait_for(pg, '!!document.getElementById("btn-google") && getComputedStyle(document.getElementById("btn-google")).visibility === "visible"')
         check("web: Google's script blocked -> our button stays", ok)
-        await pg.click('#btn-google'); await pg.wait_for_timeout(400)
-        sb = await pg.evaluate('__sbCalls')
-        link = [c for c in sb if c[0] == 'linkIdentity']
-        check('web: Google returns to the site', link and link[0][1]['options'].get('redirectTo') == SITE and 'skipBrowserRedirect' not in link[0][1]['options'], link)
-        # Google answers that its email already has a player (Supabase puts the error in the query and the hash)
-        e = 'error=invalid_request&error_code=email_exists&error_description=A+user+with+this+email+address+has+already+been+registered'
-        await pg.goto(SITE + '?' + e + '#' + e); await pg.wait_for_timeout(300)
-        ok = await wait_for(pg, '__sbCalls.some(function (c) { return c[0] === "signInWithOAuth"; })')
-        so = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "signInWithOAuth"; }).map(function (c) { return c[1]; })')
-        check('web: Google email already has a player -> sign in to it', ok and so[0]['options'].get('redirectTo') == SITE, so)
-        toast = await pg.evaluate('document.getElementById("toast").textContent')
-        check('web: ... and says so', 'Google' in toast, toast)
+        google_pages = []
+        async def google_page(r):
+            google_pages.append(r.request.url)
+            await r.fulfill(status=200, body='<!doctype html><title>Google</title><p>Choose an account', content_type='text/html')
+        await pg.route('https://accounts.google.com/o/oauth2/v2/auth**', google_page)
+        await pg.click('#btn-google')
+        ok = await wait_for(pg, 'location.hostname === "accounts.google.com"', 4000)
+        gq = urllib.parse.parse_qs(urllib.parse.urlparse(google_pages[0] if google_pages else '').query)
+        await pg.goto(SITE + '#play'); await pg.wait_for_timeout(300)
+        flow = await pg.evaluate('JSON.parse(localStorage.getItem("goldenchess.gFlow") || "null")')
+        check("web: the page goes to Google's sign-in page, answering to google.html", ok and gq.get('client_id') == [cid] and gq.get('redirect_uri') == ['https://golden-chess.com/google.html'] and gq.get('response_type') == ['id_token'], gq)
+        check('web: hashed nonce sent, state marked for the website', flow and gq.get('nonce') == [sha256(flow['nonce'])] and gq.get('state') == [flow['state']] and flow['state'].startswith('w'), [flow, gq.get('state')])
+        check('web: no Supabase sign-in on the way out', not await pg.evaluate('__sbCalls.some(function (c) { return /linkIdentity|signInWith/.test(c[0]); })'))
+        # Google answers to google.html, which brings the ID token back to the site (and out of the address)
+        await pg.goto(SITE + 'google.html#state=' + urllib.parse.quote(flow['state']) + '&id_token=fake.jwt.token&authuser=0&prompt=consent')
+        ok = await wait_for(pg, '!!window.__gc && __sbCalls.some(function (c) { return c[0] === "linkIdentity"; })', 6000)
+        li = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "linkIdentity"; }).map(function (c) { return c[1]; })') if ok else []
+        check('web: back on the site, the ID token links Google to the guest (nonce kept here)', ok and li[0]['token'] == 'fake.jwt.token' and li[0]['nonce'] == flow['nonce'], li)
         url = await pg.evaluate('location.href')
-        check('web: the error is gone from the address', 'error' not in url, url)
-        # the same answer to that sign-in: no loop, just say so
-        await pg.goto(SITE + '?' + e + '#' + e); await pg.wait_for_timeout(300)
-        ok = await wait_for(pg, '/Couldn/.test(document.getElementById("toast").textContent)')
-        n = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "signInWithOAuth"; }).length')
-        check('web: a failed sign-in is not retried', ok and n == 0, [n, await pg.evaluate('document.getElementById("toast").textContent')])
+        check('web: the token is gone from the address', 'token' not in url and 'g_state' not in url, url)
+        ok = await wait_for(pg, '__gc.dialogKind === "name"')
+        check('web: then the name, the Google name offered', ok and await pg.evaluate('document.getElementById("acct-name").value') == 'Gina Google')
+        # google.html for the app: hands the answer to goldenchess://auth (and a button, if the browser asks first)
+        await pg.goto(SITE + 'google.html#state=a1234&id_token=tok.en&authuser=0', wait_until='commit')
+        await wait_for(pg, '!!document.getElementById("go") && !document.getElementById("go").hidden', 4000)
+        gh = await pg.evaluate('({ href: document.getElementById("go").getAttribute("href"), shown: !document.getElementById("go").hidden, url: location.href })')
+        check('google.html: the app gets the answer through goldenchess://auth, with a button', gh['href'] == 'goldenchess://auth#g_state=a1234&g_id_token=tok.en' and gh['shown'], gh)
+        check('google.html: the token is gone from the address', 'tok.en' not in gh['url'], gh['url'])
         pad = await pg.evaluate('getComputedStyle(document.documentElement).paddingBottom')
         check('web: page padding unchanged', pad == '0px', pad)  # env() is 0 in a desktop browser
         check('web: no console errors', not [e for e in errs if 'Failed to load resource' not in e], errs[:5])
