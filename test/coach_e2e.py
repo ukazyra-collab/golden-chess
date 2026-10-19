@@ -123,6 +123,17 @@ async def main():
             await act('hide')
             ok(f'{tag}: board consistent at the end', await wait_for('!__gc.exploreState') and (await settle()) == [])
 
+            # 8…e6 missed the golden Nb8★f4: the retry says a golden move counts, and the golden move is recognised
+            await pg.evaluate('__gc.gotoPly(16)')
+            await wait_for(f'{coach}.length > 0')
+            await act('retry')
+            await wait_for('__gc.exploreState && __gc.exploreState.retry && __gc.exploreState.retry.state === "ask"')
+            t = await pg.evaluate(coach)
+            ok(f'{tag}: retry 8…e6: find a move for Black, a golden move counts', 'Find a better move for Black' in t and 'golden move counts' in t, t)
+            await pg.evaluate('(() => { __gc.setGoldenArmed(true); const m = new GC.Position(__gc.viewFen()).moveFromUci("b8f4*"); __gc.tryMove(m & 127, (m >> 7) & 127, false); })()')
+            ok(f'{tag}: Nb8★f4 is the best move', await wait_for('__gc.exploreState && __gc.exploreState.retry.state === "right"'), await pg.evaluate('__gc.exploreState && __gc.exploreState.retry'))
+            await act('hide')
+
             # Russian
             await pg.evaluate('__gc.settings.lang = "ru"; localStorage.setItem("goldenchess.settings", JSON.stringify(__gc.settings))')
             await pg.reload(); await pg.evaluate(HELPERS)

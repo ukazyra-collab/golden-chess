@@ -4863,7 +4863,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       showFollow: 'Show follow-up', showShort: 'Show', hideLine: 'Hide', bestBtn: 'Best', bestShort: 'Best', retryBtn: 'Retry', retryShort: 'Retry', tryAgain: 'Try again', againShort: 'Again',
       lnFollow: 'Follow-up', lnBest: 'Best: {san}',
       rtAsk: 'Find a better move for {side}', rtChecking: 'Checking {san}…', rtRight: '{san} is the best move!', rtExcellent: '{san} is excellent too!',
-      rtGood: '{san} is good, but there is better', rtWrong: '{san} isn’t it',
+      rtGood: '{san} is good, but there is better', rtWrong: '{san} isn’t it', rtGoldHint: 'A golden move counts too.',
       w_golden: '{side} answers with the golden move {san}', w_takes: '{side} answers {san} and takes the {piece}', w_hits: '{side} answers {san}',
       w_attacks: ', attacking the {targets}', w_check: ' with check', w_lose: 'In the end {side} wins {gain}.', w_win: '{best} would win {gain}.',
       w_keyGold: 'Key move: the golden {san}.', w_mate: '{side} now mates in {n}.', w_lineMate: '{side} mates.', w_lineWins: '{side} wins {gain}.',
@@ -4997,7 +4997,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       showFollow: 'Показать продолжение', showShort: 'Показать', hideLine: 'Скрыть', bestBtn: 'Лучший ход', bestShort: 'Лучший', retryBtn: 'Повторить', retryShort: 'Заново', tryAgain: 'Ещё раз', againShort: 'Ещё раз',
       lnFollow: 'Продолжение', lnBest: 'Лучший: {san}',
       rtAsk: 'Найдите ход сильнее за {sideGen}', rtChecking: 'Проверяем {san}…', rtRight: '{san} — лучший ход!', rtExcellent: '{san} — тоже отличный ход!',
-      rtGood: '{san} — неплохо, но есть сильнее', rtWrong: '{san} — не то',
+      rtGood: '{san} — неплохо, но есть сильнее', rtWrong: '{san} — не то', rtGoldHint: 'Золотой ход тоже считается.',
       w_golden: '{side} отвечают золотым ходом {san}', w_takes: '{side} отвечают {san} и забирают {piece}', w_hits: '{side} отвечают {san}',
       w_attacks: ' с нападением на {targets}', w_check: ' с шахом', w_lose: 'В итоге {sideLc} выигрывают {gain}.', w_win: 'Ход {best} выигрывал {gain}.',
       w_keyGold: 'Ключевой ход — золотой {san}.', w_mate: 'Теперь у {sideGen} мат в {n}.', w_lineMate: '{side} ставят мат.', w_lineWins: '{side} выигрывают {gain}.',
@@ -6069,7 +6069,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   }
   function retryCardHtml(E) {
     var R = E.retry, mv = review.moves[R.ply], c = game.records[R.ply].color, sw = sideWords(c), title, icon, why = '', acts = '';
-    if (R.state === 'ask') { title = T('rtAsk', { side: sw.side, sideGen: sw.sideGen }); icon = '<span class="ci ci-line">' + RETRY_ICON + '</span>'; }
+    if (R.state === 'ask') {
+      title = T('rtAsk', { side: sw.side, sideGen: sw.sideGen }); icon = '<span class="ci ci-line">' + RETRY_ICON + '</span>';
+      if (mv.best && mv.best.indexOf('*') >= 0) why = T('rtGoldHint'); // the move to find is a golden one
+    }
     else if (R.state === 'checking') { title = T('rtChecking', { san: R.san }); icon = '<span class="ci ci-line">' + RETRY_ICON + '</span>'; }
     else if (R.state === 'right') { title = T('rtRight', { san: R.san }); icon = clsIcon('best'); }
     else if (R.state === 'excellent') { title = T('rtExcellent', { san: R.san }); icon = clsIcon('excellent'); }
