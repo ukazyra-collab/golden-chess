@@ -179,11 +179,17 @@ async def main():
         check('app: ... through the system browser again', ok)
         toast = await pg.evaluate('document.getElementById("toast").textContent')
         check('app: explains the switch', 'Google' in toast, toast)
-        # the same answer again later (a second try) is not mistaken for a duplicate
-        await pg.wait_for_timeout(5200)
-        await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#error=server_error&error_code=identity_already_exists&error_description=Identity+is+already+linked+to+another+user" })')
+        # the sign-in to that account fails the same way: no loop, just say so
+        await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#error=invalid_request&error_code=email_exists&error_description=A+user+with+this+email+address+has+already+been+registered" })')
+        await pg.wait_for_timeout(600)
+        n = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "signInWithOAuth"; }).length')
+        toast = await pg.evaluate('document.getElementById("toast").textContent')
+        check('app: no second automatic sign-in after a failed one (no loop)', n == 1 and "Couldn" in toast, [n, toast])
+        # a new link attempt whose Google email already has a player (email_exists): sign in to that player
+        await pg.evaluate('localStorage.setItem("goldenchess.googleTry", JSON.stringify("link"))')
+        await pg.evaluate('__capFire("App.appUrlOpen", { url: "goldenchess://auth#error=invalid_request&error_code=email_exists&error_description=A+user+with+this+email+address+has+already+been+registered&x=2" })')
         ok = await wait_for(pg, '__sbCalls.filter(function (c) { return c[0] === "signInWithOAuth"; }).length === 2')
-        check('app: a second try later is handled again', ok)
+        check('app: Google email already has a player -> sign in to it', ok)
 
         # comes back as another player: start over as that player (reload), then say who
         await pg.evaluate('localStorage.setItem("test.nextUser", JSON.stringify({ id: "u2", email: "other@example.com", is_anonymous: false }))')
@@ -258,6 +264,21 @@ async def main():
         sb = await pg.evaluate('__sbCalls')
         link = [c for c in sb if c[0] == 'linkIdentity']
         check('web: Google returns to the site', link and link[0][1]['options'].get('redirectTo') == SITE and 'skipBrowserRedirect' not in link[0][1]['options'], link)
+        # Google answers that its email already has a player (Supabase puts the error in the query and the hash)
+        e = 'error=invalid_request&error_code=email_exists&error_description=A+user+with+this+email+address+has+already+been+registered'
+        await pg.goto(SITE + '?' + e + '#' + e); await pg.wait_for_timeout(300)
+        ok = await wait_for(pg, '__sbCalls.some(function (c) { return c[0] === "signInWithOAuth"; })')
+        so = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "signInWithOAuth"; }).map(function (c) { return c[1]; })')
+        check('web: Google email already has a player -> sign in to it', ok and so[0]['options'].get('redirectTo') == SITE, so)
+        toast = await pg.evaluate('document.getElementById("toast").textContent')
+        check('web: ... and says so', 'Google' in toast, toast)
+        url = await pg.evaluate('location.href')
+        check('web: the error is gone from the address', 'error' not in url, url)
+        # the same answer to that sign-in: no loop, just say so
+        await pg.goto(SITE + '?' + e + '#' + e); await pg.wait_for_timeout(300)
+        ok = await wait_for(pg, '/Couldn/.test(document.getElementById("toast").textContent)')
+        n = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "signInWithOAuth"; }).length')
+        check('web: a failed sign-in is not retried', ok and n == 0, [n, await pg.evaluate('document.getElementById("toast").textContent')])
         pad = await pg.evaluate('getComputedStyle(document.documentElement).paddingBottom')
         check('web: page padding unchanged', pad == '0px', pad)  # env() is 0 in a desktop browser
         check('web: no console errors', not [e for e in errs if 'Failed to load resource' not in e], errs[:5])

@@ -4366,7 +4366,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       emailInvalid: 'Enter a valid email address', codeWrong: 'That code is wrong or has expired', tooMany: 'Too many tries. Wait a minute and try again.',
       sendFailed: 'Couldn\u2019t send the email. Try again later.', finishFirst: 'Finish your online game first',
       linkExpired: 'That sign-in link has expired. Ask for a new code.', signInFailed: 'Couldn\u2019t sign in. Try again.',
-      continueGoogle: 'Continue with Google', or: 'or', googleExists: 'This Google account already has a player. Signing in to it\u2026',
+      continueGoogle: 'Continue with Google', or: 'or', googleExists: 'You already have a player with this Google email. Signing in to it\u2026',
       guestNote: 'Guest: your rating is kept on this device only.', saveProgress: 'Save progress',
       guestRatingNote: 'Your rating is kept on this device only. Add your email to keep it.',
       back: 'Back', navPlay: 'Play', navLearn: 'Learn', navRatings: 'Ratings', navProfile: 'Profile',
@@ -4472,7 +4472,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       emailInvalid: 'Введите корректную почту', codeWrong: 'Код неверный или устарел', tooMany: 'Слишком много попыток. Подождите минуту и попробуйте снова.',
       sendFailed: 'Не удалось отправить письмо. Попробуйте позже.', finishFirst: 'Сначала доиграйте онлайн-партию',
       linkExpired: 'Ссылка для входа устарела. Запросите новый код.', signInFailed: 'Не удалось войти. Попробуйте ещё раз.',
-      continueGoogle: 'Войти через Google', or: 'или', googleExists: 'Этот Google-аккаунт уже привязан к игроку. Входим в него…',
+      continueGoogle: 'Войти через Google', or: 'или', googleExists: 'С этой почтой Google уже есть игрок. Входим в него…',
       guestNote: 'Гость: рейтинг хранится только на этом устройстве.', saveProgress: 'Сохранить прогресс',
       guestRatingNote: 'Рейтинг хранится только на этом устройстве. Добавьте почту, чтобы не потерять его.',
       back: 'Назад', navPlay: 'Играть', navLearn: 'Обучение', navRatings: 'Рейтинг', navProfile: 'Профиль',
@@ -6065,6 +6065,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   SupaNet.prototype.signOut = function () { return this.sb.auth.signOut({ scope: 'local' }).then(authFail); };
   SupaNet.prototype.google = function (link) {
     var o = { provider: 'google', options: { redirectTo: authRedirect() } };
+    save('googleTry', link ? 'link' : 'signin'); // what the answer from Google belongs to (see googleTaken)
     if (NATIVE.on) o.options.skipBrowserRedirect = true; // the app opens the system browser itself
     return (link ? this.sb.auth.linkIdentity(o) : this.sb.auth.signInWithOAuth(o)).then(authFail).then(function (d) {
       if (!NATIVE.on) return d;
@@ -6486,15 +6487,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   // Back from the link in a sign-in email (or from Google): supabase-js has already taken the session (or the
   // error) from the address. Tidy the address and say what happened.
   var AUTH_HASH = /(access_token|error_code|error_description)=/;
+  // A guest's "Continue with Google" links Google to the guest. When that Google account (or its email) already
+  // has a player, sign in to that player instead: once, never again after a sign-in attempt (no loop)
+  function googleTaken(err, desc) {
+    if (!(err === 'identity_already_exists' || err === 'email_exists' || /already (been )?(registered|linked)/i.test(desc || ''))) return false;
+    if (load('googleTry', '') !== 'link') return false;
+    save('googleTry', 'signin');
+    return true;
+  }
   function authReturn() {
     var hsh = location.hash || '';
     if (!AUTH_HASH.test(hsh)) return false;
     var q;
     try { q = new URLSearchParams(hsh.replace(/^#/, '')); } catch (e) { return false; }
     var err = q.get('error_code') || q.get('error'), desc = q.get('error_description') || '', type = q.get('type') || '';
+    // an error comes in the query too (?error=…#error=…): keep only the rest of the query (?p=)
+    var rest = (location.search || '').replace(/^\?/, '').split('&').filter(function (kv) { return kv && !/^error(_code|_description)?=/.test(kv); }).join('&');
     ensureNet().then(function () {
-      try { history.replaceState({ v: curView }, '', location.pathname + location.search + '#' + (curView || 'play')); } catch (e) { /* ignore */ }
-      if (err === 'identity_already_exists' && net.google) { toast(T('googleExists')); net.google(false).catch(function () { /* ignore */ }); return; }
+      try { history.replaceState({ v: curView }, '', location.pathname + (rest ? '?' + rest : '') + '#' + (curView || 'play')); } catch (e) { /* ignore */ }
+      if (net.google && googleTaken(err, desc)) { toast(T('googleExists')); net.google(false).catch(function () { toast(T('signInFailed')); }); return; }
       if (err) toast(/expired|invalid/i.test(err + ' ' + desc) ? T('linkExpired') : T('signInFailed'));
       else if (me && !me.guest) {
         toast(type === 'email_change' ? T('progressSaved') : T('signedInAs', { email: me.email || '' }));
@@ -6525,7 +6536,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     if (!NETCFG || NETCFG.mock != null) return;
     if (err) {
       // this Google account already belongs to another player: sign in to that one (one more trip to the browser)
-      if (err === 'identity_already_exists') { toast(T('googleExists')); ensureNet().then(function () { return net.google(false); }).catch(function () { toast(T('signInFailed')); }); return; }
+      if (googleTaken(err, desc)) { toast(T('googleExists')); ensureNet().then(function () { return net.google(false); }).catch(function () { toast(T('signInFailed')); }); return; }
       toast(/expired|invalid/i.test(err + ' ' + desc) ? T('linkExpired') : T('signInFailed'));
       return;
     }
