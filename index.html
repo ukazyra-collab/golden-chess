@@ -507,6 +507,8 @@ svg { display: block; }
 .second-btn:hover { background: var(--raise-hi); }
 .second-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--edge); }
 .play-meta { text-align: center; font-size: 13.5px; color: var(--muted); line-height: 1.45; }
+.home-foot { align-self: center; margin-top: auto; padding: 6px 4px; font-size: 12.5px; color: var(--muted); opacity: .8; text-decoration: none; }
+.home-foot:hover { color: var(--bone); text-decoration: underline; text-underline-offset: 3px; }
 .opt-btn { width: 100%; min-height: 76px; border-radius: 16px; background: var(--raise); color: var(--bone); display: flex; align-items: center; gap: 14px; padding: 12px 16px; box-sizing: border-box; text-align: left; box-shadow: 0 3px 0 var(--edge); }
 .opt-btn:hover { background: var(--raise-hi); }
 .opt-btn.main { background: var(--gold); color: var(--gold-ink); box-shadow: 0 3px 0 var(--gold-edge); }
@@ -4411,7 +4413,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       navBots: 'Bots', easier: 'Easier', stronger: 'Stronger', yourColor: 'Your pieces', botOpp: 'vs {name}', unfinished: 'Game in progress',
       thinkingName: '{name} is thinking', playMain: 'Play', playFriendShort: 'Play a friend', friendT: 'Play a friend',
       friendLink: 'Send a link', friendLinkSub: 'Online. The game starts when your friend opens it',
-      friendHere: 'On this device', friendHereSub: 'Take turns on one screen', signInFree: 'Online play needs a free sign-in by email',
+      friendHere: 'On this device', friendHereSub: 'Take turns on one screen', signInFree: 'Online play needs a free sign-in: email or Google',
       passPlayLong: 'Two players on one device', learnCta: 'Play a bot', botScore: 'Your score: {w} won, {d} drawn, {l} lost', botNoGames: 'You haven’t played {name} yet',
       againBot: 'Play again'
     },
@@ -4517,7 +4519,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       navBots: 'Боты', easier: 'Полегче', stronger: 'Посильнее', yourColor: 'Ваш цвет', botOpp: 'соперник: {name}', unfinished: 'Партия идёт',
       thinkingName: '{name} думает', playMain: 'Играть', playFriendShort: 'Играть с другом', friendT: 'Игра с другом',
       friendLink: 'Отправить ссылку', friendLinkSub: 'Онлайн. Партия начнётся, когда друг откроет ссылку',
-      friendHere: 'На одном устройстве', friendHereSub: 'Ходите по очереди на одном экране', signInFree: 'Для игры онлайн нужен вход по почте, это бесплатно',
+      friendHere: 'На одном устройстве', friendHereSub: 'Ходите по очереди на одном экране', signInFree: 'Для игры онлайн нужен вход по почте или через Google, это бесплатно',
       passPlayLong: 'Вдвоём на одном устройстве', learnCta: 'Сыграть с ботом', botScore: 'Ваш счёт: побед {w}, ничьих {d}, поражений {l}', botNoGames: 'Вы ещё не играли с этим ботом',
       againBot: 'Ещё партия'
     }
@@ -7175,6 +7177,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
         acts.appendChild(off);
       } else if (window.GC_SITE) acts.appendChild(h('div', { class: 'offline-note' }, esc(T('onlineElsewhere')) + ' <a class="site-link" href="' + esc(window.GC_SITE) + '" target="_blank" rel="noopener">' + esc(window.GC_SITE.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>'));
     }
+    // the privacy policy, quietly at the bottom of the home screen (Google's brand check looks for it here)
+    var pv = NETCFG ? 'privacy.html' : window.GC_SITE ? window.GC_SITE + 'privacy.html' : '';
+    if (pv) col.appendChild(h('a', { class: 'home-foot', id: 'home-privacy', href: pv, target: '_blank', rel: 'noopener' }, esc(T('privacy'))));
     // wide screens: a board beside the menu, showing a golden move
     if (window.matchMedia && matchMedia('(min-width: 1100px)').matches && kit()) learnKit.heroBoard(bw, bwOld);
   }
