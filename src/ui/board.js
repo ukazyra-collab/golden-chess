@@ -259,7 +259,7 @@ var BoardView = (function () {
       var x1 = f[0] + 0.5, y1 = f[1] + 0.5, x2 = t[0] + 0.5, y2 = t[1] + 0.5, dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
       if (len < 0.01) return;
       var ux = dx / len, uy = dy / len, head = 0.42, bx = x2 - ux * head, by = y2 - uy * head;
-      var col = a.gold ? '#f2c661' : a.pre ? '#e2685a' : '#7fd0e6';
+      var col = a.gold ? '#f2c661' : a.pre ? '#e2685a' : a.best ? '#96d16f' : '#7fd0e6';
       var line = document.createElementNS(ns, 'line');
       line.setAttribute('x1', x1 + ux * 0.18); line.setAttribute('y1', y1 + uy * 0.18); line.setAttribute('x2', bx); line.setAttribute('y2', by);
       line.setAttribute('stroke', col); line.setAttribute('stroke-width', '0.17'); line.setAttribute('stroke-linecap', 'round'); line.setAttribute('opacity', '0.86');

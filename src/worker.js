@@ -11,8 +11,9 @@ self.onmessage = function (e) {
   }
   if (d.type === 'review') {
     for (var i = 0; i <= d.moves.length; i++) {
-      var r = Engine.think({ fen: d.fen, moves: d.moves.slice(0, i), timeMs: d.timeMs, analysis: true });
-      self.postMessage({ type: 'reviewStep', id: d.id, i: i, score: r.score, mate: r.mate || 0, uci: r.uci, depth: r.depth });
+      var st = Engine.reviewStep(d.fen, d.moves.slice(0, i), d.timeMs);
+      st.type = 'reviewStep'; st.id = d.id; st.i = i;
+      self.postMessage(st);
     }
     self.postMessage({ type: 'result', id: d.id, res: { done: true } });
   }

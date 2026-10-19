@@ -47,14 +47,21 @@ async def main():
         ok(f'review analysed every position ({n} moves)', rv['scored'] == n + 1, rv['scored'])
         ok('review: accuracy + Elo for both sides', all(s and 0 <= s['accuracy'] <= 100 for s in rv['sum']), rv['sum'])
         ok('review: every move classified', len(rv['cls']) == n, rv['cls'])
-        html = await page.evaluate('document.getElementById("review").innerText')
-        ok('review panel shows accuracy and Elo', '%' in html and 'Elo' in html, html[:200])
+        rp = await page.evaluate('(() => { const c = document.querySelector(".sheetdlg.report"); return c ? { kind: __gc.dialogKind, acc: [...c.querySelectorAll(".acc-box")].map(x => x.textContent), rows: c.querySelectorAll(".rp-cls").length, gold: !!c.querySelector("#rp-missed") } : null; })()')
+        ok('the report: accuracy for both, the move classes, the missed golden moves', rp and rp['kind'] == 'report' and len(rp['acc']) == 2 and rp['rows'] >= 9 and rp['gold'], rp)
+        await page.click('#btn-start-review'); await page.wait_for_timeout(350)
+        ok('start review: the first move with the coach', await page.evaluate('!__gc.dialogOpen && __gc.view === 1 && !!document.querySelector("#review #coach")'))
         g = await page.evaluate('document.querySelector("#review .rv-graph path.area").getAttribute("d").length')
         ok('review graph drawn', g > 20, g)
-        # navigate back, badge + verdict shown
+        # the last move: the coach and the class badge on the board
+        await page.keyboard.press('End'); await page.wait_for_timeout(100)
+        for _ in range(n): await page.keyboard.press('ArrowRight')
+        await page.wait_for_timeout(200)
         await page.keyboard.press('ArrowLeft'); await page.wait_for_timeout(350)
-        v = await page.evaluate('({verdict: (document.querySelector("#review .rv-verdict")||{}).innerText, badge: document.querySelectorAll("#board .badge").length})')
-        ok('verdict line and board badge for the viewed move', v['verdict'] and (v['badge'] in (0, 1)), v)
+        v = await page.evaluate('({coach: (document.querySelector("#review #coach")||{}).innerText, badge: document.querySelectorAll("#board .badge").length, view: __gc.view})')
+        ok('coach line and board badge for the viewed move', v['coach'] and (v['badge'] in (0, 1)) and v['view'] == n - 1, v)
+        html = await page.evaluate('document.getElementById("review").innerText')
+        ok('the report stays one tap away', 'Report' in html, html[:200])
         ok('board consistent after review nav', (await settle()) == [])
         # explore: make a move from this past position
         pick = "(() => { const p = new GC.Position(__gc.viewFen()); const ms = p.legalMoves(false); const m = ms[Math.floor(Math.random() * ms.length)]; return [m & 127, (m >> 7) & 127]; })()"

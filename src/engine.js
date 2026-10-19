@@ -573,6 +573,18 @@ var Engine = (function (GC) {
     { name: 8, elo: 2500, depth: 64, time: 3000, noise: 0, exact: false }
   ];
 
-  return { think: think, clear: clearTT, LEVELS: LEVELS, MATE: MATE, MATE_BOUND: MATE_BOUND, evaluateFen: function (fen) { pos = new GC.Position(fen); noiseAmp = 0; return evaluate(); } };
+  // One position of a game review: the best move and its score (side to move), the start of the best line, and, when
+  // the best move is golden, the best normal move too (how much the golden move gains: missed golden moves).
+  function reviewStep(fen, moves, timeMs) {
+    var r = think({ fen: fen, moves: moves, timeMs: timeMs, analysis: true });
+    var st = { score: r.score, mate: r.mate || 0, uci: r.uci, depth: r.depth, pv: (r.pv || []).slice(0, 6) };
+    if (r.uci && r.uci.indexOf('*') >= 0) {
+      var n = think({ fen: fen, moves: moves, timeMs: Math.round(timeMs * 0.7), analysis: true, noGoldenRoot: true });
+      if (n.uci && n.uci.indexOf('*') < 0) st.alt = { score: n.score, mate: n.mate || 0, uci: n.uci, pv: (n.pv || []).slice(0, 6) };
+    }
+    return st;
+  }
+
+  return { think: think, reviewStep: reviewStep, clear: clearTT, LEVELS: LEVELS, MATE: MATE, MATE_BOUND: MATE_BOUND, evaluateFen: function (fen) { pos = new GC.Position(fen); noiseAmp = 0; return evaluate(); } };
 })(GC);
 if (typeof module !== 'undefined' && module.exports) module.exports = Engine;

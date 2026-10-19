@@ -120,6 +120,34 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify(out));
     return;
   }
+  // a player's finished games, newest first (the page reads them straight from the games table on Supabase)
+  if (req.method === 'POST' && u.pathname === '/history') {
+    const b = await readBody(req);
+    let rows = [...db.games.values()].filter((g) => g.status === 'over' && b.token && (g.white_id === b.token || g.black_id === b.token));
+    if (b.opp) rows = rows.filter((g) => g.white_id === b.opp || g.black_id === b.opp);
+    if (b.before) rows = rows.filter((g) => g.updated_at < b.before);
+    rows.sort((x, y) => (x.updated_at < y.updated_at ? 1 : x.updated_at > y.updated_at ? -1 : 0));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ games: rows.slice(0, b.limit || 50).map(clone) }));
+    return;
+  }
+  // the score against each opponent over all finished games (head_to_head() on Supabase)
+  if (req.method === 'POST' && u.pathname === '/h2h') {
+    const b = await readBody(req), me = b.token, by = new Map();
+    const rows = [...db.games.values()].filter((g) => g.status === 'over' && me && (g.white_id === me || g.black_id === me))
+      .sort((x, y) => (x.updated_at < y.updated_at ? 1 : x.updated_at > y.updated_at ? -1 : 0));
+    for (const g of rows) {
+      const white = g.white_id === me, opp = white ? g.black_id : g.white_id;
+      const r = g.result === '1/2-1/2' ? 0 : (g.result === '1-0') === white ? 1 : -1;
+      const o = by.get(opp) || { opp_id: opp, opp_name: white ? g.black_name : g.white_name, wins: 0, draws: 0, losses: 0, games: 0, last_at: g.updated_at };
+      o.games++; if (r === 1) o.wins++; else if (r === 0) o.draws++; else o.losses++;
+      by.set(opp, o);
+    }
+    const out = [...by.values()].sort((x, y) => y.games - x.games || (x.last_at < y.last_at ? 1 : -1));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ rows: out }));
+    return;
+  }
   if (req.method === 'POST' && u.pathname === '/auth') {
     const { status, body } = authOp(await readBody(req));
     res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -150,6 +178,15 @@ const server = http.createServer(async (req, res) => {
     else if (b.op === 'ratings') out = [...db.ratings.values()].map(clone);
     else if (b.op === 'profiles') out = [...db.profiles.values()].map(clone);
     else if (b.op === 'outbox') out = accounts.outbox.filter((m) => !b.to || m.to === b.to);
+    else if (b.op === 'addgames') {
+      // older copies of a finished game with the given results (long histories without playing them)
+      const src = db.games.get(b.from), t0 = Date.parse(src.updated_at);
+      b.results.forEach((r, k) => {
+        const t = t0 - (k + 1) * 60000, g = Object.assign(clone(src), { id: crypto.randomUUID(), result: r, reason: 'resign', created_at: iso(t - 300000), updated_at: iso(t) });
+        db.games.set(g.id, g);
+      });
+      out = { added: b.results.length };
+    }
     else if (b.op === 'setclock') {
       const g = db.games.get(b.game);
       // keep the running side's clock running: restart its turn now

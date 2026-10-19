@@ -43,7 +43,7 @@
       movesPlayed: 'Moves', goldenBy: 'Golden moves', none: 'none', vsBot: 'vs Golden Bot, level {n}', passPlay: 'Two players', unlimited: 'no clock',
       viewing: 'Viewing move {n}. Tap the board to return to the game.',
       variation: 'Variation', backToGame: 'Back to game', review: 'Game review', analyzeOn: 'Show engine', reviewing: 'Reviewing the game: {i} of {n}',
-      accuracy: 'Accuracy', estElo: 'Est. Elo', played: 'played', bestWas: 'best was', c_best: 'Best move', c_excellent: 'Excellent', c_good: 'Good',
+      accuracy: 'Accuracy', estElo: 'Est. Elo', played: 'played', bestWas: 'best was', c_best: 'Best', c_excellent: 'Excellent', c_good: 'Good',
       c_inaccuracy: 'Inaccuracy', c_mistake: 'Mistake', c_blunder: 'Blunder', goldenTag: 'golden', tooShort: 'too short to rate',
       reviewHint: 'Tap the graph or step through the moves. You can also move pieces to try your own lines.',
       eloApprox: '\u2248{n} Elo',
@@ -114,7 +114,25 @@
       friendLink: 'Send a link', friendLinkSub: 'Online. The game starts when your friend opens it',
       friendHere: 'On this device', friendHereSub: 'Take turns on one screen', signInFree: 'Online play needs a free sign-in: email or Google',
       passPlayLong: 'Two players on one device', learnCta: 'Play a bot', botScore: 'Your score: {w} won, {d} drawn, {l} lost', botNoGames: 'You haven’t played {name} yet',
-      againBot: 'Play again'
+      againBot: 'Play again',
+      // game review: move classes, the coach's words, the report, game history
+      c_brilliant: 'Brilliant', c_great: 'Great', c_miss: 'Miss', c_goldmiss: 'Missed golden move',
+      v_brilliant: '{san} is brilliant', v_great: '{san} is a great move', v_best: '{san} is best', v_excellent: '{san} is excellent', v_good: '{san} is good',
+      v_inaccuracy: '{san} is an inaccuracy', v_mistake: '{san} is a mistake', v_miss: '{san} is a miss', v_blunder: '{san} is a blunder', v_goldmiss: '{san} misses a golden move',
+      r_sacrifice: 'A real sacrifice: taking the piece doesn’t pay.', r_missedMate: '{best} mates in {n}.', r_allowsMate: 'This allows mate in {n}.',
+      r_hangs: 'Now the opponent can take your {piece}.', r_loses: 'This loses material.', r_missedTake: '{best} wins a {piece}.', r_missedMaterial: '{best} wins material.',
+      r_goldmiss: 'The golden move {best} was much stronger.', r_goldenGood: 'Golden move, perfectly timed.', r_goldenOk: 'A sound golden move; {best} was a little more precise.', r_goldenWasted: 'The golden move is used up, and {best} was better.',
+      r_better: '{best} was better.', r_punish: 'The best answer to the opponent’s mistake.', r_goldenGreat: 'Here the golden move was clearly the best.',
+      p_pawn: 'pawn', p_knight: 'knight', p_bishop: 'bishop', p_rook: 'rook', p_queen: 'queen', p_king: 'king',
+      bestLabel: 'Best', bestGolden: 'Best: golden {san}',
+      rpReviewing: 'Reviewing the game… {p}%', rpGameRating: 'Game rating', rpRating: 'Rating', rpOpening: 'Opening', rpMiddlegame: 'Middlegame', rpEndgame: 'Endgame',
+      rpMissed: 'Missed golden moves', rpMissedItem: 'Move {n}', rpMissedGain: '+{g}% winning chances', rpNoMissed: 'No golden move was missed.',
+      rpGolden: 'Golden move', rpGoldenNone: 'not used', rpStart: 'Start review', rpReport: 'Report', rpHelp: 'Tap a move to see it on the board.',
+      coMissed1: 'You missed a winning golden move.', coMissedN: 'You missed {n} winning golden moves.', coGolden: 'Your golden move was spot on!',
+      coGreat: 'Excellent game!', coGood: 'Good game.', coOk: 'Let’s see what could be better.', coShort: 'Too short a game to judge.',
+      games: 'Games', allGames: 'All games', noGames: 'No games yet. Finish one and it shows up here.', showMore: 'Show more',
+      vsTwo: 'Two players', resWon: 'Won', resLost: 'Lost', resDraw: 'Draw', opponents: 'Opponents',
+      h2h: 'You {w} : {l} {name}', h2hDraws: 'draws: {d}', allOpponents: 'All opponents', reviewShort: 'Review', today: 'Today', yesterday: 'Yesterday'
     },
     ru: {
       newGame: 'Новая партия', rules: 'Правила', settings: 'Настройки', menu: 'Меню партии', prev: 'Предыдущий ход', next: 'Следующий ход',
@@ -149,7 +167,7 @@
       movesPlayed: 'Ходов', goldenBy: 'Золотые ходы', none: 'нет', vsBot: 'против Golden Bot, уровень {n}', passPlay: 'Двое игроков', unlimited: 'без часов',
       viewing: 'Просмотр хода {n}. Коснитесь доски, чтобы вернуться к партии.',
       variation: 'Вариант', backToGame: 'Вернуться к партии', review: 'Разбор партии', analyzeOn: 'Показать движок', reviewing: 'Разбор партии: {i} из {n}',
-      accuracy: 'Точность', estElo: 'Оценка Elo', played: 'сыграно', bestWas: 'лучше было', c_best: 'Лучший ход', c_excellent: 'Отлично', c_good: 'Хорошо',
+      accuracy: 'Точность', estElo: 'Оценка Elo', played: 'сыграно', bestWas: 'лучше было', c_best: 'Лучший', c_excellent: 'Превосходный', c_good: 'Хороший',
       c_inaccuracy: 'Неточность', c_mistake: 'Ошибка', c_blunder: 'Зевок', goldenTag: 'золотой', tooShort: 'мало ходов для оценки',
       reviewHint: 'Коснитесь графика или листайте ходы. Можно двигать фигуры и пробовать свои варианты.',
       eloApprox: '\u2248{n} Elo',
@@ -220,7 +238,24 @@
       friendLink: 'Отправить ссылку', friendLinkSub: 'Онлайн. Партия начнётся, когда друг откроет ссылку',
       friendHere: 'На одном устройстве', friendHereSub: 'Ходите по очереди на одном экране', signInFree: 'Для игры онлайн нужен вход по почте или через Google, это бесплатно',
       passPlayLong: 'Вдвоём на одном устройстве', learnCta: 'Сыграть с ботом', botScore: 'Ваш счёт: побед {w}, ничьих {d}, поражений {l}', botNoGames: 'Вы ещё не играли с этим ботом',
-      againBot: 'Ещё партия'
+      againBot: 'Ещё партия',
+      c_brilliant: 'Блестящий', c_great: 'Отличный', c_miss: 'Упущенная возможность', c_goldmiss: 'Упущен золотой ход',
+      v_brilliant: '{san} — блестящий ход', v_great: '{san} — отличный ход', v_best: '{san} — лучший ход', v_excellent: '{san} — превосходный ход', v_good: '{san} — хороший ход',
+      v_inaccuracy: '{san} — неточность', v_mistake: '{san} — ошибка', v_miss: '{san} — упущенная возможность', v_blunder: '{san} — зевок', v_goldmiss: '{san}: упущен золотой ход',
+      r_sacrifice: 'Настоящая жертва: брать фигуру невыгодно.', r_missedMate: '{best} ставит мат в {n}.', r_allowsMate: 'Теперь соперник ставит мат в {n}.',
+      r_hangs: 'Теперь соперник забирает {piece}.', r_loses: 'Так теряется материал.', r_missedTake: '{best} выигрывает {piece}.', r_missedMaterial: '{best} выигрывает материал.',
+      r_goldmiss: 'Золотой ход {best} был намного сильнее.', r_goldenGood: 'Золотой ход — точно вовремя.', r_goldenOk: 'Неплохой золотой ход, но {best} было чуть точнее.', r_goldenWasted: 'Золотой ход потрачен, а лучше было {best}.',
+      r_better: 'Лучше было {best}.', r_punish: 'Лучший ответ на ошибку соперника.', r_goldenGreat: 'Здесь золотой ход был лучше всего.',
+      p_pawn: 'пешку', p_knight: 'коня', p_bishop: 'слона', p_rook: 'ладью', p_queen: 'ферзя', p_king: 'короля',
+      bestLabel: 'Лучший', bestGolden: 'Лучший: золотой {san}',
+      rpReviewing: 'Разбираем партию… {p}%', rpGameRating: 'Уровень игры', rpRating: 'Рейтинг', rpOpening: 'Дебют', rpMiddlegame: 'Миттельшпиль', rpEndgame: 'Эндшпиль',
+      rpMissed: 'Упущенные золотые ходы', rpMissedItem: 'Ход {n}', rpMissedGain: '+{g}% к шансам на победу', rpNoMissed: 'Золотых ходов не упущено.',
+      rpGolden: 'Золотой ход', rpGoldenNone: 'не сыгран', rpStart: 'Начать разбор', rpReport: 'Отчёт', rpHelp: 'Нажмите на ход, чтобы увидеть его на доске.',
+      coMissed1: 'Вы упустили выигрывающий золотой ход.', coMissedN: 'Вы упустили выигрывающих золотых ходов: {n}.', coGolden: 'Ваш золотой ход был точным!',
+      coGreat: 'Отличная партия!', coGood: 'Хорошая партия.', coOk: 'Посмотрим, что можно было сыграть лучше.', coShort: 'Партия слишком короткая для оценки.',
+      games: 'Партии', allGames: 'Все партии', noGames: 'Партий пока нет. Доиграйте партию — она появится здесь.', showMore: 'Показать ещё',
+      vsTwo: 'Вдвоём', resWon: 'Победа', resLost: 'Поражение', resDraw: 'Ничья', opponents: 'Соперники',
+      h2h: 'Вы {w} : {l} {name}', h2hDraws: 'ничьих: {d}', allOpponents: 'Все соперники', reviewShort: 'Разбор', today: 'Сегодня', yesterday: 'Вчера'
     }
   };
   var settings = Object.assign({ sound: true, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
@@ -330,7 +365,7 @@
       v: 1, cfg: { mode: this.cfg.mode, level: this.cfg.level, human: this.cfg.human, tc: this.cfg.tc ? this.cfg.tc.label : 'none' },
       startFen: this.startFen, moves: this.records.map(function (r) { return r.uci; }),
       clocks: this.records.map(function (r) { return r.clock; }), clock: this.clock ? this.clock.t.slice() : null,
-      status: this.status, result: this.result, reason: this.reason, counted: !!this.counted
+      status: this.status, result: this.result, reason: this.reason, counted: !!this.counted, histKey: this.histKey || null
     };
   };
   Game.restore = function (d) {
@@ -349,7 +384,7 @@
       g.clock = savedClock;
       if (g.clock && d.clock) { g.clock.t = d.clock.slice(); g.clock.since = now; }
       if (d.status === 'over') { g.status = 'over'; g.result = d.result; g.reason = d.reason; }
-      g.counted = !!d.counted;
+      g.counted = !!d.counted; g.histKey = d.histKey || null;
       return g;
     } catch (e) { return null; }
   };
@@ -401,8 +436,8 @@
       (function next() {
         if (self.reviewToken !== req.id) return;
         if (i > n) { done({ done: true }); return; }
-        var r = Engine.think({ fen: req.fen, moves: req.moves.slice(0, i), timeMs: Math.min(req.timeMs, 120), analysis: true });
-        step({ i: i, score: r.score, mate: r.mate, uci: r.uci, depth: r.depth });
+        var st = Engine.reviewStep(req.fen, req.moves.slice(0, i), Math.min(req.timeMs, 120));
+        st.i = i; step(st);
         i++; setTimeout(next, 16);
       })();
       this.reviewToken = req.id;
@@ -900,71 +935,192 @@
   var lastAnaH = 0;
 
   // ------------------------------------------------------------------ game review
-  function winPct(cp) { cp = Math.max(-1500, Math.min(1500, cp)); return 50 + 50 * (2 / (1 + Math.exp(-0.00368208 * cp)) - 1); }
-  function cpOf(e) {
-    if (e.mate) return e.mate > 0 ? 10000 - e.mate * 10 : -10000 - e.mate * 10;
-    return Math.max(-10000, Math.min(10000, e.score));
-  }
-  // accuracy (lichess formula) -> rough Elo. Calibrated on bot-vs-bot games reviewed exactly like player games
-  // (test/acc_calib.js): mean accuracy 69.3 at ~600 Elo, 80.8 at ~1050, 83.6 at 1350, 86.0 at 1600, 93.2 at 1900, 96.9 at 2250, 98.3 at 2500
-  var ELO_CURVE = [[40, 150], [55, 350], [69, 600], [80.8, 1050], [83.6, 1350], [86, 1600], [93.2, 1900], [96.9, 2250], [98.3, 2500], [99.5, 2750]];
-  function estimateElo(acc) {
-    var c = ELO_CURVE;
-    if (acc <= c[0][0]) return c[0][1];
-    for (var i = 1; i < c.length; i++) if (acc <= c[i][0]) { var a = c[i - 1], b = c[i]; return Math.round((a[1] + (b[1] - a[1]) * (acc - a[0]) / (b[0] - a[0])) / 10) * 10; }
-    return c[c.length - 1][1];
-  }
+  // the review's arithmetic lives in src/review.js (shared with the tests)
+  var winPct = GCReview.winPct, cpOf = GCReview.cpOf;
   function startReview() {
     if (!game || !game.records.length) return;
     stopReview();
     if (!revClient) revClient = new EngineClient();
-    var id = ++reqSeq, n = game.records.length;
-    review = { id: id, n: n, done: 0, scores: [], moves: null, sum: null, running: true };
+    var id = ++reqSeq, n = game.records.length, key = gameKey(), cached = key ? reviewCacheGet(key, n) : null;
+    review = { id: id, key: key, n: n, done: 0, scores: [], moves: null, sum: null, running: true };
     if (!analysis.on) { analysis.on = true; $('evalbar').hidden = false; }
+    function finished() {
+      review.running = false; computeReview(); reviewCachePut(review);
+      renderAll(); renderReport(); if (analysis.on) requestAnalysis(); layout();
+    }
+    if (cached) { review.scores = cached; review.done = n + 1; finished(); return; }
     revClient.review({ id: id, fen: game.startFen, moves: game.records.map(function (r) { return r.uci; }), timeMs: 260 },
       function (st) {
         if (!review || review.id !== id) return;
-        review.scores[st.i] = { score: st.score, mate: st.mate || 0, uci: st.uci, depth: st.depth };
+        review.scores[st.i] = { score: st.score, mate: st.mate || 0, uci: st.uci, depth: st.depth, pv: st.pv || [], alt: st.alt || null };
         review.done = Math.max(review.done, st.i + 1);
-        computeReview();
+        if (review.done % 3 === 0) computeReview();
         if (!explore && view === st.i) requestAnalysis(); else { renderReview(); renderMoves(); renderMarks(); }
+        renderReport();
       },
-      function () { if (!review || review.id !== id) return; review.running = false; computeReview(); renderAll(); if (analysis.on) requestAnalysis(); layout(); });
+      function () { if (!review || review.id !== id) return; finished(); });
     renderAll(); layout();
+  }
+  // ---- reviews kept on this device: the engine's scores (a review opens at once the next time) and each game's
+  // accuracy for the history list. Key: o:<id> for online games, the history key for games on this device.
+  var REVIEW_KEEP = 40;
+  function gameKey() { return !game ? null : game.onlineId ? 'o:' + game.onlineId : game.histKey || null; }
+  function reviewCacheGet(key, n) {
+    var c = load('reviewCache', null), e = c && c.items && c.items[key];
+    if (!e || e.n !== n || !e.s || e.s.length !== n + 1) return null;
+    return e.s.map(function (x) { return { score: x[0], mate: x[1], uci: x[2], depth: 0, pv: x[3] ? x[3].split(' ') : [], alt: x[4] ? { score: x[4][0], mate: x[4][1], uci: x[4][2], pv: [] } : null }; });
+  }
+  function reviewCachePut(rv) {
+    if (!rv || !rv.key || !rv.sum) return;
+    var c = load('reviewCache', null) || { order: [], items: {} };
+    c.items[rv.key] = { n: rv.n, s: rv.scores.map(function (e) { return [e.score, e.mate || 0, e.uci, (e.pv || []).join(' '), e.alt ? [e.alt.score, e.alt.mate || 0, e.alt.uci] : 0]; }) };
+    c.order = c.order.filter(function (k) { return k !== rv.key; }).concat(rv.key);
+    while (c.order.length > REVIEW_KEEP) delete c.items[c.order.shift()];
+    save('reviewCache', c);
+    var sums = load('reviewSums', {});
+    sums[rv.key] = { acc: rv.sum.map(function (x) { return x ? Math.round(x.accuracy * 10) / 10 : null; }), miss: rv.sum.map(function (x) { return x ? x.missed.length : 0; }) };
+    var keys = Object.keys(sums);
+    if (keys.length > 600) keys.slice(0, keys.length - 600).forEach(function (k) { delete sums[k]; });
+    save('reviewSums', sums);
+  }
+
+  // ---- the report (chess.com's Game Review): how each side played, and the golden moves that were there
+  function reportCard() { return currentDialog && currentDialog.dataset.kind === 'report' ? currentDialog.querySelector('.sheetdlg') : null; }
+  function showReport() {
+    if (!game || !game.records.length) return;
+    if (!review) startReview();
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'report';
+      card.classList.add('report');
+      card.addEventListener('click', function (e) {
+        var t = e.target.closest('[data-goto],[data-start]');
+        if (!t) return;
+        closeDialog();
+        gotoPly(t.dataset.start ? 1 : +t.dataset.goto);
+      });
+      renderReport(card);
+    });
+  }
+  function coachLine(s) {
+    if (!s) return T('coShort');
+    if (s.missed.length) return s.missed.length === 1 ? T('coMissed1') : T('coMissedN', { n: s.missed.length });
+    if (s.golden && GOOD_CLS[s.golden.cls]) return T('coGolden');
+    if (s.n < 8) return T('coShort');
+    return s.accuracy >= 90 ? T('coGreat') : s.accuracy >= 80 ? T('coGood') : T('coOk');
+  }
+  var PHASE_ICON = { great: 'best', good: 'excellent', inaccuracy: 'inaccuracy', mistake: 'mistake' };
+  function renderReport(card) {
+    card = card || reportCard();
+    if (!card || !review || !game) return;
+    var me = reviewSide(), you = oppGame() && !spectating(), html = '<div class="dlg-title">' + esc(T('review')) + '</div>';
+    if (review.running || !review.sum) {
+      card.innerHTML = '<div class="rp-body">' + html + '<div class="rp-coach">' + esc(T('rpReviewing', { p: reviewPct() })) + '</div><div class="rv-progress rp-progress"><i style="width:' + reviewPct() + '%"></i></div>' + graphHtml() + '</div>';
+      return;
+    }
+    var keepScroll = card.querySelector('.rp-body') ? card.querySelector('.rp-body').scrollTop : 0;
+    var sum = review.sum;
+    html += '<div class="rp-coach">' + esc(coachLine(sum[me])) + '</div>' + graphHtml();
+    function row(label, cells, cls) { return '<div class="rp-row' + (cls ? ' ' + cls : '') + '"><span class="rp-lbl">' + label + '</span>' + cells.join('') + '</div>'; }
+    var t = '<div class="rp-table">';
+    t += row('', [0, 1].map(function (c) { return '<span class="rp-name' + (you && c === me ? ' me' : '') + '"><i class="pc-ic ' + BoardView.cls((c << 3) | 6) + '"></i><span>' + esc(sideLabel(c)) + '</span></span>'; }), 'rp-head');
+    t += row(esc(T('accuracy')), [0, 1].map(function (c) { return '<span class="acc-box ' + (c ? 'b' : 'w') + '">' + (sum[c] ? sum[c].accuracy.toFixed(1) : '—') + '</span>'; }), 'rp-acc');
+    GCReview.CLASSES.forEach(function (k) {
+      var a = (sum[0] && sum[0].counts[k]) || 0, b = (sum[1] && sum[1].counts[k]) || 0;
+      if (k === 'goldmiss' && !a && !b) return;
+      t += row(clsIcon(k) + '<span>' + esc(T('c_' + k)) + '</span>', [a, b].map(function (v) { return '<b class="rp-n s-' + k + (v ? '' : ' zero') + '">' + v + '</b>'; }), 'rp-cls');
+    });
+    t += row(esc(T('rpGameRating')), [0, 1].map(function (c) { return '<span class="rp-v">' + (sum[c] && sum[c].elo ? sum[c].elo : '—') + '</span>'; }));
+    var st = online && online.id === game.onlineId ? online.s : null;
+    if (st && st.rated && st.white_diff != null) {
+      t += row(esc(T('rpRating')), [0, 1].map(function (c) {
+        var before = c ? st.black_rating : st.white_rating, d = c ? st.black_diff : st.white_diff;
+        return '<span class="rp-v">' + (before + d) + ' <em class="' + (d >= 0 ? 'up' : 'down') + '">' + (d >= 0 ? '+' : '−') + Math.abs(d) + '</em></span>';
+      }));
+    }
+    ['opening', 'middlegame', 'endgame'].forEach(function (ph) {
+      if (!(sum[0] && sum[0].phases[ph]) && !(sum[1] && sum[1].phases[ph])) return;
+      t += row(esc(T('rp' + ph.charAt(0).toUpperCase() + ph.slice(1))), [0, 1].map(function (c) {
+        var p = sum[c] && sum[c].phases[ph];
+        return '<span class="rp-v">' + (p ? clsIcon(PHASE_ICON[p.mark]) : '—') + '</span>';
+      }));
+    });
+    t += row(esc(T('rpGolden')), [0, 1].map(function (c) {
+      var g = sum[c] && sum[c].golden;
+      return '<span class="rp-v rp-gm">' + (g ? clsIcon(g.cls) + '<b class="gold">' + esc(g.san) + '</b>' : '<em>' + esc(T('rpGoldenNone')) + '</em>') + '</span>';
+    }));
+    t += '</div>';
+    // the golden moves that were there: yours first; a tap shows the moment on the board
+    var missed = (review.missed || []).slice().sort(function (a, b) { return (a.color === me ? 0 : 1) - (b.color === me ? 0 : 1) || a.ply - b.ply; });
+    var g = '<div class="rp-gold" id="rp-missed"><div class="rp-gold-h">' + STAR_SVG + '<b>' + esc(T('rpMissed')) + '</b></div>';
+    if (!missed.length) g += '<p class="rp-none">' + esc(T('rpNoMissed')) + '</p>';
+    missed.forEach(function (x) {
+      g += '<button type="button" class="rp-miss" data-goto="' + (x.ply + 1) + '"><i class="pc-ic ' + BoardView.cls((x.color << 3) | 6) + '"></i><span class="rp-miss-t"><b>' +
+        esc(T('rpMissedItem', { n: moveNoText(x.ply) })) + ' <span class="gold">' + esc(x.san) + '</span></b><span>' + esc(T('rpMissedGain', { g: Math.round(x.gain) })) + '</span></span>' + CHEV_RIGHT + '</button>';
+    });
+    g += '</div>';
+    // the list scrolls, the main action stays at the bottom
+    card.innerHTML = '<div class="rp-body">' + html + g + t + '</div><div class="rp-foot"><button type="button" class="primary rp-start" data-start="1" id="btn-start-review">' + esc(T('rpStart')) + '</button></div>';
+    card.querySelector('.rp-body').scrollTop = keepScroll;
   }
   function stopReview() { if (review && review.running && revClient) revClient.cancel(); if (review) review.running = false; }
   function computeReview() {
-    var sc = review.scores, recs = game.records, moves = [], acc = [[], []], loss = [[], []], cnt = [{}, {}];
-    for (var i = 0; i < recs.length; i++) {
-      if (!sc[i] || !sc[i + 1]) continue;
-      var c = recs[i].color, before = winPct(cpOf(sc[i])), after = winPct(-cpOf(sc[i + 1])), drop = Math.max(0, before - after);
-      var a = Math.max(0, Math.min(100, 103.1668 * Math.exp(-0.04354 * drop) - 3.1669));
-      var cls = recs[i].uci === sc[i].uci ? 'best' : drop >= 15 ? 'blunder' : drop >= 10 ? 'mistake' : drop >= 5 ? 'inaccuracy' : drop < 2 ? 'excellent' : 'good';
-      moves[i] = { cls: cls, drop: drop, acc: a, best: sc[i].uci, golden: recs[i].golden };
-      acc[c].push(a); loss[c].push(Math.min(1000, Math.max(0, cpOf(sc[i]) + cpOf(sc[i + 1]))));
-      cnt[c][cls] = (cnt[c][cls] || 0) + 1;
-    }
-    review.moves = moves;
-    review.sum = [0, 1].map(function (c) {
-      var xs = acc[c];
-      if (!xs.length) return null;
-      var mean = xs.reduce(function (s, v) { return s + v; }, 0) / xs.length;
-      var harm = xs.length / xs.reduce(function (s, v) { return s + 1 / Math.max(5, v); }, 0);
-      var accuracy = (mean + harm) / 2;
-      return { accuracy: accuracy, acpl: Math.round(loss[c].reduce(function (s, v) { return s + v; }, 0) / xs.length), counts: cnt[c], n: xs.length,
-        elo: xs.length >= 8 ? estimateElo(accuracy) : null };
-    });
+    var a = GCReview.analyze({ fens: game.fens, records: game.records, scores: review.scores });
+    review.moves = a.moves; review.sum = a.sum; review.missed = a.missed;
   }
-  var CLS_ORDER = ['best', 'excellent', 'good', 'inaccuracy', 'mistake', 'blunder'];
-  function renderReview() {
-    var hosts = [$('review'), $('review-side')];
-    if (!review || !game) { hosts.forEach(function (h) { h.hidden = true; h.innerHTML = ''; }); return; }
-    var n = game.records.length, html = '';
-    // progress
-    if (review.running) html += '<div class="rv-progress"><span>' + esc(T('reviewing', { i: Math.min(review.done, n + 1), n: n + 1 })) + '</span><i style="width:' + (100 * review.done / (n + 1)).toFixed(1) + '%"></i></div>';
-    // graph of White's winning chances
-    var pts = [], W = 1000, H = 100;
-    for (var i = 0; i <= n; i++) {
+  // move classes as players know them from chess.com: a glyph in a coloured circle; sym: shown in the move list,
+  // badge: shown on the board
+  var CLS = {
+    brilliant: { g: '!!', sym: 1, badge: 1 }, great: { g: '!', sym: 1, badge: 1 }, best: { g: '★', badge: 1 },
+    excellent: { g: '✓', badge: 1 }, good: { g: '✓', badge: 1 },
+    inaccuracy: { g: '?!', sym: 1, badge: 1 }, mistake: { g: '?', sym: 1, badge: 1 }, miss: { g: '✕', sym: 1, badge: 1 },
+    blunder: { g: '??', sym: 1, badge: 1 }, goldmiss: { g: '✦', sym: 1, badge: 1 }
+  };
+  var GOOD_CLS = { brilliant: 1, great: 1, best: 1, excellent: 1, good: 1 };
+  function clsIcon(cls) { return '<span class="ci ci-' + cls + '" aria-hidden="true">' + (CLS[cls] ? CLS[cls].g : '') + '</span>'; }
+  // the side the report is written for: the player (online or against the bot); White when two people share the device
+  function reviewSide() { return oppGame() && !spectating() ? game.cfg.human : 0; }
+  function moveNoText(i) {
+    var startBlack = new GC.Position(game.startFen).side === 1, k = i + (startBlack ? 1 : 0);
+    return Math.floor(k / 2) + 1 + (k % 2 ? '…' : '.');
+  }
+  // the score after move i, from White's side, as players read it: +0.64, -1.20, #3
+  function evalAfter(i) {
+    var e = review && review.scores[i + 1];
+    if (!e) return '';
+    var side = posFromFen(game.fens[i + 1]).side, sgn = side === 0 ? 1 : -1;
+    if (e.mate) return '#' + (e.mate * sgn > 0 ? '' : '-') + Math.abs(e.mate);
+    var v = sgn * e.score / 100;
+    return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(2);
+  }
+  // the coach's sentence about move i
+  function coachReason(i, mv) {
+    var rec = game.records[i], r = mv.reason, best = mv.bestSan;
+    if (mv.cls === 'goldmiss') return T('r_goldmiss', { best: best });
+    if (rec.golden) return mv.cls === 'great' ? T('r_goldenGreat') : mv.cls === 'good' ? T('r_goldenOk', { best: best }) : GOOD_CLS[mv.cls] ? T('r_goldenGood') : T('r_goldenWasted', { best: best });
+    if (mv.cls === 'great') return T('r_punish');
+    if (r) {
+      if (r.key === 'sacrifice') return T('r_sacrifice');
+      if (r.key === 'missedMate') return T('r_missedMate', { best: best, n: r.n });
+      if (r.key === 'allowsMate') return T('r_allowsMate', { n: r.n });
+      if (r.key === 'hangs') return T('r_hangs', { piece: T('p_' + r.piece) });
+      if (r.key === 'loses') return T('r_loses');
+      if (r.key === 'missedTake') return T('r_missedTake', { best: best, piece: T('p_' + r.piece) });
+      if (r.key === 'missedMaterial') return T('r_missedMaterial', { best: best });
+    }
+    if (mv.missedGolden) return T('r_goldmiss', { best: mv.missedGolden.san });
+    return GOOD_CLS[mv.cls] ? '' : T('r_better', { best: best });
+  }
+  function coachHtml(i, mv) {
+    var rec = game.records[i], why = coachReason(i, mv), bestTxt = '', goldBest = mv.best && mv.best.indexOf('*') >= 0;
+    if (!GOOD_CLS[mv.cls] && mv.bestSan && mv.best !== rec.uci) bestTxt = goldBest ? T('bestGolden', { san: mv.bestSan }) : T('bestLabel') + ': ' + mv.bestSan;
+    return '<div class="coach c-' + mv.cls + '" id="coach">' + clsIcon(mv.cls) + '<div class="coach-t"><div class="coach-h"><b>' +
+      esc(T('v_' + mv.cls, { san: moveNoText(i) + ' ' + rec.san })) + '</b><span class="coach-ev">' + esc(evalAfter(i)) + '</span></div>' +
+      (why ? '<p>' + esc(why) + '</p>' : '') + (bestTxt ? '<p class="coach-best' + (goldBest ? ' gold' : '') + '">' + esc(bestTxt) + '</p>' : '') + '</div></div>';
+  }
+  // White's winning chances over the game, with dots on the notable moves
+  function graphHtml() {
+    var n = game.records.length, pts = [], W = 1000, H = 100, i;
+    for (i = 0; i <= n; i++) {
       var e = review.scores[i];
       if (!e) continue;
       var side = posFromFen(game.fens[i]).side, wcp = side === 0 ? cpOf(e) : -cpOf(e);
@@ -974,39 +1130,29 @@
     var path = pts.length ? 'M0,' + H + ' ' + pts.map(function (p) { return 'L' + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + ' L' + pts[pts.length - 1][0].toFixed(1) + ',' + H + ' Z' : '';
     var dots = '';
     if (review.moves) review.moves.forEach(function (m, k) {
-      if (!m || (m.cls !== 'mistake' && m.cls !== 'blunder' && !m.golden)) return;
+      if (!m || !(m.golden || { brilliant: 1, great: 1, mistake: 1, miss: 1, blunder: 1, goldmiss: 1 }[m.cls])) return;
       var e2 = review.scores[k + 1]; if (!e2) return;
       var sd = posFromFen(game.fens[k + 1]).side, w2 = sd === 0 ? cpOf(e2) : -cpOf(e2);
-      dots += '<i class="gd ' + (m.golden ? 'g-gold' : 'g-' + m.cls) + '" style="left:' + (100 * (k + 1) / Math.max(1, n)).toFixed(2) + '%;top:' + (100 - winPct(w2)).toFixed(1) + '%"></i>';
+      dots += '<i class="gd g-' + (m.golden ? 'gold' : m.cls) + '" style="left:' + (100 * (k + 1) / Math.max(1, n)).toFixed(2) + '%;top:' + (100 - winPct(w2)).toFixed(1) + '%"></i>';
     });
-    html += '<div class="rv-graph" data-n="' + n + '"><svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true"><path class="area" d="' + path + '"/><line class="mid" x1="0" y1="50" x2="' + W + '" y2="50"/><line class="cur" x1="' + curX + '" y1="0" x2="' + curX + '" y2="' + H + '"/></svg>' + dots + '</div>';
-    // players
-    if (review.sum) {
-      html += '<div class="rv-players">';
-      [0, 1].forEach(function (c) {
-        var sm = review.sum[c];
-        html += '<div class="rv-p"><span class="rv-name"><i class="pc-ic ' + BoardView.cls((c << 3) | 6) + '"></i>' + esc(sideLabel(c)) + '</span>';
-        if (sm) {
-          html += '<span class="rv-acc"><b>' + sm.accuracy.toFixed(1) + '%</b></span><span class="rv-elo">' + (sm.elo ? esc(T('eloApprox', { n: sm.elo })) : esc(T('tooShort'))) + '</span><span class="rv-counts">';
-          ['inaccuracy', 'mistake', 'blunder'].forEach(function (k) { html += '<span class="cnt s-' + k + '" title="' + esc(T('c_' + k)) + '">' + (sm.counts[k] || 0) + '<em>' + SYM[k] + '</em></span>'; });
-          html += '</span>';
-        }
-        html += '</div>';
-      });
-      html += '</div>';
-    }
-    // verdict for the viewed move
+    return '<div class="rv-graph" data-n="' + n + '"><svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true"><path class="area" d="' + path + '"/><line class="mid" x1="0" y1="50" x2="' + W + '" y2="50"/><line class="cur" x1="' + curX + '" y1="0" x2="' + curX + '" y2="' + H + '"/></svg>' + dots + '</div>';
+  }
+  function reviewPct() { return Math.round(100 * review.done / (game.records.length + 1)); }
+  // the review under the board (phone) or in the side panel (wide): progress, graph, the coach on the viewed move
+  function renderReview() {
+    var hosts = [$('review'), $('review-side')];
+    if (!review || !game) { hosts.forEach(function (h) { h.hidden = true; h.innerHTML = ''; }); return; }
+    var html = '';
+    if (review.running) html += '<div class="rv-progress"><span>' + esc(T('rpReviewing', { p: reviewPct() })) + '</span><i style="width:' + reviewPct() + '%"></i></div>';
+    html += graphHtml();
     var mvI = explore ? -1 : view - 1, mv = review.moves && review.moves[mvI];
-    if (mv) {
-      var rec = game.records[mvI], pBefore = posFromFen(game.fens[mvI]), bm = mv.best ? pBefore.moveFromUci(mv.best) : 0;
-      var bestSan = bm ? pBefore.san(bm, pBefore._legal || (pBefore._legal = pBefore.legalMoves(true))) : '';
-      var no = Math.floor(mvI / 2) + 1 + (rec.color === 0 ? '. ' : '\u2026 ');
-      html += '<div class="rv-verdict"><span class="v-move' + (rec.golden ? ' gold' : '') + '">' + esc(no + rec.san) + '</span><span class="v-cls s-' + mv.cls + '">' + esc(T('c_' + mv.cls)) + '</span>' +
-        (mv.cls !== 'best' && bestSan ? '<span class="v-best">' + esc(T('bestWas')) + ' <b' + (bm & F_GOLDEN ? ' class="gold"' : '') + '>' + esc(bestSan) + '</b></span>' : '') + '</div>';
-    } else if (!review.running && !explore) html += '<div class="rv-hint">' + esc(T('reviewHint')) + '</div>';
-    hosts.forEach(function (h) { h.hidden = false; h.innerHTML = html; });
+    if (mv) html += coachHtml(mvI, mv);
+    else if (!review.running && !explore) html += '<div class="rv-hint">' + esc(T('reviewHint')) + '</div>';
+    var link = review.running ? '' : '<button type="button" class="linkbtn rv-report" data-report="1">' + esc(T('rpReport')) + '</button>';
+    hosts.forEach(function (h, k) { h.hidden = false; h.innerHTML = html + (k === 0 ? link : ''); });
   }
   function onGraphClick(e) {
+    if (e.target.closest('[data-report]')) { showReport(); return; }
     var g = e.target.closest('.rv-graph'); if (!g) return;
     var r = g.getBoundingClientRect(), n = +g.dataset.n, k = Math.round((e.clientX - r.left) / r.width * n);
     gotoPly(Math.max(0, Math.min(n, k)));
@@ -1039,6 +1185,8 @@
     setGoldenArmed(false);
     board.sync(displayBoard(), []);
     var outcome = humanOutcome();
+    if (!game.online && !game.histKey && game.reason !== 'abort' && game.records.length >= 2) saveLocalGame();
+    if (game.online) hist.at = 0;
     if (botGame() && !game.counted && game.reason !== 'abort') {
       game.counted = true;
       var key = 'L' + game.cfg.level, s = stats[key] || { w: 0, d: 0, l: 0 };
@@ -1049,7 +1197,7 @@
     renderAll(); persist();
     var g = game;
     // the result card, unless the player already opened something else (e.g. looking for the next game)
-    setTimeout(function () { if (game === g && game.status === 'over' && !currentDialog) showOver(); }, 450);
+    setTimeout(function () { if (game === g && game.status === 'over' && !currentDialog && curView === 'game') showOver(); }, 450);
   }
   function humanOutcome() {
     if (game.result === '1/2-1/2' || game.reason === 'abort') return 0;
@@ -1099,7 +1247,7 @@
       var cl = r.golden ? 'hl-gold' : 'hl-last';
       marks.push({ sq: r.m & 127, cls: cl }, { sq: (r.m >> 7) & 127, cls: cl });
       var mv = !explore && review && review.moves && review.moves[view - 1];
-      if (mv && BADGE[mv.cls]) marks.push({ sq: (r.m >> 7) & 127, cls: 'badge bd-' + mv.cls });
+      if (mv && CLS[mv.cls] && CLS[mv.cls].badge) marks.push({ sq: (r.m >> 7) & 127, cls: 'badge bd-' + mv.cls });
     }
     var vp = viewPos(), checkSq = vp.inCheck() ? vp.kings[vp.side] : -1;
     if (checkSq >= 0) marks.push({ sq: checkSq, cls: 'hl-check' });
@@ -1116,11 +1264,16 @@
     if (explore) return explore.view > 0 ? explore.records[explore.view - 1] : (explore.base > 0 ? game.records[explore.base - 1] : null);
     return view > 0 ? game.records[view - 1] : null;
   }
-  var BADGE = { best: 1, inaccuracy: 1, mistake: 1, blunder: 1 };
   function refreshArrows() {
     var list = [];
     if (live()) premoves.forEach(function (pm) { if (pm.stay) list.push({ from: pm.from, to: pm.to, pre: true }); });
-    if (analysis.on && analysisArrow) list.push(analysisArrow);
+    var rmv = !explore && review && review.moves && view > 0 ? review.moves[view - 1] : null;
+    if (rmv) {
+      if (!GOOD_CLS[rmv.cls] && rmv.best && rmv.best !== game.records[view - 1].uci) {
+        var bm = posFromFen(game.fens[view - 1]).moveFromUci(rmv.best);
+        if (bm) list.push({ from: bm & 127, to: (bm >> 7) & 127, gold: !!(bm & F_GOLDEN), best: true });
+      }
+    } else if (analysis.on && analysisArrow) list.push(analysisArrow);
     board.setArrows(list);
   }
 
@@ -1223,7 +1376,7 @@
       [strip, sheet].forEach(function (host) {
         host.querySelectorAll('[data-ply]').forEach(function (el) {
           var mv = review.moves[+el.dataset.ply - 1];
-          if (mv && SYM[mv.cls]) { var i = document.createElement('i'); i.className = 'sym s-' + mv.cls; i.textContent = SYM[mv.cls]; el.appendChild(i); }
+          if (mv && CLS[mv.cls] && CLS[mv.cls].sym) { var i = document.createElement('i'); i.className = 'sym s-' + mv.cls; i.textContent = CLS[mv.cls].g; el.appendChild(i); }
         });
       });
     }
@@ -1234,7 +1387,6 @@
     if (cur2) { var top = cur2.offsetTop, bh = sheet.clientHeight; if (top < sheet.scrollTop || top > sheet.scrollTop + bh - 40) sheet.scrollTop = top - bh / 2; }
   }
 
-  var SYM = { inaccuracy: '?!', mistake: '?', blunder: '??' };
   function renderControls() {
     if (!game) return;
     var btn = $('btn-golden'), c = goldenColor(), avail = movePos().goldenAvailable(c), t1 = $('g-t1'), t2 = $('g-t2');
@@ -1276,9 +1428,10 @@
       }
       if (!spectating()) add(abortable() ? T('abort') : T('resign'), confirmResign, 'danger');
     } else {
-      add(review ? (analysis.on ? T('analyzeOff') : T('analyzeOn')) : T('review'), function () { if (!review) startReview(); else setAnalysis(!analysis.on); renderSide(); });
+      add(review ? T('rpReport') : T('review'), function () { showReport(); renderSide(); });
+      if (review) add(analysis.on ? T('analyzeOff') : T('analyzeOn'), function () { setAnalysis(!analysis.on); renderSide(); });
       if (explore) add(T('backToGame'), exitExplore);
-      if (onlineGame() && !spectating()) {
+      if (onlineGame() && !spectating() && !game.fromHistory) {
         var rm = rematchState();
         add(rm.label, rematch, rm.hot ? 'hot' : '', rm.disabled);
         add(T('newOpponent'), newOpponent);
@@ -1390,16 +1543,17 @@
           sp.addEventListener('click', function () { showAccount(showOver); });
           nudge.appendChild(sp); card.appendChild(nudge);
         }
-        var rv = h('button', { class: spectating() ? 'secondary' : 'linkbtn center', type: 'button', id: 'btn-over-review' }, esc(T('review')));
-        rv.addEventListener('click', function () { closeDialog(); startReview(); renderSide(); });
+        // rematch is the main action; the review sits next to it, a new opponent below
+        var rv = h('button', { class: 'secondary', type: 'button', id: 'btn-over-review' }, esc(T('review')));
+        rv.addEventListener('click', function () { closeDialog(); showReport(); renderSide(); });
         if (!spectating()) {
           var rm = rematchState();
           var rb = h('button', { class: 'primary', type: 'button', id: 'btn-rematch' }, esc(rm.label)); rb.disabled = rm.disabled;
           rb.addEventListener('click', rematch);
-          var no = h('button', { class: 'secondary', type: 'button', id: 'btn-new-opp' }, esc(T('newOpponent')));
+          var no = h('button', { class: 'linkbtn center', type: 'button', id: 'btn-new-opp' }, esc(T('newOpponent')));
           no.addEventListener('click', function () { closeDialog(); newOpponent(); });
-          row.appendChild(rb); row.appendChild(no);
-          card.appendChild(row); card.appendChild(rv);
+          row.appendChild(rb); row.appendChild(rv);
+          card.appendChild(row); card.appendChild(no);
         } else { row.appendChild(rv); card.appendChild(row); }
         return;
       }
@@ -1411,7 +1565,7 @@
         startGame(s, { human: botGame() ? game.cfg.human ^ 1 : 0 });
       });
       var anaB = h('button', { class: 'secondary', type: 'button', id: 'btn-over-review' }, esc(T('review')));
-      anaB.addEventListener('click', function () { closeDialog(); startReview(); renderSide(); });
+      anaB.addEventListener('click', function () { closeDialog(); showReport(); renderSide(); });
       row.appendChild(again); row.appendChild(anaB);
       card.appendChild(row);
     });
@@ -1465,9 +1619,10 @@
         }
         if (!spectating()) item(ICON.flag, abortable() ? T('abort') : T('resign'), confirmResign, 'danger');
       } else {
-        item(ICON.eng, review ? (analysis.on ? T('analyzeOff') : T('analyzeOn')) : T('review'), function () { if (!review) startReview(); else setAnalysis(!analysis.on); renderSide(); });
+        item(ICON.eng, review ? T('rpReport') : T('review'), function () { showReport(); renderSide(); });
+        if (review) item(ICON.eng, analysis.on ? T('analyzeOff') : T('analyzeOn'), function () { setAnalysis(!analysis.on); renderSide(); });
         if (explore) item(ICON.back, T('backToGame'), exitExplore);
-        if (onlineGame() && !spectating()) {
+        if (onlineGame() && !spectating() && !game.fromHistory) {
           var rm = rematchState();
           item(ICON.again, rm.label, rematch, '', rm.disabled);
           item(ICON.search, T('newOpponent'), function () { setTimeout(newOpponent, 0); });
@@ -1594,7 +1749,7 @@
     size = Math.max(200, Math.floor(size / 8) * 8);
     app.style.setProperty('--bs', size + 'px');
   }
-  function persist() { if (game && !game.online) save('game', game.serialize()); }
+  function persist() { if (game && !game.online && !game.archived) save('game', game.serialize()); }
 
   // ------------------------------------------------------------------ main loop (clock + flag)
   function tick() {
@@ -1617,8 +1772,9 @@
   $('btn-next').addEventListener('click', function () { navStep(1); });
   $('btn-menu').addEventListener('click', showMenu);
   // back from a game goes to the tab where that kind of game starts
-  function gameHome() { return game && botGame() ? 'bots' : 'play'; }
-  $('btn-new').addEventListener('click', function () { go(gameHome()); });
+  function playHome() { return game && botGame() ? 'bots' : 'play'; }
+  function gameHome() { return game && game.fromHistory ? 'games' : playHome(); }
+  $('btn-new').addEventListener('click', function () { go(playHome()); });
   $('btn-back').addEventListener('click', function () { go(gameHome()); });
   $('btn-settings').addEventListener('click', showSettings);
   $('btn-rules').addEventListener('click', showRules);
@@ -1631,6 +1787,8 @@
   $('strip').addEventListener('click', onMoveClick);
   $('sheet').addEventListener('click', onMoveClick);
   $('review').addEventListener('click', onGraphClick);
+  $('view-games').addEventListener('click', onHistClick);
+  $('view-profile').addEventListener('click', onHistClick);
   $('review-side').addEventListener('click', onGraphClick);
   function onNoticeClick(e) {
     var b = e.target.closest('[data-act]'); if (!b) return;
@@ -1778,6 +1936,19 @@
     var o = { provider: 'google', token: token, nonce: nonce };
     return (link ? this.sb.auth.linkIdentity(o) : this.sb.auth.signInWithIdToken(o)).then(authFail);
   };
+  // a player's finished games, newest first (HIST_PAGE at a time, older than `before`); opp: only those against one player
+  var HIST_PAGE = 50, HIST_COLS = 'id,white_id,black_id,white_name,black_name,white_rating,black_rating,white_diff,black_diff,result,reason,pool,tc_base,tc_inc,rated,start_fen,moves,updated_at';
+  SupaNet.prototype.history = function (uid, before, opp) {
+    var q = this.sb.from('games').select(HIST_COLS)
+      .or(opp ? 'and(white_id.eq.' + uid + ',black_id.eq.' + opp + '),and(white_id.eq.' + opp + ',black_id.eq.' + uid + ')' : 'white_id.eq.' + uid + ',black_id.eq.' + uid)
+      .eq('status', 'over').order('updated_at', { ascending: false }).limit(HIST_PAGE);
+    if (before) q = q.lt('updated_at', before);
+    return q.then(function (r) { if (r.error) throw r.error; return r.data || []; });
+  };
+  // the score against each opponent over all finished games (the database adds them up)
+  SupaNet.prototype.h2h = function (uid) {
+    return this.sb.rpc('head_to_head', { p_uid: uid }).then(function (r) { if (r.error) throw r.error; return r.data || []; });
+  };
   // the leaderboard: public data, read with the public key (no account needed)
   SupaNet.prototype.top = function (pool) {
     return this.sb.from('ratings').select('user_id, rating, rd, games, wins, draws, losses, profiles(username)').eq('pool', pool).gt('games', 0)
@@ -1836,6 +2007,8 @@
     return Promise.resolve();
   };
   MockNet.prototype.googleToken = function () { return Promise.reject(new Error('unsupported')); };
+  MockNet.prototype.history = function (uid, before, opp) { return postJson(this.base + '/history', { token: uid, before: before || null, opp: opp || null, limit: HIST_PAGE }).then(function (r) { return r.games || []; }); };
+  MockNet.prototype.h2h = function (uid) { return postJson(this.base + '/h2h', { token: uid }).then(function (r) { return r.rows || []; }); };
   MockNet.prototype.top = function (pool) { return this.call('top', { pool: pool }).then(function (r) { return r.rows || []; }); };
   MockNet.prototype.sub = function (topic, h) {
     var base = this.base, uid = this.uid;
@@ -2430,10 +2603,12 @@
     save('online', null);
     setUrl(null);
   }
-  function openOnlineGame(id) {
-    if (online && online.id === id) return;
+  // then(): after the game is on screen (the history opens a past game and its review)
+  function openOnlineGame(id, then) {
+    if (online && online.id === id) { if (then) { go('game'); then(); } return; }
     ensureNet().then(function () { return net.call('game', { game: id }); }).then(function (r) {
       var g = r.game;
+      if (then && g.status !== 'waiting') { startOnline(g); then(); return; }
       if (g.status === 'waiting') {
         if (me && g.host_id === me.uid) { stopLobby(); lobby = { kind: 'invite', tc: (g.tc_base / 60000) + '+' + (g.tc_inc / 1000), rated: g.rated, t0: perf(), timer: 0, tick: 0, gameId: null }; showLobbyDialog(); watchInvite(lobby, g.id); }
         else joinGame(id);
@@ -2458,7 +2633,7 @@
     var cfg = { mode: 'online', human: color < 0 ? 0 : color, spectator: color < 0, tc: tc, rated: !!s.rated, pool: s.pool,
       names: [s.white_name || T('white'), s.black_name || T('black')], ratings: [s.white_rating, s.black_rating] };
     var g = new Game(cfg, s.start_fen);
-    g.online = true;
+    g.online = true; g.onlineId = s.id;
     var clk = g.clock; g.clock = null; // replay without time accounting
     for (var i = 0; i < s.moves.length; i++) { var m = g.pos.moveFromUci(s.moves[i]); if (!m) break; g.play(m, perf()); }
     g.clock = clk;
@@ -2716,7 +2891,7 @@
   // the address keeps the view (#play, #learn, ...) so the back button and reloads work.
   var shellEl = $('shell'), curView = null, learnKit = null, signinFlow = null, ratingsPool = null;
   var botsUi = { sel: Math.max(0, Math.min(7, (lastSetup.level || 3) - 1)), color: lastSetup.color || 'w' };
-  var VIEWS = ['play', 'bots', 'learn', 'ratings', 'profile', 'signin', 'game'], NAV = ['play', 'bots', 'learn', 'ratings', 'profile'];
+  var VIEWS = ['play', 'bots', 'learn', 'ratings', 'profile', 'signin', 'games', 'game'], NAV = ['play', 'bots', 'learn', 'ratings', 'profile'];
   var NAV_KEY = { play: 'navPlay', bots: 'navBots', learn: 'navLearn', ratings: 'navRatings', profile: 'navProfile' };
   var COLOR_RANDOM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6" fill="#1f2422"/><path d="M12 3.4a8.6 8.6 0 0 0 0 17.2z" fill="#f4efe4"/><circle cx="12" cy="12" r="8.6" fill="none" stroke="#8d9691" stroke-width="1.2"/></svg>';
   // Google's "G" for the sign-in button (their branding asks for it on "Continue with Google")
@@ -2725,6 +2900,7 @@
   var STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c1 6.1 3.4 8.5 9.5 9.5-6.1 1-8.5 3.4-9.5 9.5-1-6.1-3.4-8.5-9.5-9.5 6.1-1 8.5-3.4 9.5-9.5z" fill="#e7b44a"/></svg>';
   var LOGO_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="#3a423f"/><path d="M2 9a7 7 0 0 1 7-7h7v14H2z" fill="#4a5350"/><path d="M16 16h14v7a7 7 0 0 1-7 7h-7z" fill="#4a5350"/><path d="M16 5.5c.9 5.4 3.6 8.1 9 9-5.4.9-8.1 3.6-9 9-.9-5.4-3.6-8.1-9-9 5.4-.9 8.1-3.6 9-9z" fill="#e7b44a"/></svg>';
   var CHEV_SVG = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  var CHEV_RIGHT = '<svg class="chev-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
   var BACK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
   var NAV_ICON = {
     play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="6.6" r="2.7"/><path d="M10 10h4M10.1 10c-.2 2.6-.9 4.7-2.4 6.5h8.6c-1.5-1.8-2.2-3.9-2.4-6.5"/><path d="M6.3 20.2h11.4v-1.6c0-1.2-.8-2.1-2-2.1H8.3c-1.2 0-2 .9-2 2.1z"/></svg>',
@@ -2772,6 +2948,9 @@
     renderNav();
     if (prev !== null && prev !== v && currentDialog && currentDialog.dataset.kind !== 'lobby') closeDialog();
     if (prev === 'signin' && v !== 'signin' && signinFlow) { signinFlow.stop(); signinFlow = null; }
+    // back from a past game: the game on this device again
+    if (prev === 'game' && v !== 'game' && game && (game.archived || (game.fromHistory && game.online && game.status === 'over'))) { if (game.online) leaveOnline(); restoreSavedGame(); }
+    if ((v === 'games' || v === 'profile') && (!hist.at || Date.now() - hist.at > 15000)) loadHistory();
     if (v === 'game') { resumeLocalGame(); layout(); renderAll(); } else pauseLocalGame();
     if (learnKit) learnKit.active(v); // autoplay boards run only on the tab that shows them
     if (v !== 'game') {
@@ -2781,10 +2960,10 @@
   }
   function refreshView() {
     if (curView === 'play') renderPlay(); else if (curView === 'bots') renderBots(); else if (curView === 'learn') renderLearn(); else if (curView === 'ratings') renderRatings();
-    else if (curView === 'profile') renderProfile(); else if (curView === 'signin') renderSignin();
+    else if (curView === 'profile') renderProfile(); else if (curView === 'signin') renderSignin(); else if (curView === 'games') renderGames();
   }
   function renderNav() {
-    var active = curView === 'game' ? gameHome() : curView === 'signin' ? 'play' : curView;
+    var cur = curView === 'game' ? gameHome() : curView, active = cur === 'signin' ? 'play' : cur === 'games' ? 'profile' : cur;
     var items = NAV.filter(allowed);
     [$('rail-items'), $('tabbar')].forEach(function (host) {
       if (host.dataset.built !== lang + items.join()) {
@@ -3081,6 +3260,7 @@
         var row2 = h('div', { class: 'row-btns' }); row2.appendChild(si); inn.appendChild(row2);
       }
     }
+    profileGames(inn);
     var sc = h('div', { class: 'card', id: 'settings-card' });
     sc.appendChild(h('h2', null, esc(T('settings'))));
     buildSettings(sc, renderProfile);
@@ -3093,6 +3273,196 @@
     var pv = NETCFG ? 'privacy.html' : window.GC_SITE ? window.GC_SITE + 'privacy.html' : '';
     if (pv) inn.appendChild(h('a', { class: 'credit privacy-link', id: 'privacy-link', href: pv, target: '_blank', rel: 'noopener' }, esc(T('privacy'))));
   }
+  // ---- game history: online games (from the server; anyone may read games) and games against the bots or on one
+  // device (kept on the device, newest 200). The score against each opponent, each game's accuracy once reviewed.
+  var hist = { items: null, online: [], more: false, loading: false, err: false, filter: null, uid: null, at: 0, h2h: null, opp: null };
+  function saveLocalGame() {
+    var key = 'l:' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    var r = { k: key, mode: game.cfg.mode, level: game.cfg.level, human: game.cfg.human, tc: game.cfg.tc ? game.cfg.tc.label : null,
+      start: game.startFen === GC.START_FEN ? null : game.startFen, moves: game.records.map(function (x) { return x.uci; }),
+      result: game.result, reason: game.reason, at: Date.now() };
+    var list = load('history', []);
+    list.unshift(r); if (list.length > 200) list.length = 200;
+    save('history', list); game.histKey = key;
+    if (hist.items) histMerge();
+  }
+  function resultFor(result, c) { return result === '1/2-1/2' ? 0 : (result === '1-0') === (c === 0) ? 1 : -1; }
+  function usedGolden(moves, c, startSide) { for (var i = 0; i < moves.length; i++) if (moves[i].indexOf('*') >= 0 && ((i + startSide) & 1) === c) return true; return false; }
+  function histFromOnline(g, uid) {
+    var c = g.white_id === uid ? 0 : 1, mv = g.moves || [], ss = g.start_fen ? posFromFen(g.start_fen).side : 0;
+    return { key: 'o:' + g.id, id: g.id, kind: 'online', at: Date.parse(g.updated_at), color: c, res: resultFor(g.result, c), result: g.result, reason: g.reason,
+      opp: { id: c ? g.white_id || 'gone' : g.black_id || 'gone', name: (c ? g.white_name : g.black_name) || '?', rating: c ? g.white_rating : g.black_rating },
+      diff: g.rated ? (c ? g.black_diff : g.white_diff) : null, pool: g.pool, tc: (g.tc_base / 60000) + '+' + (g.tc_inc / 1000), golden: usedGolden(mv, c, ss), n: mv.length };
+  }
+  function histFromLocal(r) {
+    var bot = r.mode === 'bot', c = bot ? r.human : 0, ss = r.start ? posFromFen(r.start).side : 0;
+    return { key: r.k, kind: r.mode, at: r.at, color: c, res: bot ? resultFor(r.result, c) : null, result: r.result, reason: r.reason,
+      opp: bot ? { id: 'bot:' + r.level, name: window.GCBots ? GCBots.name(r.level - 1, lang) : T('bot'), rating: Engine.LEVELS[r.level - 1].elo } : { id: 'two', name: T('vsTwo') },
+      tc: r.tc && r.tc !== 'none' ? r.tc : null, golden: usedGolden(r.moves, c, ss), n: r.moves.length, local: r };
+  }
+  function histMerge() {
+    var uid = hist.uid || (me && me.uid), items = hist.online.map(function (g) { return histFromOnline(g, uid); }).concat(load('history', []).map(histFromLocal));
+    items.sort(function (a, b) { return b.at - a.at; });
+    hist.items = items;
+  }
+  function loadHistory(more) {
+    if (hist.loading) return;
+    hist.at = Date.now();
+    if (!NETCFG || !(me || hasNetSession())) { hist.online = []; hist.more = false; hist.h2h = null; histMerge(); renderHistViews(); return; }
+    hist.loading = true; hist.err = false;
+    if (!hist.items) histMerge(); // the games on this device at once
+    ensureNet().then(function () {
+      var before = more && hist.online.length ? hist.online[hist.online.length - 1].updated_at : null;
+      return Promise.all([
+        net.history(me.uid, before).then(function (rows) {
+          hist.online = (more ? hist.online : []).concat(rows);
+          hist.more = rows.length === HIST_PAGE;
+        }),
+        more ? null : net.h2h(me.uid).then(function (rows) { hist.h2h = rows; }, function () { hist.h2h = null; })
+      ]).then(function () { hist.uid = me.uid; });
+    }).catch(function () { hist.err = true; }).then(function () {
+      hist.loading = false; histMerge(); renderHistViews();
+      if (hist.filter && !more) loadOppGames(hist.filter); // the games against the chosen opponent are fresh too
+    });
+  }
+  // all the games against one opponent (not only those among the latest), a page at a time
+  function loadOppGames(id, more) {
+    var o = hist.opp && hist.opp.id === id ? hist.opp : null;
+    if (!net || !me || id.indexOf(':') >= 0 || id === 'gone' || (o && o.loading)) return;
+    if (!o || !more) o = hist.opp = { id: id, rows: o && more ? o.rows : [], more: false, loading: false };
+    o.loading = true;
+    var before = more && o.rows.length ? o.rows[o.rows.length - 1].updated_at : null;
+    net.history(me.uid, before, id).then(function (rows) {
+      o.rows = (more ? o.rows : []).concat(rows); o.more = rows.length === HIST_PAGE;
+    }, function () { /* the games among the latest still show */ }).then(function () { o.loading = false; if (hist.opp === o && curView === 'games') renderGames(); });
+  }
+  function renderHistViews() { if (curView === 'games') renderGames(); else if (curView === 'profile') renderProfile(); }
+  // the score against each opponent (bots by level), most played first: online opponents over all games when the
+  // database has added them up, otherwise over the games loaded so far
+  function h2hOf(items) {
+    var by = {}, out = [], full = !!hist.h2h;
+    if (full) hist.h2h.forEach(function (r) {
+      var id = r.opp_id || 'gone';
+      by[id] = { id: id, name: r.opp_name || '?', w: r.wins, d: r.draws, l: r.losses, n: r.games, at: Date.parse(r.last_at) };
+    });
+    items.forEach(function (it) {
+      if (it.res == null || (full && it.kind === 'online')) return;
+      var o = by[it.opp.id] || (by[it.opp.id] = { id: it.opp.id, name: it.opp.name, w: 0, d: 0, l: 0, n: 0, at: 0 });
+      o.n++; o.at = Math.max(o.at, it.at);
+      if (it.res === 1) o.w++; else if (it.res === -1) o.l++; else o.d++;
+    });
+    for (var k in by) out.push(by[k]);
+    return out.sort(function (a, b) { return b.n - a.n || b.at - a.at; });
+  }
+  function dayText(t) {
+    var d = new Date(t), now = new Date(), y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    var hm = d.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
+    if (d.toDateString() === now.toDateString()) return T('today') + ' ' + hm;
+    if (d.toDateString() === y.toDateString()) return T('yesterday') + ' ' + hm;
+    return d.toLocaleDateString(lang, { day: 'numeric', month: 'short', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
+  }
+  function histRow(it, sums) {
+    var rs = sums[it.key], acc = rs && rs.acc ? rs.acc[it.color] : null;
+    var mark = it.res === 1 ? ['win', '+'] : it.res === -1 ? ['loss', '−'] : it.res === 0 ? ['draw', '='] : ['two', it.result === '1/2-1/2' ? '½' : it.result === '1-0' ? '1–0' : '0–1'];
+    var sub = [];
+    if (it.pool) sub.push('<span class="gh-tc ic-' + it.pool + '">' + POOL_ICON[it.pool] + esc(it.tc) + '</span>');
+    else if (it.tc) sub.push('<span class="gh-tc">' + esc(it.tc) + '</span>');
+    sub.push('<span>' + esc(dayText(it.at)) + '</span>');
+    if (it.diff != null) sub.push('<b class="' + (it.diff >= 0 ? 'up' : 'down') + '">' + (it.diff >= 0 ? '+' : '−') + Math.abs(it.diff) + '</b>');
+    var right = acc != null ? '<span class="gh-acc" title="' + esc(T('accuracy')) + '">' + acc.toFixed(1) + '</span>' : '<span class="gh-rev" aria-label="' + esc(T('reviewShort')) + '">' + ICON.search + '</span>';
+    return '<button type="button" class="gh-row" data-key="' + esc(it.key) + '"><span class="gh-res r-' + mark[0] + '">' + mark[1] + '</span><span class="gh-main"><span class="gh-opp"><b>' +
+      esc(it.opp.name) + '</b>' + (it.opp.rating ? '<em>' + it.opp.rating + '</em>' : '') + (it.golden ? '<i class="gh-gold" title="' + esc(T('golden')) + '">✦</i>' : '') + '</span><span class="gh-sub">' + sub.join('<i class="gh-dot"></i>') + '</span></span>' + right + '</button>';
+  }
+  function renderGames() {
+    var host = $('view-games');
+    host.innerHTML = '';
+    var inn = h('div', { class: 'page-in' }); host.appendChild(inn);
+    var back = h('button', { type: 'button', class: 'signin-back gh-back', id: 'games-back' }, BACK_SVG + '<span>' + esc(T('navProfile')) + '</span>');
+    back.addEventListener('click', function () { go('profile'); });
+    inn.appendChild(back);
+    inn.appendChild(h('h1', { class: 'page-h' }, esc(T('games'))));
+    if (!hist.items) { inn.appendChild(h('div', { class: 'muted' }, esc(T('connecting')) + '…')); return; }
+    var items = hist.items, opps = h2hOf(items), sums = load('reviewSums', {});
+    if (opps.length) {
+      var chips = '<button type="button" class="gh-chip' + (hist.filter ? '' : ' on') + '" data-opp="">' + esc(T('allOpponents')) + '</button>';
+      opps.slice(0, 12).forEach(function (o) {
+        chips += '<button type="button" class="gh-chip' + (hist.filter === o.id ? ' on' : '') + '" data-opp="' + esc(o.id) + '"><b>' + esc(o.name) + '</b><span>' + o.w + ':' + o.l + '</span></button>';
+      });
+      inn.appendChild(h('div', { class: 'gh-chips', id: 'gh-chips' }, chips));
+    }
+    var oppMore = false;
+    if (hist.filter) {
+      var o = opps.filter(function (x) { return x.id === hist.filter; })[0], seen = {};
+      items = items.filter(function (it) { return it.opp.id === hist.filter; });
+      if (hist.opp && hist.opp.id === hist.filter) {
+        items.forEach(function (it) { seen[it.key] = 1; });
+        hist.opp.rows.forEach(function (g) { var it = histFromOnline(g, hist.uid || me.uid); if (!seen[it.key]) { seen[it.key] = 1; items.push(it); } });
+        items.sort(function (a, b) { return b.at - a.at; });
+        oppMore = hist.opp.more;
+      }
+      if (o) inn.appendChild(h('div', { class: 'gh-score', id: 'gh-score' }, '<div class="gh-score-n"><span class="me">' + esc(T('you')) + '</span><b>' + o.w + ' : ' + o.l + '</b><span>' + esc(o.name) + '</span></div><em>' + esc(T('h2hDraws', { d: o.d })) + ' · ' + esc(T('gamesN', { n: o.n })) + '</em>'));
+    }
+    var list = h('div', { class: 'gh-list', id: 'gh-list' }, items.map(function (it) { return histRow(it, sums); }).join(''));
+    inn.appendChild(list);
+    if (!items.length) inn.appendChild(h('div', { class: 'muted gh-empty' }, esc(hist.loading ? T('connecting') + '…' : T('noGames'))));
+    if (hist.err) inn.appendChild(h('div', { class: 'err' }, esc(T('netError'))));
+    if (hist.filter ? oppMore : hist.more) {
+      var more = h('button', { type: 'button', class: 'secondary gh-more', id: 'btn-more-games' }, esc(T('showMore')));
+      more.disabled = hist.filter ? hist.opp.loading : hist.loading;
+      more.addEventListener('click', function () { if (hist.filter) loadOppGames(hist.filter, true); else loadHistory(true); renderGames(); });
+      inn.appendChild(more);
+    }
+  }
+  // Profile: the last few games and the way to all of them
+  function profileGames(inn) {
+    if (!hist.items || !hist.items.length) return;
+    var card = h('div', { class: 'card gh-card', id: 'profile-games' });
+    card.appendChild(h('h2', null, esc(T('games'))));
+    card.appendChild(h('div', { class: 'gh-list' }, hist.items.slice(0, 4).map(function (it) { return histRow(it, load('reviewSums', {})); }).join('')));
+    var all = h('button', { type: 'button', class: 'secondary', id: 'btn-all-games' }, esc(T('allGames')));
+    all.addEventListener('click', function () { hist.filter = null; go('games'); });
+    card.appendChild(all);
+    inn.appendChild(card);
+  }
+  function onHistClick(e) {
+    var row = e.target.closest('.gh-row');
+    if (row) { openHistory(row.dataset.key); return; }
+    var chip = e.target.closest('.gh-chip');
+    if (chip) { hist.filter = chip.dataset.opp || null; if (hist.filter) loadOppGames(hist.filter); renderGames(); }
+  }
+  // open a past game on the board, with its review
+  function openHistory(key) {
+    var it = hist.items && hist.items.filter(function (x) { return x.key === key; })[0];
+    if (!it && hist.opp && key.indexOf('o:') === 0) it = { kind: 'online', id: key.slice(2) };
+    if (!it) return;
+    if (liveOnlineGame()) { toast(T('finishFirst')); return; } // a game in progress stays on the board
+    if (it.kind === 'online') { openOnlineGame(it.id, function () { if (game) game.fromHistory = true; renderNav(); renderSide(); showReport(); }); return; }
+    openArchived(it.local);
+    showReport();
+  }
+  function openArchived(r) {
+    cancelLobby(); leaveOnline(); cancelBot(); bot.cancel(); bot.clear();
+    premoves = []; selected = -1; pendingPromo = false; board.closePromotion(); plyBoards = {}; explore = null; posCache = {};
+    stopReview(); review = null;
+    if (analysis.on) setAnalysis(false);
+    var g = new Game({ mode: r.mode, level: r.level, human: r.human, tc: null }, r.start || GC.START_FEN), now = perf();
+    g.clock = null;
+    for (var i = 0; i < r.moves.length; i++) { var m = g.pos.moveFromUci(r.moves[i]); if (!m) break; g.play(m, now); }
+    g.status = 'over'; g.result = r.result; g.reason = r.reason; g.counted = true; g.archived = true; g.fromHistory = true; g.histKey = r.k;
+    game = g; view = g.records.length; setGoldenArmed(false);
+    orient = r.mode === 'bot' ? r.human : 0; board.setOrientation(orient); board.sync(game.pos.board, [], { instantAll: true });
+    go('game'); renderAll(); layout();
+  }
+  // back from a past game: the game saved on this device (or a fresh board)
+  function restoreSavedGame() {
+    stopReview(); review = null; explore = null; posCache = {}; plyBoards = {};
+    if (analysis.on) setAnalysis(false);
+    var d = load('game', null), g = d ? Game.restore(d) : null;
+    if (!g) { g = new Game({ mode: 'bot', level: lastSetup.level || 3, human: 0, tc: null }); g.idle = true; }
+    game = g; view = g.idle ? 0 : g.records.length;
+    orient = botGame() ? game.cfg.human : 0; board.setOrientation(orient); board.sync(game.pos.board, [], { instantAll: true });
+  }
+
   // ---- Learn
   function renderLearn() {
     var k = kit();
@@ -3167,7 +3537,8 @@
     get dialogKind() { return currentDialog ? currentDialog.dataset.kind || '' : null; },
     get online() { return online; }, get me() { return me; }, get lobby() { return lobby; }, startSeek: startSeek, startInvite: startInvite,
     onlineAction: onlineAction, showNewGame: showNewGame, serverNow: serverNow, cancelPremoves: cancelPremoves,
-    showAccount: showAccount, showSettings: showSettings, showOver: showOver,
-    go: go, get curView() { return curView; }, showBotSetup: showBotSetup, showLocalSetup: showLocalSetup, botThinkMs: botThinkMs
+    showAccount: showAccount, showSettings: showSettings, showOver: showOver, showReport: showReport,
+    go: go, get curView() { return curView; }, showBotSetup: showBotSetup, showLocalSetup: showLocalSetup, botThinkMs: botThinkMs,
+    historyStale: function () { hist.at = 0; }
   };
 })();
