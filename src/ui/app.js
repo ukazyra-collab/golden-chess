@@ -141,7 +141,7 @@
       w_golden: '{side} answers with the golden move {san}', w_takes: '{side} answers {san} and takes the {piece}', w_hits: '{side} answers {san}',
       w_attacks: ', attacking the {targets}', w_check: ' with check', w_lose: 'In the end {side} wins {gain}.', w_win: '{best} would win {gain}.',
       w_keyGold: 'Key move: the golden {san}.', w_mate: '{side} now mates in {n}.', w_lineMate: '{side} mates.', w_lineWins: '{side} wins {gain}.',
-      w_equal: 'The position stays about equal.', w_better: '{side} is better.', w_winning: '{side} is winning.',
+      w_equal: 'The position stays about equal.', w_better: '{side} is better.', w_winning: '{side} is winning.', w_missed: '{best} was much stronger.',
       w_and: ' and the ', g_pawn1: 'a pawn', g_pawn2: 'two pawns', g_pawn3: 'three pawns', g_pawn4: 'four pawns', g_pawnN: '{n} pawns',
       g_knight: 'a knight', g_bishop: 'a bishop', g_rook: 'a rook', g_queen: 'the queen', g_exchange: 'the exchange', g_points: 'material (+{n})', g_and: ' and ',
       t_knight: 'knight', t_bishop: 'bishop', t_rook: 'rook', t_queen: 'queen', sideGenW: 'White', sideGenB: 'Black'
@@ -275,7 +275,7 @@
       w_golden: '{side} отвечают золотым ходом {san}', w_takes: '{side} отвечают {san} и забирают {piece}', w_hits: '{side} отвечают {san}',
       w_attacks: ' с нападением на {targets}', w_check: ' с шахом', w_lose: 'В итоге {sideLc} выигрывают {gain}.', w_win: 'Ход {best} выигрывал {gain}.',
       w_keyGold: 'Ключевой ход — золотой {san}.', w_mate: 'Теперь у {sideGen} мат в {n}.', w_lineMate: '{side} ставят мат.', w_lineWins: '{side} выигрывают {gain}.',
-      w_equal: 'Позиция примерно равная.', w_better: 'У {sideGen} лучше.', w_winning: '{side} выигрывают.',
+      w_equal: 'Позиция примерно равная.', w_better: 'У {sideGen} лучше.', w_winning: '{side} выигрывают.', w_missed: 'Намного сильнее было {best}.',
       w_and: ' и ', g_pawn1: 'пешку', g_pawn2: 'две пешки', g_pawn3: 'три пешки', g_pawn4: 'четыре пешки', g_pawnN: '{n} пешек',
       g_knight: 'коня', g_bishop: 'слона', g_rook: 'ладью', g_queen: 'ферзя', g_exchange: 'качество', g_points: 'материал (+{n})', g_and: ' и ',
       t_knight: 'коня', t_bishop: 'слона', t_rook: 'ладью', t_queen: 'ферзя', sideGenW: 'белых', sideGenB: 'чёрных'
@@ -1247,10 +1247,11 @@
     if (r && r.key === 'missedMate') return T('r_missedMate', { best: best, n: r.n });
     if (r && r.key === 'allowsMate') return T('w_mate', { side: opp.side, sideGen: opp.sideGen, n: r.n }) + (r.reply ? ' ' + replyText(r.reply, opp) : '');
     if (r && r.key === 'line') {
+      if (r.missed && !r.win) out.push(T('w_missed', { best: best }));
       if (r.reply) out.push(replyText(r.reply, opp));
       if (r.lose) out.push(T('w_lose', { side: opp.side, sideLc: opp.sideLc, gain: gainText(r.lose) }));
       else if (r.hangs && !r.reply) out.push(T('r_hangs', { piece: T('p_' + r.hangs) }));
-      var kg = keyGolden(mv.follow, r.reply && r.reply.kind === 'golden' ? 1 : 0);
+      var kg = r.missed ? keyGolden(mv.line, 0) : keyGolden(mv.follow, r.reply && r.reply.kind === 'golden' ? 1 : 0);
       if (kg) out.push(T('w_keyGold', { san: kg }));
       if (r.win) out.push(T('w_win', { best: best, gain: gainText(r.win) }));
     }
@@ -1317,11 +1318,11 @@
   // what a line comes to for `c`: a mate, material, or (no material changes hands) how the position stands. e: the
   // engine's score at the line's start (side to move there), fen: that position
   function lineOutcome(st, c, e, fen) {
-    var out = [], w;
+    var out = [], w, v = e ? (posFromFen(fen).side === 0 ? 1 : -1) * cpOf(e) : 0, vc = c === 0 ? v : -v;
     if (st.mate >= 0) out.push(T('w_lineMate', { side: sideWords(st.mate).side }));
-    else if (st.swing >= 1 || st.swing <= -1) { w = sideWords(st.swing >= 1 ? c : c ^ 1); out.push(T('w_lineWins', { side: w.side, gain: gainText(st.gain) })); }
+    else if ((st.swing >= 1 && vc > -50) || (st.swing <= -1 && vc < 50)) { w = sideWords(st.swing >= 1 ? c : c ^ 1); out.push(T('w_lineWins', { side: w.side, gain: gainText(st.gain) })); }
     else if (e && !e.mate) {
-      var v = (posFromFen(fen).side === 0 ? 1 : -1) * e.score, lead = v >= 0 ? 0 : 1, a = Math.abs(v);
+      var lead = v >= 0 ? 0 : 1, a = Math.abs(v);
       w = sideWords(lead);
       out.push(a < 60 ? T('w_equal') : a < 300 ? T('w_better', w) : T('w_winning', w));
     }

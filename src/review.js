@@ -133,7 +133,7 @@ var GCReview = (function (GC) {
   // point (what it takes, what it hits, check), the material it wins or loses for `c`, a mate at the end
   function story(fen, ucis, c, max) {
     var pos = new GC.Position(fen), n0 = counts(pos), m0 = material(pos, c) - material(pos, c ^ 1);
-    var out = { fen: fen, ucis: [], sans: [], golden: [], first: null, mate: -1, swing: 0, gain: null };
+    var out = { fen: fen, ucis: [], sans: [], golden: [], swings: [], first: null, mate: -1, swing: 0, gain: null };
     for (var i = 0; ucis && i < ucis.length && i < (max || 8); i++) {
       var m = pos.moveFromUci(ucis[i]);
       if (!m) break;
@@ -147,6 +147,7 @@ var GCReview = (function (GC) {
         out.first = { uci: ucis[i], san: san, side: side, golden: !!(m & F_GOLDEN), took: took, check: pos.inCheck(), targets: tg };
       }
       out.ucis.push(ucis[i]); out.sans.push(san); out.golden.push(!!(m & F_GOLDEN));
+      out.swings.push(material(pos, c) - material(pos, c ^ 1) - m0);
     }
     if (out.ucis.length && pos.inCheck() && !pos.hasLegalMove()) out.mate = pos.side ^ 1;
     out.swing = material(pos, c) - material(pos, c ^ 1) - m0;
@@ -208,29 +209,34 @@ var GCReview = (function (GC) {
       var line = story(fens[i], e.pv && e.pv.length ? e.pv : (e.uci ? [e.uci] : []), c, 8);
       moves[i] = { ply: i, color: c, cls: cls, drop: drop, acc: a, before: before, after: after, best: e.uci, bestSan: isBest ? rec.san : sanOf(fens[i], e.uci),
         golden: !!rec.golden, phase: ph, missedGolden: gm, follow: follow, line: line,
-        reason: isBest && cls !== 'brilliant' ? null : reason(i, cls, follow, line) };
+        reason: isBest && cls !== 'brilliant' ? null : reason(i, cls, follow, line, before, after) };
     }
     // the coach's reason for a move, worst news first. reply: what the opponent's best answer does (takes, a golden move,
     // hits pieces); lose: what the line after the move costs; win: what the best line would have won
-    function reason(k, cls, follow, line) {
+    // before/after: the mover's winning chances before the move and after it. Material counted at the end of a line can
+    // be in the middle of a trade, so it is only said when the engine's score agrees with it.
+    function reason(k, cls, follow, line, before, after) {
       var e = sc[k], e2 = sc[k + 1], rec = recs[k], c = rec.color;
       if (cls === 'brilliant') return { key: 'sacrifice' };
       if (e.mate > 0 && !(e2.mate < 0)) return { key: 'missedMate', n: e.mate };
       if (e2.mate > 0) return { key: 'allowsMate', n: e2.mate, reply: follow.first };
       if (cls === 'excellent' || cls === 'good' || cls === 'goldmiss') return null;
       var f = follow.first, out = { key: 'line' };
-      if (f) {
+      // a miss is about the move that wasn't played; the others about the answer they allow
+      if (f && cls !== 'miss') {
+        var early = follow.swings.length ? follow.swings[Math.min(1, follow.swings.length - 1)] : 0; // after the answer and our reply
         if (f.golden) out.reply = { kind: 'golden', san: f.san, targets: f.targets, check: f.check };
-        else if (f.took >= 2) out.reply = { kind: 'takes', san: f.san, piece: pieceName(f.took), check: f.check };
-        else if (f.targets.length >= 2 || (f.targets.length && (f.check || f.targets[0] >= 4))) out.reply = { kind: 'hits', san: f.san, targets: f.targets, check: f.check };
+        else if (f.took >= 2 && early <= -1) out.reply = { kind: 'takes', san: f.san, piece: pieceName(f.took), check: f.check };
+        else if (!f.took && (f.targets.length >= 2 || (f.targets.length && (f.check || f.targets[0] >= 4)))) out.reply = { kind: 'hits', san: f.san, targets: f.targets, check: f.check };
       }
       // the move itself left a piece to be taken (said only when the line agrees)
       var pb = new GC.Position(fens[k]), pa = new GC.Position(fens[k + 1]), m = pb.moveFromUci(rec.uci), to = m ? (m >> 7) & 127 : -1;
       var took = m && (m & F_CAPTURE) ? VAL[pb.board[to] & 7] || 1 : 0;
-      if (to >= 0 && hangs(pa, to, c) && VAL[pa.board[to] & 7] - took >= 2 && follow.swing <= -2) out.hangs = pieceName(pa.board[to] & 7);
-      if (follow.swing <= -1 && follow.gain) out.lose = follow.gain;
-      if (line.swing - follow.swing >= 2 && line.swing >= 1 && line.gain) out.win = line.gain;
-      return out.reply || out.lose || out.win || out.hangs ? out : null;
+      if (to >= 0 && hangs(pa, to, c) && VAL[pa.board[to] & 7] - took >= 2 && follow.swing <= -2 && after < 50) out.hangs = pieceName(pa.board[to] & 7);
+      if (follow.swing <= -1 && follow.gain && after < 50) out.lose = follow.gain;
+      if (line.swing - follow.swing >= 2 && line.swing >= 1 && line.gain && before >= 50) out.win = line.gain;
+      if (cls === 'miss') out.missed = true;
+      return out.reply || out.lose || out.win || out.hangs || out.missed ? out : null;
     }
     var sum = [0, 1].map(function (c) {
       var a = sideAccuracy(acc[c]);
