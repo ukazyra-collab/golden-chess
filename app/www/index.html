@@ -364,6 +364,7 @@ svg { display: block; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.gold { background: var(--gold); color: #2a1c03; }
 .credit { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+.privacy-link { align-self: flex-start; text-decoration: underline; text-underline-offset: 3px; margin-top: -12px; }
 
 /* ---- online ---- */
 .pname .rt { font-weight: 600; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -1948,7 +1949,7 @@ self.onmessage = function (e) {
 };
 </script>
 <script>
-window.GC_SITE = "https://ukazyra-collab.github.io/golden-chess/";
+window.GC_SITE = "https://golden-chess.com/";
 window.GC_APP_OFFLINE = true;
 /* Golden Chess — rules core. Shared by the UI (main thread) and the engine (worker).
  * Board: 0x88 mailbox. Piece code = (color << 3) | type. White = 0, black = 1.
@@ -4346,7 +4347,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       r_agreement: 'by agreement', gameTaken: 'This game has already started, you are watching it', noGame: 'Game not found',
       stillPlaying: 'Your online game is still running. Starting another game leaves it, and your clock keeps ticking.',
       reconnecting: 'Reconnecting\u2026', connected: 'Online', disconnected: 'Left the game', leaderboard: 'Top players', lbEmpty: 'No rated games yet. Be the first.',
-      gamesN: '{n} games', casualNote: 'Casual game: ratings don\u2019t change.', onlineElsewhere: 'Online games and ratings:', appOffline: 'No internet. Bots and two players on one phone work without it.', reconnect: 'Try again',
+      gamesN: '{n} games', casualNote: 'Casual game: ratings don\u2019t change.', onlineElsewhere: 'Online games and ratings:', appOffline: 'No internet. Bots and two players on one phone work without it.', reconnect: 'Try again', privacy: 'Privacy policy',
       account: 'Account', signIn: 'Sign in', emailLabel: 'Email', sendCode: 'Send code', sending: 'Sending', manage: 'Manage',
       signInSub: 'Enter your email to keep your name, rating and games, or to sign in to your account on this device. We\u2019ll send you a code.',
       codeTitle: 'Enter the code', codeSub: 'We sent a code to {email}. Type it here, or open the link from the email on this device.',
@@ -4452,7 +4453,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       r_agreement: 'по соглашению', gameTaken: 'Партия уже началась, вы смотрите её как зритель', noGame: 'Партия не найдена',
       stillPlaying: 'Ваша онлайн-партия ещё идёт. Если начать другую, часы в ней продолжат идти.',
       reconnecting: 'Переподключение…', connected: 'В игре', disconnected: 'Вышел из игры', leaderboard: 'Лучшие игроки', lbEmpty: 'Рейтинговых партий ещё нет. Будьте первым.',
-      gamesN: 'партий: {n}', casualNote: 'Партия без рейтинга: рейтинг не меняется.', onlineElsewhere: 'Онлайн-партии и рейтинг:', appOffline: 'Нет интернета. Боты и игра вдвоём на одном телефоне работают и без него.', reconnect: 'Повторить',
+      gamesN: 'партий: {n}', casualNote: 'Партия без рейтинга: рейтинг не меняется.', onlineElsewhere: 'Онлайн-партии и рейтинг:', appOffline: 'Нет интернета. Боты и игра вдвоём на одном телефоне работают и без него.', reconnect: 'Повторить', privacy: 'Политика конфиденциальности',
       account: 'Аккаунт', signIn: 'Войти', emailLabel: 'Почта', sendCode: 'Получить код', sending: 'Отправляем', manage: 'Управление',
       signInSub: 'Введите почту, чтобы сохранить имя, рейтинг и партии или войти в свой аккаунт на этом устройстве. Мы пришлём код.',
       codeTitle: 'Введите код', codeSub: 'Код отправлен на {email}. Введите его здесь или откройте ссылку из письма на этом устройстве.',
@@ -7225,6 +7226,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     ll.addEventListener('click', function () { go('learn'); });
     inn.appendChild(ll);
     inn.appendChild(h('div', { class: 'credit' }, esc(T('credit'))));
+    // the privacy policy sits next to the site (privacy.html); the offline copies link to the site's one
+    var pv = NETCFG ? 'privacy.html' : window.GC_SITE ? window.GC_SITE + 'privacy.html' : '';
+    if (pv) inn.appendChild(h('a', { class: 'credit privacy-link', id: 'privacy-link', href: pv, target: '_blank', rel: 'noopener' }, esc(T('privacy'))));
   }
   function renameForm(who, nameEl) {
     var form = h('form', { class: 'prof-edit' });

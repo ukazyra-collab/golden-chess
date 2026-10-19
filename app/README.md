@@ -59,7 +59,7 @@ npx cap open ios # откроется Xcode; в первый раз он мин�
 
 ## Что где
 
-- `capacitor.config.json` — `server.url` (живой сайт; после переезда на golden-chess.com поменять и пересобрать обе платформы), `errorPath` (офлайн-копия), `allowNavigation`, цвета заставки и системных панелей.
+- `capacitor.config.json` — `server.url` (живой сайт, https://golden-chess.com/; если адрес когда-нибудь поменяется — поправить и пересобрать обе платформы), `errorPath` (офлайн-копия), `allowNavigation`, цвета заставки и системных панелей.
 - `www/index.html` — офлайн-копия сайта, её делает `node build.js` в корне репозитория. Руками не править.
 - `resources/make_icons.py` — иконки и заставки для обеих платформ и `apple-touch-icon.png` сайта из одного рисунка: `python3 app/resources/make_icons.py`.
 - iOS: `Info.plist` (схема `goldenchess`, на iPhone только вертикально), `SceneDelegate.swift` (без «резинки»), `LaunchScreen.storyboard` (фон заставки).

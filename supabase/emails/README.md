@@ -14,7 +14,7 @@
 
 Остальные настройки проекта `wduoqpoqbtpkrgbcsegg`:
 
-- URL Configuration: Site URL `https://ukazyra-collab.github.io/golden-chess/`, Redirect URLs `https://ukazyra-collab.github.io/golden-chess/**`.
+- URL Configuration: Site URL `https://golden-chess.com/`, Redirect URLs `https://golden-chess.com/**`, `goldenchess://auth` (the app) and the old `https://ukazyra-collab.github.io/golden-chess/**` (it redirects to the domain).
 - Email OTP (Sign In / Providers → Email): длина 6 (в проекте по умолчанию было 8; клиент ждёт `GC_ONLINE.otpLength` = 6), срок 3600 с.
 - Свой отправитель: подключён через интеграцию Resend → Supabase (Resend → Settings → Integrations → Supabase): проект Golden Chess, домен `hutka.ai`, ключ `Supabase Integration`, отправитель `Golden Chess <chess@hutka.ai>`.
 - Rate Limits → emails sent: 100 в час.

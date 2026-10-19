@@ -19,7 +19,7 @@ const ONLINE = {
   otpLength: 6, // digits in the email sign-in code (Supabase: Authentication > Sign In / Providers > Email > Email OTP length)
   googleAuth: false, // "Continue with Google": switch on once the Google provider is set up (supabase/emails/README.md)
 };
-const SITE = 'https://ukazyra-collab.github.io/golden-chess/';
+const SITE = 'https://golden-chess.com/';
 
 const pieces = JSON.parse(rd('build/pieces.json'));
 let css = '';

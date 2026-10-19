@@ -3,7 +3,7 @@
   "appName": "Golden Chess",
   "webDir": "www",
   "server": {
-    "url": "https://ukazyra-collab.github.io/golden-chess/",
+    "url": "https://golden-chess.com/",
     "errorPath": "index.html",
     "allowNavigation": [
       "golden-chess.com",

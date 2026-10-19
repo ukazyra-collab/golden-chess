@@ -2,7 +2,7 @@
 
 Chess plus one **golden move** per player per game: a queen, rook, bishop or knight teleports to any empty square. No capture, no check on the opponent's king afterwards, own king must be safe (so it can block a slider check). Kings and pawns can't use it. Everything else is standard chess; a rook that teleports loses its castling right.
 
-Play: https://ukazyra-collab.github.io/golden-chess/ (bot, two players on one device, online rated games, invite a friend by link).
+Play: https://golden-chess.com (bot, two players on one device, online rated games, invite a friend by link).
 
 The site has five tabs, like a chess site: **Play** (time control, Play, Play a friend by link or on one device), **Bots** (eight characters, one per engine level, from Pip at 600 to Golden at 2500), **Learn** (what the golden move is, autoplay boards, three one-move puzzles), **Ratings** (leaderboard per pool) and **Profile** (name, ratings, settings). A bottom tab bar on phones, a side rail on wider screens; the address hash names the tab (`#play`, `#bots`, `#learn`, `#ratings`, `#profile`, `#signin`, `#game`), so the browser's back button works. Each screen has one main action in gold and at most one quieter one. Online play needs an account (email code, free); bot and two-player games don't. Bot games have no clock, and the bot takes a human-like pause before each move (shorter in the opening, on forced moves and recaptures, longer in rich positions and before its golden move).
 
@@ -56,3 +56,5 @@ The site has five tabs, like a chess site: **Play** (time control, Play, Play a 
 ## Deploy
 
 `node build.js`, copy `dist/web/index.html` and `dist/web/og.png` to the repository root, push to `main`. GitHub Pages serves the site; the Supabase GitHub integration applies new migrations and deploys the `play` function.
+
+The address is https://golden-chess.com (GoDaddy DNS: four A records for `@` to GitHub Pages, 185.199.108.153 – 185.199.111.153, and `www` as a CNAME to `ukazyra-collab.github.io`; the `CNAME` file in the repository root names the domain). The old https://ukazyra-collab.github.io/golden-chess/ redirects there.
