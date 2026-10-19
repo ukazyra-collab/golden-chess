@@ -48,6 +48,7 @@ const logic = createLogic({ repo, broadcast, GC, now });
 // requested again within a minute.
 const accounts = { emailOf: new Map(), uidOf: new Map(), pending: new Map(), lastSent: new Map(), outbox: [] };
 const OTP_TTL = 10 * 60000, RESEND_MS = 60000;
+const REVIEW = { email: 'review@golden-chess.com', password: 'review-test-pass' }; // the stores' review account (test only)
 function sendCode(email, uid, type) {
   const t = now();
   if (t - (accounts.lastSent.get(email) ?? -Infinity) < RESEND_MS) return { status: 429, body: { error: 'over_email_send_rate_limit' } };
@@ -71,6 +72,12 @@ function authOp(b) {
   if (b.op === 'signin') { // signInWithOtp({ email, options: { shouldCreateUser } })
     if (!owner && !b.create) return { status: 422, body: { error: 'otp_disabled' } };
     return sendCode(email, owner || 'u' + crypto.randomUUID().slice(0, 8), 'email');
+  }
+  if (b.op === 'password') { // signInWithPassword({ email, password }): only the stores' review account has one
+    if (email !== REVIEW.email || b.password !== REVIEW.password) return { status: 400, body: { error: 'invalid_credentials' } };
+    let id = owner;
+    if (!id) { id = 'u' + crypto.randomUUID().slice(0, 8); accounts.emailOf.set(id, email); accounts.uidOf.set(email, id); }
+    return { status: 200, body: { uid: id, email } };
   }
   if (b.op === 'verify') { // verifyOtp({ email, token, type })
     const p = accounts.pending.get(email), type = b.type === 'email_change' ? 'email_change' : 'email';

@@ -66,6 +66,7 @@
       confirm: 'Confirm', checking: 'Checking', resend: 'Send again', resendIn: 'Send again in {s} s', otherEmail: 'Use a different email',
       signedInAs: 'Signed in as {email}', signedSub: 'Your name, rating and games are saved to this account. Sign in with this email on any device.',
       signOut: 'Sign out', signedOutToast: 'Signed out. You\u2019re playing as a new guest.', progressSaved: 'Progress saved',
+      pwSub: 'The password for {email}', pwLabel: 'Password', pwWrong: 'Wrong password',
       deleteAcct: 'Delete account', deleteQ: 'Delete your account?', deleteSub: 'Your name, ratings and sign-in ({email}) are deleted for good. Finished games stay in your opponents\u2019 history.',
       deletedToast: 'Account deleted. You\u2019re playing as a new guest.',
       emailInvalid: 'Enter a valid email address', codeWrong: 'That code is wrong or has expired', tooMany: 'Too many tries. Wait a minute and try again.',
@@ -204,6 +205,7 @@
       confirm: 'Подтвердить', checking: 'Проверяем', resend: 'Отправить ещё раз', resendIn: 'Ещё раз через {s} с', otherEmail: 'Другая почта',
       signedInAs: 'Вы вошли как {email}', signedSub: 'Имя, рейтинг и партии сохранены в аккаунте. Входите с этой почтой на любом устройстве.',
       signOut: 'Выйти', signedOutToast: 'Вы вышли. Теперь вы играете как новый гость.', progressSaved: 'Прогресс сохранён',
+      pwSub: 'Пароль для {email}', pwLabel: 'Пароль', pwWrong: 'Неверный пароль',
       deleteAcct: 'Удалить аккаунт', deleteQ: 'Удалить аккаунт?', deleteSub: 'Имя, рейтинг и вход ({email}) удалятся навсегда. Сыгранные партии останутся в истории соперников.',
       deletedToast: 'Аккаунт удалён. Теперь вы играете как новый гость.',
       emailInvalid: 'Введите корректную почту', codeWrong: 'Код неверный или устарел', tooMany: 'Слишком много попыток. Подождите минуту и попробуйте снова.',
@@ -2187,6 +2189,8 @@
   SupaNet.prototype.signInEmail = function (email, create) {
     return this.sb.auth.signInWithOtp({ email: email, options: { shouldCreateUser: !!create, emailRedirectTo: authRedirect() } }).then(authFail);
   };
+  // the stores' review account (NETCFG.reviewEmail) has a password instead of codes by email
+  SupaNet.prototype.signInPassword = function (email, pw) { return this.sb.auth.signInWithPassword({ email: email, password: pw }).then(authFail); };
   SupaNet.prototype.verifyCode = function (email, code, type) { return this.sb.auth.verifyOtp({ email: email, token: code, type: type }).then(authFail); };
   SupaNet.prototype.signOut = function () { return this.sb.auth.signOut({ scope: 'local' }).then(authFail); };
   // the player's own account goes (delete_my_account() in the database: not during a live game)
@@ -2259,6 +2263,13 @@
   MockNet.prototype.verifyCode = function (email, code, type) {
     var self = this;
     return this.authCall({ op: 'verify', email: email, code: code, type: type }).then(function (r) {
+      if (r.uid && r.uid !== self.uid) { self.uid = r.uid; try { localStorage.setItem('goldenchess.mockuid' + profileSuffix, r.uid); } catch (e) { /* ignore */ } }
+      return r;
+    });
+  };
+  MockNet.prototype.signInPassword = function (email, pw) {
+    var self = this;
+    return this.authCall({ op: 'password', email: email, password: pw }).then(function (r) {
       if (r.uid && r.uid !== self.uid) { self.uid = r.uid; try { localStorage.setItem('goldenchess.mockuid' + profileSuffix, r.uid); } catch (e) { /* ignore */ } }
       return r;
     });
@@ -2475,7 +2486,7 @@
     function render() {
       if (!alive || !card.isConnected) return;
       card.innerHTML = ''; again = null;
-      var title = st.step === 'signed' ? (o.page ? T('signedInTitle') : T('account')) : st.step === 'code' ? T('codeTitle') : st.step === 'name' ? T('nameTitle') : (o.page ? T('signInTitle') : T('signIn'));
+      var title = st.step === 'signed' ? (o.page ? T('signedInTitle') : T('account')) : st.step === 'code' ? T('codeTitle') : st.step === 'name' ? T('nameTitle') : st.step === 'password' ? T('signIn') : (o.page ? T('signInTitle') : T('signIn'));
       if (o.page) card.appendChild(h('div', { class: 'mark', 'aria-hidden': 'true' }, STAR_SVG));
       card.appendChild(h('div', { class: 'dlg-title' }, esc(title)));
       if (st.step === 'loading') { card.appendChild(h('div', { class: 'muted' }, esc(T('connecting')) + '…')); return; }
@@ -2519,6 +2530,24 @@
         if (!st.busy) focus(inp);
         return;
       }
+      if (st.step === 'password') {
+        // the stores' review account: a password instead of a code by email
+        card.appendChild(h('div', { class: 'dlg-sub' }, boldVar('pwSub', 'email', st.email)));
+        var pf = h('form', { class: 'acct-form', novalidate: '' });
+        var pinp = h('input', { type: 'password', class: 'acct-input', id: 'acct-password', name: 'password', autocomplete: 'current-password',
+          autocapitalize: 'off', spellcheck: 'false', 'aria-label': T('pwLabel'), placeholder: T('pwLabel') });
+        pinp.disabled = st.busy;
+        pf.appendChild(pinp);
+        if (err) pf.appendChild(err);
+        var pgo = h('button', { type: 'submit', class: 'primary', id: 'btn-password' }, esc(st.busy ? T('checking') + '…' : T('signIn')));
+        pgo.disabled = st.busy;
+        pf.appendChild(pgo);
+        pf.addEventListener('submit', function (e) { e.preventDefault(); passwordSignIn(pinp.value); });
+        card.appendChild(pf);
+        card.appendChild(btn('linkbtn', T('otherEmail'), function () { st.step = 'form'; st.err = ''; render(); }, 'btn-other-email'));
+        if (!st.busy) focus(pinp);
+        return;
+      }
       // the code from the email
       card.appendChild(h('div', { class: 'dlg-sub' }, boldVar('codeSub', 'email', st.email)));
       if (st.existing) card.appendChild(h('div', { class: 'dlg-note', id: 'acct-existing' }, esc(T('existingNote'))));
@@ -2546,6 +2575,7 @@
       email = String(email || '').trim();
       if (st.busy) return;
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { st.email = email; st.err = T('emailInvalid'); render(); return; }
+      if (NETCFG && NETCFG.reviewEmail && email.toLowerCase() === NETCFG.reviewEmail) { st.email = email; st.err = ''; st.step = 'password'; render(); return; }
       st.busy = true; st.err = ''; st.email = email; render();
       ensureNet().then(function () { return net.account(); }).then(function (a) {
         if (a && a.guest) {
@@ -2585,6 +2615,21 @@
         save('online', null); save('notice', 'signedIn'); setUrl(null); // don't reopen the previous player's game
         location.reload();
       }).catch(function (e) { if (!alive) return; st.busy = false; st.code = ''; st.err = authMsg(e); render(); });
+    }
+    function passwordSignIn(pw) {
+      if (st.busy || !pw) return;
+      if (liveOnlineGame()) { st.err = T('finishFirst'); render(); return; }
+      st.busy = true; st.err = ''; render();
+      ensureNet().then(function () { return net.signInPassword(st.email, pw); }).then(function () {
+        // another account: start over as that player (as after a code for an existing account)
+        save('online', null); save('notice', 'signedIn'); setUrl(null);
+        location.reload();
+      }).catch(function (e) {
+        if (!alive) return;
+        st.busy = false;
+        st.err = /invalid_credentials|invalid login|invalid_grant/i.test(String(e && (e.code || e.message))) ? T('pwWrong') : authMsg(e);
+        render();
+      });
     }
     function signOut() {
       if (liveOnlineGame()) { st.err = T('finishFirst'); render(); return; }
