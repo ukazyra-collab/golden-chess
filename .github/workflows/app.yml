@@ -72,6 +72,34 @@ jobs:
         with:
           name: golden-chess-android
           path: golden-chess.apk
+      # the store bundle, unsigned: it is signed with the upload key outside GitHub (the key never sits here)
+      - name: Build the store bundle
+        working-directory: app/android
+        shell: bash
+        run: |
+          set +e
+          ./gradlew --no-daemon bundleRelease > bundle.log 2>&1
+          code=$?
+          tail -n 30 bundle.log
+          if [ $code -ne 0 ]; then
+            msg=$( (sed -n '/What went wrong/,/\* Try:/p' bundle.log | head -n 50) | awk 'BEGIN{ORS="%0A"} {gsub(/%/,"%25"); gsub(/\r/,""); print}')
+            echo "::error title=Android bundle::$msg"
+          fi
+          exit $code
+      - name: Publish the bundle
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/android/app/build/outputs/bundle/release/app-release.aab golden-chess-unsigned.aab
+          vc=$(grep -m1 versionCode app/android/app/build.gradle | tr -dc '0-9')
+          notes="Unsigned Google Play bundle (versionCode $vc) from ${GITHUB_SHA::7} ($(date -u +'%Y-%m-%d %H:%M UTC')). Signed with the upload key before it goes to Play Console."
+          if gh release view android-bundle >/dev/null 2>&1; then
+            gh release edit android-bundle --notes "$notes"
+          else
+            gh release create android-bundle --prerelease --title "Android store bundle (unsigned)" --notes "$notes"
+          fi
+          gh release upload android-bundle golden-chess-unsigned.aab --clobber
 
   ios:
     runs-on: macos-15
