@@ -6053,7 +6053,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     var ev = L.kind === 'best' ? evalWhite(review.scores[L.ply], game.fens[L.ply]) : evalAfter(L.ply);
     var acts = B_HIDE();
     if (L.kind === 'follow' && mv.best && mv.best !== rec.uci) acts += B_BEST();
-    if (L.kind === 'best') acts += B_FOLLOW();
     if (!GOOD_CLS[mv.cls] || mv.cls === 'good') acts += B_RETRY();
     var base = L.kind === 'best' ? L.ply : L.ply + 1;
     var outcome = E.view >= E.records.length ? lineOutcome(st, rec.color, review.scores[base], game.fens[base]) : '';
