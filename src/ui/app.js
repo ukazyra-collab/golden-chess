@@ -132,7 +132,19 @@
       coGreat: 'Excellent game!', coGood: 'Good game.', coOk: 'Let’s see what could be better.', coShort: 'Too short a game to judge.',
       games: 'Games', allGames: 'All games', noGames: 'No games yet. Finish one and it shows up here.', showMore: 'Show more',
       vsTwo: 'Two players', resWon: 'Won', resLost: 'Lost', resDraw: 'Draw', opponents: 'Opponents',
-      h2h: 'You {w} : {l} {name}', h2hDraws: 'draws: {d}', allOpponents: 'All opponents', reviewShort: 'Review', today: 'Today', yesterday: 'Yesterday'
+      h2h: 'You {w} : {l} {name}', h2hDraws: 'draws: {d}', allOpponents: 'All opponents', reviewShort: 'Review', today: 'Today', yesterday: 'Yesterday',
+      // the coach: why a move is good or bad, lines on the board, another try
+      showFollow: 'Show follow-up', showShort: 'Show', hideLine: 'Hide', bestBtn: 'Best', bestShort: 'Best', retryBtn: 'Retry', retryShort: 'Retry', tryAgain: 'Try again', againShort: 'Again',
+      lnFollow: 'Follow-up', lnBest: 'Best: {san}',
+      rtAsk: 'Find a better move for {side}', rtChecking: 'Checking {san}…', rtRight: '{san} is the best move!', rtExcellent: '{san} is excellent too!',
+      rtGood: '{san} is good, but there is better', rtWrong: '{san} isn’t it',
+      w_golden: '{side} answers with the golden move {san}', w_takes: '{side} answers {san} and takes the {piece}', w_hits: '{side} answers {san}',
+      w_attacks: ', attacking the {targets}', w_check: ' with check', w_lose: 'In the end {side} wins {gain}.', w_win: '{best} would win {gain}.',
+      w_keyGold: 'Key move: the golden {san}.', w_mate: '{side} now mates in {n}.', w_lineMate: '{side} mates.', w_lineWins: '{side} wins {gain}.',
+      w_equal: 'The position stays about equal.', w_better: '{side} is better.', w_winning: '{side} is winning.',
+      w_and: ' and the ', g_pawn1: 'a pawn', g_pawn2: 'two pawns', g_pawn3: 'three pawns', g_pawn4: 'four pawns', g_pawnN: '{n} pawns',
+      g_knight: 'a knight', g_bishop: 'a bishop', g_rook: 'a rook', g_queen: 'the queen', g_exchange: 'the exchange', g_points: 'material (+{n})', g_and: ' and ',
+      t_knight: 'knight', t_bishop: 'bishop', t_rook: 'rook', t_queen: 'queen', sideGenW: 'White', sideGenB: 'Black'
     },
     ru: {
       newGame: 'Новая партия', rules: 'Правила', settings: 'Настройки', menu: 'Меню партии', prev: 'Предыдущий ход', next: 'Следующий ход',
@@ -255,7 +267,18 @@
       coGreat: 'Отличная партия!', coGood: 'Хорошая партия.', coOk: 'Посмотрим, что можно было сыграть лучше.', coShort: 'Партия слишком короткая для оценки.',
       games: 'Партии', allGames: 'Все партии', noGames: 'Партий пока нет. Доиграйте партию — она появится здесь.', showMore: 'Показать ещё',
       vsTwo: 'Вдвоём', resWon: 'Победа', resLost: 'Поражение', resDraw: 'Ничья', opponents: 'Соперники',
-      h2h: 'Вы {w} : {l} {name}', h2hDraws: 'ничьих: {d}', allOpponents: 'Все соперники', reviewShort: 'Разбор', today: 'Сегодня', yesterday: 'Вчера'
+      h2h: 'Вы {w} : {l} {name}', h2hDraws: 'ничьих: {d}', allOpponents: 'Все соперники', reviewShort: 'Разбор', today: 'Сегодня', yesterday: 'Вчера',
+      showFollow: 'Показать продолжение', showShort: 'Показать', hideLine: 'Скрыть', bestBtn: 'Лучший ход', bestShort: 'Лучший', retryBtn: 'Повторить', retryShort: 'Заново', tryAgain: 'Ещё раз', againShort: 'Ещё раз',
+      lnFollow: 'Продолжение', lnBest: 'Лучший: {san}',
+      rtAsk: 'Найдите ход сильнее за {sideGen}', rtChecking: 'Проверяем {san}…', rtRight: '{san} — лучший ход!', rtExcellent: '{san} — тоже отличный ход!',
+      rtGood: '{san} — неплохо, но есть сильнее', rtWrong: '{san} — не то',
+      w_golden: '{side} отвечают золотым ходом {san}', w_takes: '{side} отвечают {san} и забирают {piece}', w_hits: '{side} отвечают {san}',
+      w_attacks: ' с нападением на {targets}', w_check: ' с шахом', w_lose: 'В итоге {sideLc} выигрывают {gain}.', w_win: 'Ход {best} выигрывал {gain}.',
+      w_keyGold: 'Ключевой ход — золотой {san}.', w_mate: 'Теперь у {sideGen} мат в {n}.', w_lineMate: '{side} ставят мат.', w_lineWins: '{side} выигрывают {gain}.',
+      w_equal: 'Позиция примерно равная.', w_better: 'У {sideGen} лучше.', w_winning: '{side} выигрывают.',
+      w_and: ' и ', g_pawn1: 'пешку', g_pawn2: 'две пешки', g_pawn3: 'три пешки', g_pawn4: 'четыре пешки', g_pawnN: '{n} пешек',
+      g_knight: 'коня', g_bishop: 'слона', g_rook: 'ладью', g_queen: 'ферзя', g_exchange: 'качество', g_points: 'материал (+{n})', g_and: ' и ',
+      t_knight: 'коня', t_bishop: 'слона', t_rook: 'ладью', t_queen: 'ферзя', sideGenW: 'белых', sideGenB: 'чёрных'
     }
   };
   var settings = Object.assign({ sound: true, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
@@ -432,11 +455,11 @@
     var self = this;
     if (this.fallback || !this.w) {
       // no worker: analyse position by position on the main thread, yielding between positions
-      var i = 0, n = req.moves.length;
+      var i = req.from || 0, n = req.to != null ? req.to : req.moves.length;
       (function next() {
         if (self.reviewToken !== req.id) return;
         if (i > n) { done({ done: true }); return; }
-        var st = Engine.reviewStep(req.fen, req.moves.slice(0, i), Math.min(req.timeMs, 120));
+        var st = Engine.reviewStep(req.fen, req.moves.slice(0, i), { depth: Math.min(req.depth || 8, 8), timeMs: Math.min(req.timeMs, 300) });
         st.i = i; step(st);
         i++; setTimeout(next, 16);
       })();
@@ -452,13 +475,15 @@
     if (this.busy && this.w) { try { this.w.terminate(); } catch (e) { /* ignore */ } this.w = null; this.pending = {}; this.busy = false; this.spawn(); }
   };
   EngineClient.prototype.clear = function () { if (this.w) this.w.postMessage({ type: 'clear' }); };
+  // done with this engine: its worker (and the memory of its search table) goes
+  EngineClient.prototype.destroy = function () { this.reviewToken = 0; try { if (this.w) this.w.terminate(); } catch (e) { /* ignore */ } this.w = null; this.pending = {}; this.busy = false; };
 
   // ------------------------------------------------------------------ state
   var app = $('app'), boardEl = $('board');
   var game = null, view = 0, selected = -1, premoves = [], goldenArmed = false, orient = 0;
   var botReq = null, reqSeq = 0, lowWarned = false, pendingPromo = false, plyBoards = {}, pendingRecapture = null, analysisArrow = null;
   var analysis = { on: false, id: 0, info: null, ply: -1 };
-  var bot = new EngineClient(), anaClient = null, revClient = null;
+  var bot = new EngineClient(), anaClient = null, chkClient = null;
   var explore = null;   // free analysis line after the game: { base, fens[], records[], view }
   var review = null;    // engine review of the finished game
   var posCache = {};
@@ -683,26 +708,100 @@
     np.makeMove(m);
     rec.check = np.inCheck();
     if (!explore) explore = { base: view, fens: [game.fens[view]], records: [], view: 0 };
+    if (explore.line) { stopLine(); explore.line = null; } // a move of your own: from here it is your line
     explore.records = explore.records.slice(0, explore.view); explore.fens = explore.fens.slice(0, explore.view + 1);
     explore.records.push(rec); explore.fens.push(np.fen()); explore.view = explore.records.length;
     if (goldenArmed) setGoldenArmed(false);
     selected = -1;
     board.sync(displayBoard(), hintsFor(rec, instant));
     moveSound(rec);
+    if (explore.retry && explore.records.length === 1) retryCheck(explore, rec);
     renderAll();
     if (analysis.on) requestAnalysis();
   }
-  function exitExplore() {
+  // toRet: back to the move the coach was on (a line or a retry starts from the position before it)
+  function exitExplore(toRet) {
     if (!explore) return;
-    view = explore.base; explore = null; selected = -1;
+    stopLine();
+    view = toRet === true && explore.ret != null ? explore.ret : explore.base; explore = null; selected = -1;
     if (goldenArmed) setGoldenArmed(false);
     board.sync(displayBoard(), []);
     renderAll();
     if (analysis.on) requestAnalysis();
   }
+  // ---- the coach's buttons: the follow-up after a move or the best line, played on the board; another try at the move
+  var lineTimer = 0;
+  function stopLine() { clearTimeout(lineTimer); lineTimer = 0; }
+  function lineRecords(fen, ucis) {
+    var fens = [fen], records = [];
+    for (var k = 0; k < ucis.length; k++) {
+      var q = new GC.Position(fens[k]), m = q.moveFromUci(ucis[k]);
+      if (!m) break;
+      var rec = makeRecord(q, m);
+      q.makeMove(m); rec.check = q.inCheck();
+      records.push(rec); fens.push(q.fen());
+    }
+    return { fens: fens, records: records };
+  }
+  function showLine(kind, ply) {
+    var mv = review.moves[ply], st = kind === 'best' ? mv.line : mv.follow;
+    if (!st || !st.ucis.length) return;
+    stopLine();
+    var base = kind === 'best' ? ply : ply + 1, lr = lineRecords(game.fens[base], st.ucis);
+    if (goldenArmed) setGoldenArmed(false);
+    selected = -1; view = ply + 1;
+    var E = explore = { base: base, fens: lr.fens, records: lr.records, view: 0, ret: ply + 1, line: { kind: kind, ply: ply } };
+    board.sync(displayBoard(), []);
+    renderAll(); requestAnalysis();
+    (function step() {
+      if (explore !== E || !E.line || E.view >= E.records.length) { lineTimer = 0; return; }
+      lineTimer = setTimeout(function () {
+        if (explore !== E || !E.line) return;
+        var rec = E.records[E.view]; E.view++;
+        board.sync(displayBoard(), hintsFor(rec, false)); moveSound(rec);
+        renderAll(); requestAnalysis();
+        step();
+      }, E.view === 0 ? 450 : 950);
+    })();
+  }
+  function startRetry(ply) {
+    stopLine();
+    if (goldenArmed) setGoldenArmed(false);
+    selected = -1; view = ply + 1;
+    explore = { base: ply, fens: [game.fens[ply]], records: [], view: 0, ret: ply + 1, retry: { ply: ply, state: 'ask', tries: 0 } };
+    board.sync(displayBoard(), []);
+    renderAll(); requestAnalysis();
+  }
+  // the engine's verdict on a retry: the same depth as the review, against the best move's score there
+  function retryCheck(E, rec) {
+    var R = E.retry, best = review && review.scores[E.base];
+    if (!best) return;
+    R.tries++; R.san = rec.san; R.uci = rec.uci; R.story = null; R.drop = 0;
+    if (rec.uci === best.uci) { R.state = 'right'; return; }
+    R.state = 'checking';
+    var id = R.req = ++reqSeq;
+    if (!chkClient) chkClient = new EngineClient();
+    chkClient.cancel();
+    var moves = game.records.slice(0, E.base).map(function (r) { return r.uci; }).concat([rec.uci]);
+    chkClient.think({ id: id, fen: game.startFen, moves: moves, timeMs: Engine.REVIEW_CAP, maxDepth: Engine.REVIEW_DEPTH, level: 8, analysis: true }, function (res) {
+      if (explore !== E || R.req !== id || !res) return;
+      var drop = Math.max(0, winPct(cpOf(best)) - winPct(-cpOf({ score: res.score, mate: res.mate || 0 })));
+      R.drop = drop; R.state = drop < 2 ? 'excellent' : drop < 5 ? 'good' : 'wrong'; R.score = { score: res.score, mate: res.mate || 0 };
+      R.story = GCReview.story(E.fens[1], res.pv && res.pv.length ? res.pv : (res.uci ? [res.uci] : []), rec.color, 8);
+      renderReview();
+    });
+  }
+  function coachAct(act) {
+    if (act === 'hide') { exitExplore(true); return; }
+    var ply = explore ? (explore.line ? explore.line.ply : explore.retry ? explore.retry.ply : -1) : view - 1;
+    if (ply < 0 || !review || !review.moves || !review.moves[ply]) return;
+    if (act === 'follow' || act === 'best') showLine(act, ply);
+    else if (act === 'retry' || act === 'again') startRetry(ply);
+  }
   function navStep(dir) {
     if (!game) return;
     if (explore) {
+      stopLine();
       var k = explore.view + dir;
       if (k < 0) { exitExplore(); return; }
       if (k > explore.records.length) return;
@@ -869,7 +968,7 @@
   // ------------------------------------------------------------------ navigation
   function gotoPly(k) {
     if (!game) return;
-    if (explore) { var base = explore.base; explore = null; view = base; board.sync(displayBoard(), []); }
+    if (explore) { stopLine(); var base = explore.base; explore = null; view = base; board.sync(displayBoard(), []); }
     k = Math.max(0, Math.min(game.records.length, k));
     if (k === view) { renderAll(); if (analysis.on) requestAnalysis(); return; }
     var prev = view, hints = [], rec = null;
@@ -899,6 +998,12 @@
     analysisArrow = null;
     var rv = !explore && review && review.scores[view];
     if (rv) { analysis.info = { score: rv.score, mate: rv.mate, uci: rv.uci, depth: rv.depth, final: true, fromReview: true }; renderAna(); return; }
+    if (explore && (explore.line || explore.retry) && review && review.scores[explore.base]) {
+      // the line keeps its score; a retry shows the position's score without giving the move away
+      var e0 = review.scores[explore.base], flip = posFromFen(explore.fens[0]).side !== viewPos().side;
+      analysis.info = { score: flip ? -e0.score : e0.score, mate: flip ? -(e0.mate || 0) : (e0.mate || 0), uci: null, depth: e0.depth, final: true, fromReview: true };
+      renderAna(); return;
+    }
     refreshArrows(); renderAna();
     var p = viewPos();
     if (!p.hasLegalMove()) { analysis.info = { final: true, score: p.inCheck() ? -30000 : 0, mate: 0, none: true }; renderAna(); return; }
@@ -919,8 +1024,12 @@
         bar.style.width = pct.toFixed(1) + '%';
         var evalTxt = mate ? T('mateIn', { n: Math.abs(mate) }) + (mate > 0 ? ' (' + T('white') + ')' : ' (' + T('black') + ')') : (cp >= 0 ? '+' : '−') + (Math.abs(cp) / 100).toFixed(2);
         var m = inf.uci ? p.moveFromUci(inf.uci) : 0, san = m ? p.san(m) : '';
-        html = '<span>' + esc(T('best')) + ': <b class="' + (m & F_GOLDEN ? 'gold' : '') + '">' + esc(san) + '</b></span><span><b>' + esc(evalTxt) + '</b></span><span>' + esc(T('depth', { n: inf.depth })) + '</span>';
-        analysisArrow = m ? { from: m & 127, to: (m >> 7) & 127, gold: !!(m & F_GOLDEN) } : null;
+        // during the review the coach explains each move; the engine's own line is for free analysis
+        if (inf.fromReview) { html = ''; analysisArrow = null; }
+        else {
+          html = '<span>' + esc(T('best')) + ': <b class="' + (m & F_GOLDEN ? 'gold' : '') + '">' + esc(san) + '</b></span><span><b>' + esc(evalTxt) + '</b></span><span>' + esc(T('depth', { n: inf.depth })) + '</span>';
+          analysisArrow = m ? { from: m & 127, to: (m >> 7) & 127, gold: !!(m & F_GOLDEN) } : null;
+        }
         refreshArrows();
       }
     } else {
@@ -937,43 +1046,56 @@
   // ------------------------------------------------------------------ game review
   // the review's arithmetic lives in src/review.js (shared with the tests)
   var winPct = GCReview.winPct, cpOf = GCReview.cpOf;
+  // the review's workers: a few run side by side, each through its own stretch of the game (phones have several cores)
+  var revPool = [];
+  function reviewWorkers(n) {
+    var k = Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1, Math.ceil((n + 1) / 12)));
+    while (revPool.length < k) revPool.push(new EngineClient());
+    return revPool.slice(0, k);
+  }
   function startReview() {
     if (!game || !game.records.length) return;
     stopReview();
-    if (!revClient) revClient = new EngineClient();
     var id = ++reqSeq, n = game.records.length, key = gameKey(), cached = key ? reviewCacheGet(key, n) : null;
     review = { id: id, key: key, n: n, done: 0, scores: [], moves: null, sum: null, running: true };
     if (!analysis.on) { analysis.on = true; $('evalbar').hidden = false; }
     function finished() {
       review.running = false; computeReview(); reviewCachePut(review);
+      revPool.forEach(function (c) { c.destroy(); }); revPool = []; // the review's workers are not needed until the next review
       renderAll(); renderReport(); if (analysis.on) requestAnalysis(); layout();
     }
     if (cached) { review.scores = cached; review.done = n + 1; finished(); return; }
-    revClient.review({ id: id, fen: game.startFen, moves: game.records.map(function (r) { return r.uci; }), timeMs: 260 },
-      function (st) {
-        if (!review || review.id !== id) return;
-        review.scores[st.i] = { score: st.score, mate: st.mate || 0, uci: st.uci, depth: st.depth, pv: st.pv || [], alt: st.alt || null };
-        review.done = Math.max(review.done, st.i + 1);
-        if (review.done % 3 === 0) computeReview();
-        if (!explore && view === st.i) requestAnalysis(); else { renderReview(); renderMoves(); renderMarks(); }
-        renderReport();
-      },
-      function () { if (!review || review.id !== id) return; finished(); });
+    var moves = game.records.map(function (r) { return r.uci; }), pool = reviewWorkers(n), per = Math.ceil((n + 1) / pool.length), left = pool.length;
+    pool.forEach(function (client, k) {
+      var from = k * per, to = Math.min(n, from + per - 1);
+      if (from > to) { left--; return; }
+      client.review({ id: id * 10 + k, fen: game.startFen, moves: moves, from: from, to: to, depth: Engine.REVIEW_DEPTH, timeMs: Engine.REVIEW_CAP },
+        function (st) {
+          if (!review || review.id !== id) return;
+          review.scores[st.i] = { score: st.score, mate: st.mate || 0, uci: st.uci, depth: st.depth, pv: st.pv || [], alt: st.alt || null };
+          review.done++;
+          if (review.done % 3 === 0) computeReview();
+          if (!explore && view === st.i) requestAnalysis(); else { renderReview(); renderMoves(); renderMarks(); }
+          renderReport();
+        },
+        function () { if (!review || review.id !== id) return; if (--left === 0) finished(); });
+    });
+    if (!left) finished();
     renderAll(); layout();
   }
   // ---- reviews kept on this device: the engine's scores (a review opens at once the next time) and each game's
   // accuracy for the history list. Key: o:<id> for online games, the history key for games on this device.
-  var REVIEW_KEEP = 40;
+  var REVIEW_KEEP = 40, REVIEW_V = 2;
   function gameKey() { return !game ? null : game.onlineId ? 'o:' + game.onlineId : game.histKey || null; }
   function reviewCacheGet(key, n) {
     var c = load('reviewCache', null), e = c && c.items && c.items[key];
-    if (!e || e.n !== n || !e.s || e.s.length !== n + 1) return null;
-    return e.s.map(function (x) { return { score: x[0], mate: x[1], uci: x[2], depth: 0, pv: x[3] ? x[3].split(' ') : [], alt: x[4] ? { score: x[4][0], mate: x[4][1], uci: x[4][2], pv: [] } : null }; });
+    if (!e || e.v !== REVIEW_V || e.n !== n || !e.s || e.s.length !== n + 1) return null;
+    return e.s.map(function (x) { return { score: x[0], mate: x[1], uci: x[2], depth: 0, pv: x[3] ? x[3].split(' ') : [], alt: x[4] ? { score: x[4][0], mate: x[4][1], uci: x[4][2], pv: x[4][3] ? x[4][3].split(' ') : [] } : null }; });
   }
   function reviewCachePut(rv) {
     if (!rv || !rv.key || !rv.sum) return;
     var c = load('reviewCache', null) || { order: [], items: {} };
-    c.items[rv.key] = { n: rv.n, s: rv.scores.map(function (e) { return [e.score, e.mate || 0, e.uci, (e.pv || []).join(' '), e.alt ? [e.alt.score, e.alt.mate || 0, e.alt.uci] : 0]; }) };
+    c.items[rv.key] = { v: REVIEW_V, n: rv.n, s: rv.scores.map(function (e) { return [e.score, e.mate || 0, e.uci, (e.pv || []).join(' '), e.alt ? [e.alt.score, e.alt.mate || 0, e.alt.uci, (e.alt.pv || []).join(' ')] : 0]; }) };
     c.order = c.order.filter(function (k) { return k !== rv.key; }).concat(rv.key);
     while (c.order.length > REVIEW_KEEP) delete c.items[c.order.shift()];
     save('reviewCache', c);
@@ -1062,7 +1184,7 @@
     card.innerHTML = '<div class="rp-body">' + html + g + t + '</div><div class="rp-foot"><button type="button" class="primary rp-start" data-start="1" id="btn-start-review">' + esc(T('rpStart')) + '</button></div>';
     card.querySelector('.rp-body').scrollTop = keepScroll;
   }
-  function stopReview() { if (review && review.running && revClient) revClient.cancel(); if (review) review.running = false; }
+  function stopReview() { if (review && review.running) revPool.forEach(function (c) { c.cancel(); }); if (review) review.running = false; }
   function computeReview() {
     var a = GCReview.analyze({ fens: game.fens, records: game.records, scores: review.scores });
     review.moves = a.moves; review.sum = a.sum; review.missed = a.missed;
@@ -1092,30 +1214,156 @@
     var v = sgn * e.score / 100;
     return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(2);
   }
-  // the coach's sentence about move i
+  // ---- the coach's words. Sides are named White/Black (the sentence works for any game); `c` is the side that moved.
+  function sideWords(c) { return { side: c ? T('black') : T('white'), sideLc: (c ? T('black') : T('white')).toLowerCase(), sideGen: c ? T('sideGenB') : T('sideGenW') }; }
+  function gainText(g) {
+    if (!g) return '';
+    if (g.items && g.items.every(function (it) { return it[0] === 1 || it[1] === 1; })) {
+      var words = g.items.map(function (it) {
+        if (it[0] === 1) return it[1] <= 4 ? T('g_pawn' + it[1]) : T('g_pawnN', { n: it[1] });
+        return T('g_' + ['', 'pawn', 'knight', 'bishop', 'rook', 'queen'][it[0]]);
+      });
+      if (g.exchange) words.unshift(T('g_exchange'));
+      return words.join(T('g_and'));
+    }
+    if (g.exchange) return T('g_exchange');
+    var pts = g.points != null ? g.points : g.items.reduce(function (a, it) { return a + [0, 1, 3, 3, 5, 9][it[0]] * it[1]; }, 0);
+    return T('g_points', { n: pts });
+  }
+  function targetsText(ts) {
+    var seen = {}, names = [];
+    ts.forEach(function (t) { if (!seen[t]) { seen[t] = 1; names.push(T('t_' + ['', 'pawn', 'knight', 'bishop', 'rook', 'queen'][t])); } });
+    return names.slice(0, 2).join(T('w_and'));
+  }
+  // a golden move inside a line (not its first move): often the whole point of it
+  function keyGolden(st, from) { for (var k = from || 0; k < st.sans.length; k++) if (st.golden[k]) return st.sans[k]; return ''; }
+  // why move i is good or bad, in a sentence or two
   function coachReason(i, mv) {
-    var rec = game.records[i], r = mv.reason, best = mv.bestSan;
+    var rec = game.records[i], r = mv.reason, best = mv.bestSan, c = rec.color, opp = sideWords(c ^ 1), out = [];
     if (mv.cls === 'goldmiss') return T('r_goldmiss', { best: best });
     if (rec.golden) return mv.cls === 'great' ? T('r_goldenGreat') : mv.cls === 'good' ? T('r_goldenOk', { best: best }) : GOOD_CLS[mv.cls] ? T('r_goldenGood') : T('r_goldenWasted', { best: best });
     if (mv.cls === 'great') return T('r_punish');
-    if (r) {
-      if (r.key === 'sacrifice') return T('r_sacrifice');
-      if (r.key === 'missedMate') return T('r_missedMate', { best: best, n: r.n });
-      if (r.key === 'allowsMate') return T('r_allowsMate', { n: r.n });
-      if (r.key === 'hangs') return T('r_hangs', { piece: T('p_' + r.piece) });
-      if (r.key === 'loses') return T('r_loses');
-      if (r.key === 'missedTake') return T('r_missedTake', { best: best, piece: T('p_' + r.piece) });
-      if (r.key === 'missedMaterial') return T('r_missedMaterial', { best: best });
+    if (r && r.key === 'sacrifice') return T('r_sacrifice');
+    if (r && r.key === 'missedMate') return T('r_missedMate', { best: best, n: r.n });
+    if (r && r.key === 'allowsMate') return T('w_mate', { side: opp.side, sideGen: opp.sideGen, n: r.n }) + (r.reply ? ' ' + replyText(r.reply, opp) : '');
+    if (r && r.key === 'line') {
+      if (r.reply) out.push(replyText(r.reply, opp));
+      if (r.lose) out.push(T('w_lose', { side: opp.side, sideLc: opp.sideLc, gain: gainText(r.lose) }));
+      else if (r.hangs && !r.reply) out.push(T('r_hangs', { piece: T('p_' + r.hangs) }));
+      var kg = keyGolden(mv.follow, r.reply && r.reply.kind === 'golden' ? 1 : 0);
+      if (kg) out.push(T('w_keyGold', { san: kg }));
+      if (r.win) out.push(T('w_win', { best: best, gain: gainText(r.win) }));
     }
+    if (out.length) return out.join(' ');
     if (mv.missedGolden) return T('r_goldmiss', { best: mv.missedGolden.san });
-    return GOOD_CLS[mv.cls] ? '' : T('r_better', { best: best });
+    if (GOOD_CLS[mv.cls]) {
+      var f = mv.follow;
+      return f && (f.mate >= 0 || f.swing >= 1 || f.swing <= -1 || keyGolden(f, 0)) ? lineOutcome(f, c, review.scores[i + 1], game.fens[i + 1]) : '';
+    }
+    kg = keyGolden(mv.follow, 0);
+    return (kg ? T('w_keyGold', { san: kg }) + ' ' : '') + T('r_better', { best: best });
   }
+  function replyText(rp, opp) {
+    var s = rp.kind === 'golden' ? T('w_golden', { side: opp.side, san: rp.san }) : rp.kind === 'takes' ? T('w_takes', { side: opp.side, san: rp.san, piece: T('p_' + rp.piece) }) : T('w_hits', { side: opp.side, san: rp.san });
+    if (rp.check) s += T('w_check');
+    if (rp.kind !== 'takes' && rp.targets && rp.targets.length) s += T('w_attacks', { targets: targetsText(rp.targets) });
+    return s + '.';
+  }
+  // a score as players read it, from White's side: +0.64, −1.20, #3
+  function evalWhite(e, fen) {
+    if (!e) return '';
+    var sgn = posFromFen(fen).side === 0 ? 1 : -1;
+    if (e.mate) return '#' + (e.mate * sgn > 0 ? '' : '-') + Math.abs(e.mate);
+    var v = sgn * e.score / 100;
+    return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(2);
+  }
+  var LINE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg>';
+  var STAR_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg>';
+  var RETRY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5"/><path d="M4 3.5v5h5"/></svg>';
+  var HIDE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  // a coach button: the full label, and a short one for narrow screens
+  function cbtn(act, icon, label, extra, short) {
+    return '<button type="button" class="cbtn' + (extra ? ' ' + extra : '') + '" data-act="' + act + '" aria-label="' + esc(label) + '">' + icon +
+      '<span class="lg">' + esc(label) + '</span><span class="sh">' + esc(short || label) + '</span></button>';
+  }
+  function coachBox(cls, icon, title, ev, body, acts) {
+    return '<div class="coach ' + cls + '" id="coach"><div class="coach-top">' + icon + '<b class="coach-title">' + esc(title) + '</b>' + (ev ? '<span class="coach-ev">' + esc(ev) + '</span>' : '') +
+      '</div><div class="coach-body">' + body + '</div>' + (acts ? '<div class="coach-acts">' + acts + '</div>' : '') + '</div>';
+  }
+  var B_FOLLOW = function () { return cbtn('follow', LINE_ICON, T('showFollow'), '', T('showShort')); };
+  var B_BEST = function () { return cbtn('best', STAR_ICON, T('bestBtn'), '', T('bestShort')); };
+  var B_RETRY = function () { return cbtn('retry', RETRY_ICON, T('retryBtn'), '', T('retryShort')); };
+  var B_HIDE = function () { return cbtn('hide', HIDE_ICON, T('hideLine'), 'on'); };
+  // the coach on a move of the game: what it was, why, and the ways to see it on the board
   function coachHtml(i, mv) {
-    var rec = game.records[i], why = coachReason(i, mv), bestTxt = '', goldBest = mv.best && mv.best.indexOf('*') >= 0;
-    if (!GOOD_CLS[mv.cls] && mv.bestSan && mv.best !== rec.uci) bestTxt = goldBest ? T('bestGolden', { san: mv.bestSan }) : T('bestLabel') + ': ' + mv.bestSan;
-    return '<div class="coach c-' + mv.cls + '" id="coach">' + clsIcon(mv.cls) + '<div class="coach-t"><div class="coach-h"><b>' +
-      esc(T('v_' + mv.cls, { san: moveNoText(i) + ' ' + rec.san })) + '</b><span class="coach-ev">' + esc(evalAfter(i)) + '</span></div>' +
-      (why ? '<p>' + esc(why) + '</p>' : '') + (bestTxt ? '<p class="coach-best' + (goldBest ? ' gold' : '') + '">' + esc(bestTxt) + '</p>' : '') + '</div></div>';
+    var rec = game.records[i], why = coachReason(i, mv), acts = '', bad = !GOOD_CLS[mv.cls];
+    if (mv.follow && mv.follow.ucis.length) acts += B_FOLLOW();
+    if (mv.best && mv.best !== rec.uci) acts += B_BEST();
+    if (bad || mv.cls === 'good') acts += B_RETRY();
+    return coachBox('c-' + mv.cls, clsIcon(mv.cls), T('v_' + mv.cls, { san: moveNoText(i) + ' ' + rec.san }), evalAfter(i), why ? '<p>' + esc(why) + '</p>' : '', acts);
+  }
+  // a line on the board (the follow-up after a move, or the best move and its line): its moves, the one on the board
+  // marked, and what it comes to
+  function lineMovesHtml(st, cur) {
+    var f = st.fen.split(' '), no = +f[5] || 1, side = f[1] === 'b' ? 1 : 0, out = [];
+    st.sans.forEach(function (san, k) {
+      var label = side === 0 ? no + '.' : k === 0 ? no + '…' : '';
+      out.push('<span class="ln' + (k < cur ? ' done' : '') + (k === cur - 1 ? ' cur' : '') + (st.golden[k] ? ' gold' : '') + '">' + esc(label + san) + '</span>');
+      if (side === 1) no++;
+      side ^= 1;
+    });
+    return out.join(' ');
+  }
+  // what a line comes to for `c`: a mate, material, or (no material changes hands) how the position stands. e: the
+  // engine's score at the line's start (side to move there), fen: that position
+  function lineOutcome(st, c, e, fen) {
+    var out = [], w;
+    if (st.mate >= 0) out.push(T('w_lineMate', { side: sideWords(st.mate).side }));
+    else if (st.swing >= 1 || st.swing <= -1) { w = sideWords(st.swing >= 1 ? c : c ^ 1); out.push(T('w_lineWins', { side: w.side, gain: gainText(st.gain) })); }
+    else if (e && !e.mate) {
+      var v = (posFromFen(fen).side === 0 ? 1 : -1) * e.score, lead = v >= 0 ? 0 : 1, a = Math.abs(v);
+      w = sideWords(lead);
+      out.push(a < 60 ? T('w_equal') : a < 300 ? T('w_better', w) : T('w_winning', w));
+    }
+    var kg = keyGolden(st, 0);
+    if (kg) out.push(T('w_keyGold', { san: kg }));
+    return out.join(' ');
+  }
+  function lineCardHtml(E) {
+    var L = E.line, mv = review.moves[L.ply], st = L.kind === 'best' ? mv.line : mv.follow, rec = game.records[L.ply];
+    var title = L.kind === 'best' ? T('lnBest', { san: mv.bestSan }) : T('lnFollow');
+    var ev = L.kind === 'best' ? evalWhite(review.scores[L.ply], game.fens[L.ply]) : evalAfter(L.ply);
+    var acts = B_HIDE();
+    if (L.kind === 'follow' && mv.best && mv.best !== rec.uci) acts += B_BEST();
+    if (L.kind === 'best') acts += B_FOLLOW();
+    if (!GOOD_CLS[mv.cls] || mv.cls === 'good') acts += B_RETRY();
+    var base = L.kind === 'best' ? L.ply : L.ply + 1;
+    var outcome = E.view >= E.records.length ? lineOutcome(st, rec.color, review.scores[base], game.fens[base]) : '';
+    return coachBox('line l-' + L.kind, '<span class="ci ci-line">' + (L.kind === 'best' ? STAR_ICON : LINE_ICON) + '</span>', title, ev,
+      (outcome ? '<p>' + esc(outcome) + '</p>' : '') + '<p class="coach-line">' + lineMovesHtml(st, E.view) + '</p>', acts);
+  }
+  function retryCardHtml(E) {
+    var R = E.retry, mv = review.moves[R.ply], c = game.records[R.ply].color, sw = sideWords(c), title, icon, why = '', acts = '';
+    if (R.state === 'ask') { title = T('rtAsk', { side: sw.side, sideGen: sw.sideGen }); icon = '<span class="ci ci-line">' + RETRY_ICON + '</span>'; }
+    else if (R.state === 'checking') { title = T('rtChecking', { san: R.san }); icon = '<span class="ci ci-line">' + RETRY_ICON + '</span>'; }
+    else if (R.state === 'right') { title = T('rtRight', { san: R.san }); icon = clsIcon('best'); }
+    else if (R.state === 'excellent') { title = T('rtExcellent', { san: R.san }); icon = clsIcon('excellent'); }
+    else if (R.state === 'good') { title = T('rtGood', { san: R.san }); icon = clsIcon('good'); }
+    else { title = T('rtWrong', { san: R.san }); icon = clsIcon(R.drop >= 20 ? 'blunder' : R.drop >= 10 ? 'mistake' : 'inaccuracy'); }
+    if (R.story && (R.state === 'wrong' || R.state === 'good')) {
+      var f = R.story.first, opp = sideWords(c ^ 1), parts = [];
+      if (f && (f.golden || f.took >= 2 || f.targets.length)) parts.push(replyText({ kind: f.golden ? 'golden' : f.took >= 2 ? 'takes' : 'hits', san: f.san, piece: ['', 'pawn', 'knight', 'bishop', 'rook', 'queen', 'king'][f.took], targets: f.targets, check: f.check }, opp));
+      var oc = lineOutcome(R.story, c, R.score, E.fens[1]); if (oc) parts.push(oc);
+      why = parts.join(' ');
+    }
+    if ((R.state === 'right' || R.state === 'excellent') && mv.line) {
+      why = lineOutcome(mv.line, c, review.scores[R.ply], game.fens[R.ply]);
+      acts += cbtn('best', LINE_ICON, T('showFollow'), '', T('showShort'));
+    }
+    if (R.state === 'good' || R.state === 'wrong') acts += cbtn('again', RETRY_ICON, T('tryAgain'), '', T('againShort'));
+    if (R.state !== 'right' && R.state !== 'excellent' && mv.best) acts += B_BEST();
+    acts += B_HIDE();
+    return coachBox('retry r-' + R.state, icon, title, '', why ? '<p>' + esc(why) + '</p>' : '', acts);
   }
   // White's winning chances over the game, with dots on the notable moves
   function graphHtml() {
@@ -1142,17 +1390,19 @@
   function renderReview() {
     var hosts = [$('review'), $('review-side')];
     if (!review || !game) { hosts.forEach(function (h) { h.hidden = true; h.innerHTML = ''; }); return; }
-    var html = '';
-    if (review.running) html += '<div class="rv-progress"><span>' + esc(T('rpReviewing', { p: reviewPct() })) + '</span><i style="width:' + reviewPct() + '%"></i></div>';
-    html += graphHtml();
-    var mvI = explore ? -1 : view - 1, mv = review.moves && review.moves[mvI];
-    if (mv) html += coachHtml(mvI, mv);
-    else if (!review.running && !explore) html += '<div class="rv-hint">' + esc(T('reviewHint')) + '</div>';
-    var link = review.running ? '' : '<button type="button" class="linkbtn rv-report" data-report="1">' + esc(T('rpReport')) + '</button>';
-    hosts.forEach(function (h, k) { h.hidden = false; h.innerHTML = html + (k === 0 ? link : ''); });
+    var card, mvI = explore ? -1 : view - 1, mv = review.moves && review.moves[mvI];
+    var progress = review.running ? '<div class="rv-progress"><span>' + esc(T('rpReviewing', { p: reviewPct() })) + '</span><i style="width:' + reviewPct() + '%"></i></div>' : '';
+    if (explore && explore.line && review.moves && review.moves[explore.line.ply]) card = lineCardHtml(explore);
+    else if (explore && explore.retry && review.moves && review.moves[explore.retry.ply]) card = retryCardHtml(explore);
+    else if (mv) card = coachHtml(mvI, mv);
+    else card = coachBox('hint', '', '', '', review.running ? progress : '<p class="rv-hint">' + esc(explore ? T('variation') : T('reviewHint')) + '</p>', '');
+    var graph = graphHtml();
+    hosts.forEach(function (h, k) { h.hidden = false; h.innerHTML = (k === 1 && mv ? progress : '') + graph + card; });
   }
   function onGraphClick(e) {
     if (e.target.closest('[data-report]')) { showReport(); return; }
+    var act = e.target.closest('[data-act]');
+    if (act) { coachAct(act.dataset.act); return; }
     var g = e.target.closest('.rv-graph'); if (!g) return;
     var r = g.getBoundingClientRect(), n = +g.dataset.n, k = Math.round((e.clientX - r.left) / r.width * n);
     gotoPly(Math.max(0, Math.min(n, k)));
@@ -1269,11 +1519,11 @@
     if (live()) premoves.forEach(function (pm) { if (pm.stay) list.push({ from: pm.from, to: pm.to, pre: true }); });
     var rmv = !explore && review && review.moves && view > 0 ? review.moves[view - 1] : null;
     if (rmv) {
-      if (!GOOD_CLS[rmv.cls] && rmv.best && rmv.best !== game.records[view - 1].uci) {
-        var bm = posFromFen(game.fens[view - 1]).moveFromUci(rmv.best);
-        if (bm) list.push({ from: bm & 127, to: (bm >> 7) & 127, gold: !!(bm & F_GOLDEN), best: true });
+      if (!GOOD_CLS[rmv.cls] && rmv.cls !== 'goldmiss' && rmv.follow && rmv.follow.first) {
+        var tm = posFromFen(game.fens[view]).moveFromUci(rmv.follow.first.uci);
+        if (tm) list.push({ from: tm & 127, to: (tm >> 7) & 127, gold: !!(tm & F_GOLDEN), threat: true });
       }
-    } else if (analysis.on && analysisArrow) list.push(analysisArrow);
+    } else if (analysis.on && analysisArrow && !(explore && (explore.line || explore.retry))) list.push(analysisArrow);
     board.setArrows(list);
   }
 
@@ -1806,6 +2056,7 @@
       if (curView !== 'game') return;
       if (goldenArmed) setGoldenArmed(false);
       else if (premoves.length) cancelPremoves(false);
+      else if (explore && (explore.line || explore.retry)) { exitExplore(true); return; } // Esc hides a line or a retry
       select(-1); return;
     }
     if (currentDialog || !game || curView !== 'game') return;

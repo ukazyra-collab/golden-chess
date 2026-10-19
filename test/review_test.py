@@ -60,8 +60,10 @@ async def main():
         await page.keyboard.press('ArrowLeft'); await page.wait_for_timeout(350)
         v = await page.evaluate('({coach: (document.querySelector("#review #coach")||{}).innerText, badge: document.querySelectorAll("#board .badge").length, view: __gc.view})')
         ok('coach line and board badge for the viewed move', v['coach'] and (v['badge'] in (0, 1)) and v['view'] == n - 1, v)
-        html = await page.evaluate('document.getElementById("review").innerText')
-        ok('the report stays one tap away', 'Report' in html, html[:200])
+        await page.click('#btn-menu'); await page.wait_for_timeout(150)
+        labels = await page.evaluate('[...document.querySelectorAll(".menu-list button")].map(b => b.innerText)')
+        ok('the report stays one tap away (menu)', any('Report' in l for l in labels), labels)
+        await page.evaluate('__gc.closeDialog()')
         ok('board consistent after review nav', (await settle()) == [])
         # explore: make a move from this past position
         pick = "(() => { const p = new GC.Position(__gc.viewFen()); const ms = p.legalMoves(false); const m = ms[Math.floor(Math.random() * ms.length)]; return [m & 127, (m >> 7) & 127]; })()"

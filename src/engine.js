@@ -518,6 +518,7 @@ var Engine = (function (GC) {
       if (Math.abs(bestScore) > MATE_BOUND && depth >= 4) break;
       if (now() - t0 > timeMs * 0.55 && depth >= (opts.minDepth || 1)) break;
     }
+    if (!pv.length || pv[0] !== bestMove) pv = lineFrom(bestMove, Math.min(completedDepth + 4, 24));
     var chosen = bestMove, chosenScore = bestScore;
     if (exactScores && completedDepth) {
       var pick = choose(root, lv);
@@ -526,6 +527,14 @@ var Engine = (function (GC) {
     var res = makeInfo(chosenScore, completedDepth, chosen === bestMove && pv.length ? pv : [chosen], t0);
     res.move = chosen;
     return res;
+  }
+
+  // a move and the best line after it from the transposition table
+  function lineFrom(m, maxLen) {
+    pos.makeMove(m);
+    var rest = extractPV(maxLen);
+    pos.unmakeMove();
+    return [m].concat(rest);
   }
 
   function makeInfo(score, depth, pv, t0) {
@@ -573,18 +582,23 @@ var Engine = (function (GC) {
     { name: 8, elo: 2500, depth: 64, time: 3000, noise: 0, exact: false }
   ];
 
-  // One position of a game review: the best move and its score (side to move), the start of the best line, and, when
-  // the best move is golden, the best normal move too (how much the golden move gains: missed golden moves).
-  function reviewStep(fen, moves, timeMs) {
-    var r = think({ fen: fen, moves: moves, timeMs: timeMs, analysis: true });
-    var st = { score: r.score, mate: r.mate || 0, uci: r.uci, depth: r.depth, pv: (r.pv || []).slice(0, 6) };
+  // One position of a game review: the best move and its score (side to move), the best line, and, when the best move
+  // is golden, the best normal move too (how much the golden move gains: missed golden moves). opts: { depth, timeMs }:
+  // search to that depth (the same depth everywhere keeps the verdicts steady), at most timeMs; a number is timeMs alone.
+  var REVIEW_DEPTH = 10, REVIEW_CAP = 1200;
+  function reviewStep(fen, moves, opts) {
+    if (typeof opts === 'number') opts = { timeMs: opts, depth: 64 };
+    opts = opts || {};
+    var cap = opts.timeMs || REVIEW_CAP, depth = opts.depth || REVIEW_DEPTH;
+    var r = think({ fen: fen, moves: moves, timeMs: cap, maxDepth: depth, analysis: true });
+    var st = { score: r.score, mate: r.mate || 0, uci: r.uci, depth: r.depth, pv: (r.pv || []).slice(0, 8) };
     if (r.uci && r.uci.indexOf('*') >= 0) {
-      var n = think({ fen: fen, moves: moves, timeMs: Math.round(timeMs * 0.7), analysis: true, noGoldenRoot: true });
-      if (n.uci && n.uci.indexOf('*') < 0) st.alt = { score: n.score, mate: n.mate || 0, uci: n.uci, pv: (n.pv || []).slice(0, 6) };
+      var n = think({ fen: fen, moves: moves, timeMs: Math.round(cap * 0.7), maxDepth: depth, analysis: true, noGoldenRoot: true });
+      if (n.uci && n.uci.indexOf('*') < 0) st.alt = { score: n.score, mate: n.mate || 0, uci: n.uci, pv: (n.pv || []).slice(0, 8) };
     }
     return st;
   }
 
-  return { think: think, reviewStep: reviewStep, clear: clearTT, LEVELS: LEVELS, MATE: MATE, MATE_BOUND: MATE_BOUND, evaluateFen: function (fen) { pos = new GC.Position(fen); noiseAmp = 0; return evaluate(); } };
+  return { think: think, reviewStep: reviewStep, REVIEW_DEPTH: REVIEW_DEPTH, REVIEW_CAP: REVIEW_CAP, clear: clearTT, LEVELS: LEVELS, MATE: MATE, MATE_BOUND: MATE_BOUND, evaluateFen: function (fen) { pos = new GC.Position(fen); noiseAmp = 0; return evaluate(); } };
 })(GC);
 if (typeof module !== 'undefined' && module.exports) module.exports = Engine;

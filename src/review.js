@@ -90,6 +90,72 @@ var GCReview = (function (GC) {
     }
     return material(pos, color) - material(pos, color ^ 1) - before;
   }
+  // the squares a piece on `sq` hits (up to and including the first piece in each direction)
+  function attacksOf(pos, sq) {
+    var b = pos.board, p = b[sq], t = p & 7, c = p >> 3, out = [], i, d, x;
+    if (!p) return out;
+    function add(y) { if (!(y & 0x88)) out.push(y); }
+    if (t === 1) { var f = c ? -16 : 16; add(sq + f - 1); add(sq + f + 1); }
+    else if (t === 2) for (i = 0; i < 8; i++) add(sq + GC.KNIGHT_D[i]);
+    else if (t === 6) for (i = 0; i < 8; i++) add(sq + GC.KING_D[i]);
+    else {
+      var dirs = t === 3 ? GC.DIAG_D : t === 4 ? GC.ORTHO_D : GC.KING_D;
+      for (i = 0; i < dirs.length; i++) { d = dirs[i]; x = sq + d; while (!(x & 0x88)) { out.push(x); if (b[x]) break; x += d; } }
+    }
+    return out;
+  }
+  // pieces on the board by colour and type
+  function counts(pos) {
+    var b = pos.board, n = [[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0]];
+    for (var sq = 0; sq < 120; sq++) { if (sq & 0x88) { sq += 7; continue; } var p = b[sq]; if (p) n[p >> 3][p & 7]++; }
+    return n;
+  }
+  // what `winner` gained between two moments, in words the coach can use: { items: [[type, n], ...] } (pieces the other
+  // side lost, net of the winner's own losses), { exchange: 1 } (a rook for a minor piece) or { points: n }
+  function materialGain(n0, n1, winner) {
+    var loser = winner ^ 1, L = [0], W = [0], t, k, promo = false;
+    for (t = 1; t <= 5; t++) { L[t] = Math.max(0, n0[loser][t] - n1[loser][t]); W[t] = Math.max(0, n0[winner][t] - n1[winner][t]); }
+    for (t = 2; t <= 5; t++) if (n1[0][t] > n0[0][t] || n1[1][t] > n0[1][t]) promo = true;
+    for (t = 1; t <= 5; t++) { k = Math.min(L[t], W[t]); L[t] -= k; W[t] -= k; }
+    k = Math.min(L[2], W[3]); L[2] -= k; W[3] -= k; k = Math.min(L[3], W[2]); L[3] -= k; W[2] -= k;
+    // a rook for a minor piece is "the exchange" (and whatever else was won on top of it)
+    var exch = 0;
+    if (!promo && L[4] >= 1 && W[2] + W[3] === 1 && !W[1] && !W[4] && !W[5]) { L[4]--; W[2] = W[3] = 0; exch = 1; }
+    var lv = 0, wv = 0;
+    for (t = 1; t <= 5; t++) { lv += L[t] * VAL[t]; wv += W[t] * VAL[t]; }
+    if (!promo && !wv && (lv || exch)) { var items = []; for (t = 5; t >= 1; t--) if (L[t]) items.push([t, L[t]]); return exch ? { exchange: 1, items: items } : { items: items }; }
+    if (exch) { L[4]++; lv += 5; wv += 3; }
+    var pts = 0;
+    for (t = 1; t <= 5; t++) pts += VAL[t] * ((n1[winner][t] - n0[winner][t]) - (n1[loser][t] - n0[loser][t]));
+    return { points: pts };
+  }
+  // a line of play from `fen` (up to `max` plies) seen by `c`: the moves (SAN, golden ones marked), the first move's
+  // point (what it takes, what it hits, check), the material it wins or loses for `c`, a mate at the end
+  function story(fen, ucis, c, max) {
+    var pos = new GC.Position(fen), n0 = counts(pos), m0 = material(pos, c) - material(pos, c ^ 1);
+    var out = { fen: fen, ucis: [], sans: [], golden: [], first: null, mate: -1, swing: 0, gain: null };
+    for (var i = 0; ucis && i < ucis.length && i < (max || 8); i++) {
+      var m = pos.moveFromUci(ucis[i]);
+      if (!m) break;
+      var san = pos.san(m, pos.legalMoves(true)), side = pos.side, to = (m >> 7) & 127;
+      var took = (m & F_CAPTURE) ? (pos.board[to] & 7) || 1 : 0;
+      pos.makeMove(m);
+      if (!i) {
+        var tg = [];
+        attacksOf(pos, to).forEach(function (x) { var q = pos.board[x]; if (q && (q >> 3) !== side && (q & 7) >= 2 && (q & 7) <= 5) tg.push(q & 7); });
+        tg.sort(function (a, b) { return VAL[b] - VAL[a]; });
+        out.first = { uci: ucis[i], san: san, side: side, golden: !!(m & F_GOLDEN), took: took, check: pos.inCheck(), targets: tg };
+      }
+      out.ucis.push(ucis[i]); out.sans.push(san); out.golden.push(!!(m & F_GOLDEN));
+    }
+    if (out.ucis.length && pos.inCheck() && !pos.hasLegalMove()) out.mate = pos.side ^ 1;
+    out.swing = material(pos, c) - material(pos, c ^ 1) - m0;
+    var n1 = counts(pos);
+    if (out.swing >= 1) out.gain = materialGain(n0, n1, c);
+    else if (out.swing <= -1) out.gain = materialGain(n0, n1, c ^ 1);
+    return out;
+  }
+
   function sanOf(fen, uci) {
     if (!uci) return '';
     var pos = new GC.Position(fen), m = pos.moveFromUci(uci);
@@ -138,28 +204,33 @@ var GCReview = (function (GC) {
       counts[c][cls] = (counts[c][cls] || 0) + 1;
       (phases[c][ph] = phases[c][ph] || []).push(a);
       if (rec.golden) golden[c] = { ply: i, cls: cls, san: rec.san };
+      var follow = story(fens[i + 1], e2.pv && e2.pv.length ? e2.pv : (e2.uci ? [e2.uci] : []), c, 8);
+      var line = story(fens[i], e.pv && e.pv.length ? e.pv : (e.uci ? [e.uci] : []), c, 8);
       moves[i] = { ply: i, color: c, cls: cls, drop: drop, acc: a, before: before, after: after, best: e.uci, bestSan: isBest ? rec.san : sanOf(fens[i], e.uci),
-        golden: !!rec.golden, phase: ph, missedGolden: gm, reason: isBest && cls !== 'brilliant' ? null : reason(i, cls) };
+        golden: !!rec.golden, phase: ph, missedGolden: gm, follow: follow, line: line,
+        reason: isBest && cls !== 'brilliant' ? null : reason(i, cls, follow, line) };
     }
-    // the coach's reason for a move, worst news first
-    function reason(k, cls) {
+    // the coach's reason for a move, worst news first. reply: what the opponent's best answer does (takes, a golden move,
+    // hits pieces); lose: what the line after the move costs; win: what the best line would have won
+    function reason(k, cls, follow, line) {
       var e = sc[k], e2 = sc[k + 1], rec = recs[k], c = rec.color;
       if (cls === 'brilliant') return { key: 'sacrifice' };
       if (e.mate > 0 && !(e2.mate < 0)) return { key: 'missedMate', n: e.mate };
-      if (e2.mate > 0) return { key: 'allowsMate', n: e2.mate };
+      if (e2.mate > 0) return { key: 'allowsMate', n: e2.mate, reply: follow.first };
       if (cls === 'excellent' || cls === 'good' || cls === 'goldmiss') return null;
+      var f = follow.first, out = { key: 'line' };
+      if (f) {
+        if (f.golden) out.reply = { kind: 'golden', san: f.san, targets: f.targets, check: f.check };
+        else if (f.took >= 2) out.reply = { kind: 'takes', san: f.san, piece: pieceName(f.took), check: f.check };
+        else if (f.targets.length >= 2 || (f.targets.length && (f.check || f.targets[0] >= 4))) out.reply = { kind: 'hits', san: f.san, targets: f.targets, check: f.check };
+      }
+      // the move itself left a piece to be taken (said only when the line agrees)
       var pb = new GC.Position(fens[k]), pa = new GC.Position(fens[k + 1]), m = pb.moveFromUci(rec.uci), to = m ? (m >> 7) & 127 : -1;
       var took = m && (m & F_CAPTURE) ? VAL[pb.board[to] & 7] || 1 : 0;
-      if (to >= 0 && hangs(pa, to, c) && VAL[pa.board[to] & 7] - took >= 2) return { key: 'hangs', piece: pieceName(pa.board[to] & 7) };
-      var bestSwing = lineSwing(fens[k], e.pv && e.pv.length ? e.pv : [e.uci], c, 3);
-      var playedSwing = lineSwing(fens[k], [rec.uci].concat(e2.pv || []), c, 3);
-      if (playedSwing <= -2) return { key: 'loses', n: -playedSwing };
-      if (bestSwing - playedSwing >= 2 && bestSwing >= 1) {
-        var bp = new GC.Position(fens[k]), bm = bp.moveFromUci(e.uci);
-        if (bm && (bm & F_CAPTURE)) return { key: 'missedTake', piece: pieceName(bp.board[(bm >> 7) & 127] & 7 || 1) };
-        return { key: 'missedMaterial', n: bestSwing };
-      }
-      return null;
+      if (to >= 0 && hangs(pa, to, c) && VAL[pa.board[to] & 7] - took >= 2 && follow.swing <= -2) out.hangs = pieceName(pa.board[to] & 7);
+      if (follow.swing <= -1 && follow.gain) out.lose = follow.gain;
+      if (line.swing - follow.swing >= 2 && line.swing >= 1 && line.gain) out.win = line.gain;
+      return out.reply || out.lose || out.win || out.hangs ? out : null;
     }
     var sum = [0, 1].map(function (c) {
       var a = sideAccuracy(acc[c]);
@@ -178,6 +249,6 @@ var GCReview = (function (GC) {
   }
 
   return { analyze: analyze, winPct: winPct, cpOf: cpOf, moveAccuracy: moveAccuracy, sideAccuracy: sideAccuracy, estimateElo: estimateElo,
-    hangs: hangs, minAttacker: minAttacker, lineSwing: lineSwing, phaseOf: phaseOf, CLASSES: CLASSES };
+    hangs: hangs, minAttacker: minAttacker, lineSwing: lineSwing, phaseOf: phaseOf, story: story, attacksOf: attacksOf, CLASSES: CLASSES };
 })(GC);
 if (typeof module !== 'undefined' && module.exports) module.exports = GCReview;

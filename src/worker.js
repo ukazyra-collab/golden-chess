@@ -10,8 +10,10 @@ self.onmessage = function (e) {
     self.postMessage({ type: 'result', id: d.id, res: res });
   }
   if (d.type === 'review') {
-    for (var i = 0; i <= d.moves.length; i++) {
-      var st = Engine.reviewStep(d.fen, d.moves.slice(0, i), d.timeMs);
+    // the positions from..to of the game (one worker of several takes a stretch of the game)
+    var from = d.from || 0, to = d.to != null ? d.to : d.moves.length;
+    for (var i = from; i <= to; i++) {
+      var st = Engine.reviewStep(d.fen, d.moves.slice(0, i), { depth: d.depth, timeMs: d.timeMs });
       st.type = 'reviewStep'; st.id = d.id; st.i = i;
       self.postMessage(st);
     }

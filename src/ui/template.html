@@ -276,15 +276,44 @@ svg { display: block; }
 .ci-good { background: #a9b98a; color: #16210c; } .ci-inaccuracy { background: #e5c84a; color: #2a2108; } .ci-mistake { background: #ec9a45; } .ci-miss { background: #f08470; }
 .ci-blunder { background: #e9533f; } .ci-goldmiss { background: var(--gold); color: #2a2108; box-shadow: inset 0 0 0 2px #e9533f; font-size: 13px; }
 /* the coach on the viewed move */
-.coach { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--panel); }
-.coach .ci { width: 26px; height: 26px; font-size: 12px; margin-top: 1px; }
-.coach-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.coach-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-.coach-h b { font-size: 14px; line-height: 1.3; }
+.coach { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; border-radius: 12px; background: var(--panel); box-sizing: border-box; }
+.coach-top { display: flex; align-items: center; gap: 10px; min-height: 26px; }
+.coach .ci { width: 26px; height: 26px; font-size: 12px; }
+.coach-title { flex: 1; min-width: 0; font-size: 14px; line-height: 1.3; }
+.coach-body { display: flex; flex-direction: column; gap: 3px; padding-left: 36px; }
+.coach.hint .coach-top { display: none; } .coach.hint .coach-body { padding-left: 0; }
 .coach-ev { flex: none; font: 700 12px var(--f-ui); font-variant-numeric: tabular-nums; color: var(--muted); }
 .coach p { margin: 0; font-size: 13px; line-height: 1.45; color: #d9d6cd; }
+/* phones: the coach keeps one height (the board doesn't jump between moves); long words scroll inside */
+.stage > .review { gap: 6px; }
+.stage > .review .rv-graph { height: 40px; }
+.stage > .review .coach { height: 142px; padding: 9px 11px; gap: 4px; }
+.stage > .review .coach-body { flex: 1; min-height: 0; overflow-y: auto; }
+.stage > .review .coach p { font-size: 12.5px; line-height: 1.4; }
+.stage > .review .coach-acts { gap: 6px; padding-top: 2px; }
+.stage > .review .cbtn { height: 34px; padding: 0 10px; font-size: 13px; gap: 5px; }
+.stage > .review .cbtn svg { width: 14px; height: 14px; }
+.coach.hint .rv-progress { margin-top: 2px; }
+.cbtn .sh { display: none; }
+@media (max-width: 520px) { .cbtn .lg { display: none; } .cbtn .sh { display: inline; } }
 .coach .coach-best { color: var(--muted); font-weight: 700; } .coach .coach-best.gold { color: var(--gold); }
 .coach.c-goldmiss { box-shadow: inset 0 0 0 1.5px rgba(240, 185, 65, .55); }
+.coach-acts { display: flex; flex-wrap: wrap; gap: 7px; margin-top: auto; padding-top: 3px; }
+.cbtn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 10px; background: var(--raise); color: var(--bone); font-weight: 700; font-size: 13.5px; box-shadow: 0 2px 0 var(--edge); white-space: nowrap; }
+.cbtn svg { width: 15px; height: 15px; flex: none; }
+.cbtn:hover { background: var(--raise-hi); }
+.cbtn:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--edge); }
+.cbtn.on { background: var(--bone); color: #1d2120; box-shadow: 0 2px 0 #9c978b; }
+.ci-line { background: #3d4744; color: var(--bone); }
+.ci-line svg { width: 13px; height: 13px; }
+.coach.line.l-best .ci-line { background: #7fbf4d; color: #fff; }
+.coach-line { font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.7 !important; }
+.coach-line .ln { white-space: nowrap; color: var(--muted); }
+.coach-line .ln.done { color: var(--bone); }
+.coach-line .ln.gold, .coach-line .ln.gold.done { color: var(--gold); }
+.coach-line .ln.cur { background: var(--raise-hi); border-radius: 5px; padding: 1px 4px; }
+.coach.retry.r-right, .coach.retry.r-excellent { box-shadow: inset 0 0 0 1.5px rgba(127, 191, 77, .6); }
+.coach.retry.r-wrong { box-shadow: inset 0 0 0 1.5px rgba(236, 154, 69, .55); }
 .rv-report { align-self: flex-start; padding: 2px 0; color: var(--bone); text-decoration: underline; text-underline-offset: 3px; }
 /* the report sheet: White and Black side by side, the missed golden moves on top */
 .sheetdlg.report { overflow: hidden; padding: 0; gap: 0; }
