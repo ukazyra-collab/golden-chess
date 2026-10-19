@@ -1,7 +1,8 @@
 # The iPhone / Android app (app/): every change to it builds
 #  - an Android test APK, published as the release "android-test" (a direct link to install on a phone), and
 #  - the iPhone project for the simulator without signing, to catch a broken Xcode project early.
-# Store builds are signed on the Mac (app/README.md).
+# Store builds are signed on the Mac (app/README.md). When a build breaks, the end of its log is attached to the
+# run as an error annotation (readable without signing in to GitHub).
 name: App builds
 
 on:
@@ -19,25 +20,36 @@ concurrency:
 
 jobs:
   android:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
+      - uses: android-actions/setup-android@v3
       - name: Install and sync
         working-directory: app
         run: npm ci && npx cap sync android
       - name: Build the test APK
         working-directory: app/android
-        run: ./gradlew --no-daemon assembleDebug
+        shell: bash
+        run: |
+          set +e
+          ./gradlew --no-daemon --stacktrace assembleDebug > build.log 2>&1
+          code=$?
+          tail -n 60 build.log
+          if [ $code -ne 0 ]; then
+            msg=$( (grep -n -E "What went wrong|FAILURE|error:|Exception|^> |Could not|not found" build.log | head -n 40; echo ---; tail -n 40 build.log) | awk 'BEGIN{ORS="%0A"} {gsub(/%/,"%25"); gsub(/\r/,""); print}')
+            echo "::error title=Android build::$msg"
+          fi
+          exit $code
       - name: Publish the APK
         shell: bash
         env:
@@ -60,8 +72,8 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -73,6 +85,14 @@ jobs:
         working-directory: app/ios/App
         shell: bash
         run: |
+          set +e
           xcodebuild -version
           xcodebuild -project App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tail -40
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build > build.log 2>&1
+          code=$?
+          tail -n 40 build.log
+          if [ $code -ne 0 ]; then
+            msg=$( (grep -n -E "error:|fatal|BUILD FAILED|requires|unsupported" build.log | head -n 40; echo ---; tail -n 30 build.log) | awk 'BEGIN{ORS="%0A"} {gsub(/%/,"%25"); gsub(/\r/,""); print}')
+            echo "::error title=iPhone build::$msg"
+          fi
+          exit $code
