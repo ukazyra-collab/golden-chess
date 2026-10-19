@@ -47,6 +47,11 @@ The site has five tabs, like a chess site: **Play** (time control, Play, Play a 
 - `node test/learn.js` — the Learn tab: scripted moves are legal, the "mate in normal chess" positions are mate, every accepted puzzle answer wins or saves the game and every other golden move scores clearly worse (engine)
 - `python3 test/targeted.py`, `python3 test/review_test.py`, `python3 test/stress.py <seed> <games>` — offline UI flows, review, randomized input with a per-frame consistency monitor
 - `python3 test/shots.py`, `python3 test/online_shots.py en ru` — screenshots (phone and desktop) into `test/shots/`
+- `python3 test/native_app.py` — the site inside the iPhone / Android app, with stand-ins for the app's bridge and for supabase-js: Google opens in the system browser and comes back through `goldenchess://auth` (same player, another player, a link taken once, a link the app was started with), the Android back button, the system share sheet for invites, the app's offline copy
+
+## The app (iPhone / Android)
+
+`app/` is a Capacitor 8 shell around the live site, with the site's offline copy (`app/www/index.html`, made by `build.js`) for launches without internet. Every change under `app/` builds an Android test APK (release `android-test`) and checks the iPhone project in `.github/workflows/app.yml`. Steps for Xcode, Android Studio and the stores: `app/README.md` (in Russian).
 
 ## Deploy
 

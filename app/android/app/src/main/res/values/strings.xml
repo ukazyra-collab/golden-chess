@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Golden Chess</string>
+    <string name="title_activity_main">Golden Chess</string>
+    <string name="package_name">com.kozyramedia.goldenchess</string>
+    <string name="custom_url_scheme">com.kozyramedia.goldenchess</string>
+</resources>

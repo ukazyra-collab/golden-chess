@@ -21,7 +21,8 @@
 
 Google (подготовлено, выключено флагом `googleAuth` в `build.js`):
 
-1. Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web). Authorized redirect URI: `https://wduoqpoqbtpkrgbcsegg.supabase.co/auth/v1/callback`. Authorized JavaScript origin: `https://ukazyra-collab.github.io`.
+1. Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web). Authorized redirect URI: `https://wduoqpoqbtpkrgbcsegg.supabase.co/auth/v1/callback`. Authorized JavaScript origins: `https://golden-chess.com`, `https://ukazyra-collab.github.io`.
 2. Supabase → Authentication → Sign In / Providers → Google: включить, вставить Client ID и Client Secret.
 3. Supabase → Authentication → Sign In / Providers: включить «Allow manual linking» (гость привязывает Google к тому же аккаунту через `linkIdentity`).
 4. `build.js`: `googleAuth: true` в `GC_ONLINE`, собрать и запушить.
+5. Для приложения: URL Configuration → Redirect URLs → `goldenchess://auth` (Google и ссылки из писем возвращаются в приложение).

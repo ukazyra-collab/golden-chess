@@ -1,0 +1,44 @@
+{
+  "appId": "com.kozyramedia.goldenchess",
+  "appName": "Golden Chess",
+  "webDir": "www",
+  "server": {
+    "url": "https://ukazyra-collab.github.io/golden-chess/",
+    "errorPath": "index.html",
+    "allowNavigation": [
+      "golden-chess.com",
+      "www.golden-chess.com",
+      "ukazyra-collab.github.io"
+    ]
+  },
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#2a2f2d",
+    "preferredContentMode": "mobile"
+  },
+  "android": {
+    "backgroundColor": "#2a2f2d",
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "launchAutoHide": true,
+      "launchFadeOutDuration": 200,
+      "backgroundColor": "#2a2f2d",
+      "showSpinner": false,
+      "splashFullScreen": false,
+      "splashImmersive": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#2a2f2d",
+      "overlaysWebView": true
+    },
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover",
+      "style": "DARK"
+    }
+  }
+}

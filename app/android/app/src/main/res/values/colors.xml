@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- the site's background (--ground): behind the system bars and the launch screen -->
+    <color name="gc_ground">#2A2F2D</color>
+</resources>

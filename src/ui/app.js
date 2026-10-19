@@ -58,7 +58,7 @@
       r_agreement: 'by agreement', gameTaken: 'This game has already started, you are watching it', noGame: 'Game not found',
       stillPlaying: 'Your online game is still running. Starting another game leaves it, and your clock keeps ticking.',
       reconnecting: 'Reconnecting\u2026', connected: 'Online', disconnected: 'Left the game', leaderboard: 'Top players', lbEmpty: 'No rated games yet. Be the first.',
-      gamesN: '{n} games', casualNote: 'Casual game: ratings don\u2019t change.', onlineElsewhere: 'Online games and ratings:',
+      gamesN: '{n} games', casualNote: 'Casual game: ratings don\u2019t change.', onlineElsewhere: 'Online games and ratings:', appOffline: 'No internet. Bots and two players on one phone work without it.', reconnect: 'Try again',
       account: 'Account', signIn: 'Sign in', emailLabel: 'Email', sendCode: 'Send code', sending: 'Sending', manage: 'Manage',
       signInSub: 'Enter your email to keep your name, rating and games, or to sign in to your account on this device. We\u2019ll send you a code.',
       codeTitle: 'Enter the code', codeSub: 'We sent a code to {email}. Type it here, or open the link from the email on this device.',
@@ -164,7 +164,7 @@
       r_agreement: 'по соглашению', gameTaken: 'Партия уже началась, вы смотрите её как зритель', noGame: 'Партия не найдена',
       stillPlaying: 'Ваша онлайн-партия ещё идёт. Если начать другую, часы в ней продолжат идти.',
       reconnecting: 'Переподключение…', connected: 'В игре', disconnected: 'Вышел из игры', leaderboard: 'Лучшие игроки', lbEmpty: 'Рейтинговых партий ещё нет. Будьте первым.',
-      gamesN: 'партий: {n}', casualNote: 'Партия без рейтинга: рейтинг не меняется.', onlineElsewhere: 'Онлайн-партии и рейтинг:',
+      gamesN: 'партий: {n}', casualNote: 'Партия без рейтинга: рейтинг не меняется.', onlineElsewhere: 'Онлайн-партии и рейтинг:', appOffline: 'Нет интернета. Боты и игра вдвоём на одном телефоне работают и без него.', reconnect: 'Повторить',
       account: 'Аккаунт', signIn: 'Войти', emailLabel: 'Почта', sendCode: 'Получить код', sending: 'Отправляем', manage: 'Управление',
       signInSub: 'Введите почту, чтобы сохранить имя, рейтинг и партии или войти в свой аккаунт на этом устройстве. Мы пришлём код.',
       codeTitle: 'Введите код', codeSub: 'Код отправлен на {email}. Введите его здесь или откройте ссылку из письма на этом устройстве.',
@@ -1699,6 +1699,27 @@
     });
   }
 
+  // The iPhone / Android app is a Capacitor shell around this website. The shell injects its bridge into the page
+  // (the site doesn't ship Capacitor's JS: it runs in ordinary browsers too), so plugins are called through
+  // Capacitor.nativePromise / Capacitor.addListener. Google refuses to sign in inside an app's web view, so in the
+  // app sign-in opens in the system browser and comes back to goldenchess://auth (see nativeUrl).
+  var NATIVE = (function () {
+    var C = window.Capacitor, on = false;
+    try { on = !!(C && typeof C.isNativePlatform === 'function' && C.isNativePlatform()); } catch (e) { on = false; }
+    var platform = on && typeof C.getPlatform === 'function' ? C.getPlatform() : 'web';
+    function call(plugin, method, opts) {
+      if (!on || typeof C.nativePromise !== 'function') return Promise.reject(new Error('no_bridge'));
+      try { return Promise.resolve(C.nativePromise(plugin, method, opts || {})); } catch (e) { return Promise.reject(e); }
+    }
+    function listen(plugin, ev, fn) { if (!on || typeof C.addListener !== 'function') return null; try { return C.addListener(plugin, ev, fn); } catch (e) { return null; } }
+    function openUrl(url) {
+      // the in-app browser (Safari View Controller / Chrome Custom Tab); without the plugin the shell sends
+      // a navigation to another site to the system browser anyway
+      return call('Browser', 'open', { url: url, presentationStyle: 'popover' }).catch(function () { location.assign(url); });
+    }
+    return { on: on, platform: platform, redirect: 'goldenchess://auth', call: call, listen: listen, openUrl: openUrl };
+  })();
+
   // transport: Supabase (production) ...
   function SupaNet(cfg) {
     var self = this;
@@ -1730,7 +1751,8 @@
     });
   };
   // ---- account (Supabase Auth): a guest links an email to the same account; on another device the email signs in
-  function authRedirect() { return location.origin + location.pathname + (profileSuffix ? '?p=' + profileSuffix : ''); }
+  // in the app, sign-in links and Google come back to the app itself
+  function authRedirect() { return NATIVE.on ? NATIVE.redirect : location.origin + location.pathname + (profileSuffix ? '?p=' + profileSuffix : ''); }
   function authFail(r) { if (r && r.error) { var e = new Error(r.error.message || 'auth'); e.code = r.error.code || ''; e.status = r.error.status; throw e; } return r && r.data; }
   SupaNet.prototype.account = function () {
     return this.sb.auth.getSession().then(function (r) {
@@ -1746,7 +1768,12 @@
   SupaNet.prototype.signOut = function () { return this.sb.auth.signOut({ scope: 'local' }).then(authFail); };
   SupaNet.prototype.google = function (link) {
     var o = { provider: 'google', options: { redirectTo: authRedirect() } };
-    return (link ? this.sb.auth.linkIdentity(o) : this.sb.auth.signInWithOAuth(o)).then(authFail);
+    if (NATIVE.on) o.options.skipBrowserRedirect = true; // the app opens the system browser itself
+    return (link ? this.sb.auth.linkIdentity(o) : this.sb.auth.signInWithOAuth(o)).then(authFail).then(function (d) {
+      if (!NATIVE.on) return d;
+      if (!d || !d.url) throw new Error('no_url');
+      return NATIVE.openUrl(d.url).then(function () { return d; });
+    });
   };
   // the leaderboard: public data, read with the public key (no account needed)
   SupaNet.prototype.top = function (pool) {
@@ -1935,14 +1962,21 @@
         var cp = h('button', { type: 'button', class: 'sbtn', id: 'btn-copy-link' }, esc(T('copyLink')));
         cp.addEventListener('click', function () { copyText(inp.value, T('linkCopied'), inp); });
         box.appendChild(inp); box.appendChild(cp);
-        if (navigator.share) {
-          var sh = h('button', { type: 'button', class: 'sbtn' }, esc(T('share')));
-          sh.addEventListener('click', function () { try { navigator.share({ title: 'Golden Chess', text: T('shareText'), url: inp.value }).catch(function () { /* ignore */ }); } catch (e) { /* ignore */ } });
+        var sh = null;
+        // the share sheet: the browser's, or the system one in the app (an Android web view has no navigator.share)
+        if (NATIVE.on || navigator.share) {
+          sh = h('button', { type: 'button', class: 'sbtn', id: 'btn-share-link' }, esc(T('share')));
+          sh.addEventListener('click', function () {
+            if (!L.gameId) return;
+            var o = { title: 'Golden Chess', text: T('shareText'), url: inp.value };
+            if (NATIVE.on) { NATIVE.call('Share', 'share', Object.assign({ dialogTitle: T('share') }, o)).catch(function () { copyText(inp.value, T('linkCopied'), inp); }); return; }
+            try { navigator.share(o).catch(function () { /* ignore */ }); } catch (e) { /* ignore */ }
+          });
           box.appendChild(sh);
         }
         card.appendChild(box);
         card.appendChild(h('div', { class: 'record' }, esc(meta + '. ' + T('waitingFriend') + '…')));
-        L.render = function () { inp.value = L.gameId ? inviteLink(L.gameId) : T('connecting') + '…'; cp.disabled = !L.gameId; };
+        L.render = function () { inp.value = L.gameId ? inviteLink(L.gameId) : T('connecting') + '…'; cp.disabled = !L.gameId; if (sh) sh.disabled = !L.gameId; };
         L.render();
       }
       var row = h('div', { class: 'row-btns' }), c = h('button', { class: 'secondary', type: 'button', id: 'btn-cancel-lobby' }, esc(T('cancel')));
@@ -2045,7 +2079,8 @@
         card.appendChild(form);
         if (NETCFG && NETCFG.googleAuth) {
           card.appendChild(h('div', { class: 'acct-or' }, esc(T('or'))));
-          var gb = btn('secondary', T('continueGoogle'), google, 'btn-google'); gb.disabled = st.busy;
+          var gb = btn('secondary g-btn', T('continueGoogle'), google, 'btn-google'); gb.disabled = st.busy;
+          gb.innerHTML = GOOGLE_G + '<span>' + esc(T('continueGoogle')) + '</span>';
           card.appendChild(row([gb]));
         }
         if (o.page) {
@@ -2141,9 +2176,10 @@
     function google() {
       if (st.busy) return;
       st.busy = true; st.err = ''; render();
-      // a guest links Google to the same account; otherwise Google signs in (the page leaves for Google here)
+      // a guest links Google to the same account; otherwise Google signs in (the page leaves for Google here;
+      // in the app the system browser opens over the page and the answer comes back through nativeUrl)
       ensureNet().then(function () { return net.account(); }).then(function (a) { return net.google(!!(a && a.guest)); })
-        .catch(function (e) { st.busy = false; st.err = authMsg(e); render(); });
+        .then(function () { if (NATIVE.on && alive) { st.busy = false; render(); } }, function (e) { st.busy = false; st.err = authMsg(e); render(); });
     }
     return { stop: function () { alive = false; clearInterval(timer); } };
   }
@@ -2170,6 +2206,70 @@
       renderAll(); if (curView !== 'game') refreshView();
     }, function () { toast(T('netError')); });
     return true;
+  }
+
+  // ---- the app: what the system browser sends back (goldenchess://auth#access_token=…), the Android back
+  // button, the splash screen
+  var nativeSeen = {};
+  function nativeUrl(url, launch) {
+    url = String(url || '');
+    if (!/^goldenchess:\/\/auth/i.test(url)) return;
+    var mark = url.slice(-60), now = Date.now();
+    // one opening can arrive twice (as the launch address and as an event); and the launch address stays the
+    // same for the whole run of the app, so after a reload it is not taken again
+    if (nativeSeen[mark] && now - nativeSeen[mark] < 5000) return;
+    if (launch && load('nativeAuth', '') === mark) return;
+    nativeSeen[mark] = now; save('nativeAuth', mark);
+    NATIVE.call('Browser', 'close').catch(function () { /* Android closes it by itself */ });
+    var i = url.indexOf('#'), j = url.indexOf('?'), hp, qp;
+    try { hp = new URLSearchParams(i >= 0 ? url.slice(i + 1) : ''); qp = new URLSearchParams(j >= 0 ? url.slice(j + 1, i > j ? i : url.length) : ''); } catch (e) { return; }
+    function g(k) { return hp.get(k) || qp.get(k) || ''; }
+    var at = g('access_token'), rt = g('refresh_token'), err = g('error_code') || g('error'), desc = g('error_description'), type = g('type');
+    if (!NETCFG || NETCFG.mock != null) return;
+    if (err) {
+      // this Google account already belongs to another player: sign in to that one (one more trip to the browser)
+      if (err === 'identity_already_exists') { toast(T('googleExists')); ensureNet().then(function () { return net.google(false); }).catch(function () { toast(T('signInFailed')); }); return; }
+      toast(/expired|invalid/i.test(err + ' ' + desc) ? T('linkExpired') : T('signInFailed'));
+      return;
+    }
+    if (!at || !rt) return;
+    var before = net && net.uid;
+    try { getClient(); } catch (e) { return; }
+    net.sb.auth.setSession({ access_token: at, refresh_token: rt }).then(authFail).then(function (d) {
+      var u = d && (d.user || (d.session && d.session.user)), uid = u && u.id;
+      if (!before || uid !== before) {
+        // another account: start over as that player (as after an email code for another account)
+        save('online', null); save('notice', 'signedIn'); setUrl(null); location.reload();
+        return;
+      }
+      // the same player, now with Google or a confirmed email: nothing to reload
+      return refreshMe().then(function () {
+        if (currentDialog && currentDialog.dataset.kind === 'account') closeDialog();
+        toast(type === 'email_change' ? T('progressSaved') : T('signedInAs', { email: (me && me.email) || '' }));
+        renderAll();
+        var a = takePending();
+        if (a) runPending(a); else if (curView === 'signin') go('play'); else if (curView !== 'game') refreshView();
+      });
+    }).catch(function () { toast(T('signInFailed')); });
+  }
+  function nativeBack(e) {
+    if (currentDialog) { closeDialog(); return; }
+    if (curView === 'game' && goldenArmed) { setGoldenArmed(false); return; }
+    if (e && e.canGoBack) { history.back(); return; }
+    if (curView !== 'play') { go('play', true); return; }
+    NATIVE.call('App', 'minimizeApp').catch(function () { /* ignore */ });
+  }
+  function nativeInit() {
+    if (!NATIVE.on) return;
+    var de = document.documentElement;
+    de.classList.add('native', NATIVE.platform === 'android' ? 'android' : 'ios');
+    // an app doesn't zoom: no zoom on a focused field, no pinch over the board
+    var vp = document.querySelector('meta[name=viewport]');
+    if (vp) vp.setAttribute('content', 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+    NATIVE.listen('App', 'appUrlOpen', function (e) { nativeUrl(e && e.url); });
+    NATIVE.call('App', 'getLaunchUrl').then(function (r) { if (r && r.url) nativeUrl(r.url, true); }, function () { /* ignore */ });
+    if (NATIVE.platform === 'android') NATIVE.listen('App', 'backButton', nativeBack);
+    NATIVE.call('SplashScreen', 'hide', { fadeOutDuration: 200 }).catch(function () { /* ignore */ });
   }
 
   // ---- the online game itself
@@ -2471,6 +2571,8 @@
   var VIEWS = ['play', 'bots', 'learn', 'ratings', 'profile', 'signin', 'game'], NAV = ['play', 'bots', 'learn', 'ratings', 'profile'];
   var NAV_KEY = { play: 'navPlay', bots: 'navBots', learn: 'navLearn', ratings: 'navRatings', profile: 'navProfile' };
   var COLOR_RANDOM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6" fill="#1f2422"/><path d="M12 3.4a8.6 8.6 0 0 0 0 17.2z" fill="#f4efe4"/><circle cx="12" cy="12" r="8.6" fill="none" stroke="#8d9691" stroke-width="1.2"/></svg>';
+  // Google's "G" for the sign-in button (their branding asks for it on "Continue with Google")
+  var GOOGLE_G = '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
   var STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c1 6.1 3.4 8.5 9.5 9.5-6.1 1-8.5 3.4-9.5 9.5-1-6.1-3.4-8.5-9.5-9.5 6.1-1 8.5-3.4 9.5-9.5z" fill="#e7b44a"/></svg>';
   var LOGO_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="#3a423f"/><path d="M2 9a7 7 0 0 1 7-7h7v14H2z" fill="#4a5350"/><path d="M16 16h14v7a7 7 0 0 1-7 7h-7z" fill="#4a5350"/><path d="M16 5.5c.9 5.4 3.6 8.1 9 9-5.4.9-8.1 3.6-9 9-.9-5.4-3.6-8.1-9-9 5.4-.9 8.1-3.6 9-9z" fill="#e7b44a"/></svg>';
   var CHEV_SVG = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
@@ -2618,7 +2720,12 @@
     } else {
       acts.appendChild(bigBtn('start-btn', T('playBot'), 'btn-start', function () { go('bots'); }));
       acts.appendChild(bigBtn('second-btn', T('passPlayLong'), 'btn-pass', showLocalSetup));
-      if (window.GC_SITE) acts.appendChild(h('div', { class: 'offline-note' }, esc(T('onlineElsewhere')) + ' <a class="site-link" href="' + esc(window.GC_SITE) + '" target="_blank" rel="noopener">' + esc(window.GC_SITE.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>'));
+      if (window.GC_APP_OFFLINE) {
+        // the app opened without internet: this is its built-in copy of the site; "Try again" goes back to the live one
+        var off = h('div', { class: 'offline-note app-off', id: 'app-offline' }, '<span>' + esc(T('appOffline')) + '</span>');
+        off.appendChild(bigBtn('linkbtn', T('reconnect'), 'btn-reconnect', function () { location.href = window.GC_SITE || '/'; }));
+        acts.appendChild(off);
+      } else if (window.GC_SITE) acts.appendChild(h('div', { class: 'offline-note' }, esc(T('onlineElsewhere')) + ' <a class="site-link" href="' + esc(window.GC_SITE) + '" target="_blank" rel="noopener">' + esc(window.GC_SITE.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>'));
     }
     // wide screens: a board beside the menu, showing a golden move
     if (window.matchMedia && matchMedia('(min-width: 1100px)').matches && kit()) learnKit.heroBoard(bw, bwOld);
@@ -2886,7 +2993,7 @@
 
   // ------------------------------------------------------------------ boot
   function boot(hotData) {
-    applySettings(); applyLang();
+    applySettings(); applyLang(); nativeInit();
     var saved = (hotData && hotData.game) || load('game', null), g = saved ? Game.restore(saved) : null;
     if (g) {
       game = g; view = game.records.length;

@@ -334,6 +334,8 @@ svg { display: block; }
 .primary:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--gold-edge); }
 .primary:disabled { opacity: .55; cursor: default; transform: none; }
 .secondary { flex: 1; min-width: 100px; height: 52px; border-radius: 14px; background: var(--raise); font-weight: 700; font-size: 15.5px; box-shadow: 0 3px 0 var(--edge); }
+.g-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+.g-btn svg { width: 19px; height: 19px; flex: none; }
 .secondary:hover { background: var(--raise-hi); }
 .secondary:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--edge); }
 .secondary.danger { color: #f6a89c; }
@@ -512,6 +514,18 @@ svg { display: block; }
 .resume .av-s { width: 42px; height: 42px; flex: none; }
 .resume .av-s svg { width: 100%; height: 100%; display: block; }
 .offline-note { font-size: 13.5px; color: var(--muted); text-align: center; line-height: 1.5; }
+.offline-note.app-off { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.offline-note.app-off .linkbtn { align-self: center; color: var(--bone); text-decoration: underline; text-underline-offset: 3px; }
+/* the iPhone / Android app: text isn't selectable outside fields, like in a native app */
+html.native body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html.native input, html.native textarea { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+/* the app runs edge to edge: the tab bar reaches the bottom of the screen and keeps its own icons above the home
+   indicator; screens without the tab bar stop above it */
+html.native:root { padding-bottom: 0; }
+html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
+@media (max-width: 767px) {
+  html.native .shell:not([data-view="game"]):not([data-view="signin"]) .views { margin-bottom: 0; }
+}
 @media (min-width: 768px) { .play-wrap { align-items: center; } .play-head .brand { visibility: hidden; } }
 @media (min-width: 1100px) {
   .play-board { display: block; width: min(560px, calc(100vh - 96px)); }
