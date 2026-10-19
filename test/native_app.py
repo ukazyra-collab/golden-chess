@@ -306,6 +306,13 @@ async def main():
         check('iphone: html marked native ios', 'native' in cls and 'ios' in cls, cls)
         n = await pg.evaluate('Object.keys(__capListeners)')
         check('iphone: links yes, back button no', 'App.appUrlOpen' in n and 'App.backButton' not in n, n)
+        ok = await wait_for(pg, '!!document.getElementById("acct-email")')
+        check('iphone: sign-in by an email code only, no Google (App Store guideline 4.8)', ok and not await pg.evaluate('!!document.getElementById("btn-google")'))
+        await pg.evaluate('__gc.go("play")')
+        ok = await wait_for(pg, '!!document.getElementById("play-meta")')
+        meta = await pg.evaluate('document.getElementById("play-meta") ? document.getElementById("play-meta").textContent : ""')
+        check('iphone: the Play tab says sign-in is by email, no Google', ok and 'email' in meta and 'Google' not in meta, meta)
+        await pg.goto(SITE + '#signin'); await pg.wait_for_timeout(600)
         # a sign-in that finished while the app was closed: the app starts with the link
         await pg.evaluate('localStorage.setItem("test.launchUrl", "goldenchess://auth#access_token=AT9&expires_in=3600&refresh_token=RT9&token_type=bearer")')
         await pg.evaluate('localStorage.setItem("test.nextUser", JSON.stringify({ id: "u9", email: "cold@example.com", is_anonymous: false }))')

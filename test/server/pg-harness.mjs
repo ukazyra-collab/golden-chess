@@ -7,6 +7,8 @@ import postgres from 'postgres';
 import { createPgRepo } from '../../supabase/functions/play/pgrepo.js';
 
 const MIGRATIONS = new URL('../../supabase/migrations/', import.meta.url);
+// migrations written but not applied to the production database yet (they move to migrations/ once applied)
+const PENDING = new URL('../../supabase/pending/', import.meta.url);
 
 // what the migrations rely on from a Supabase project (same definitions as Supabase's own helpers)
 const SUPABASE_STUBS = `
@@ -25,7 +27,10 @@ const SUPABASE_STUBS = `
 export async function createDb(userIds = []) {
   const pg = await PGlite.create();
   await pg.exec(SUPABASE_STUBS);
-  for (const f of fs.readdirSync(MIGRATIONS).filter((x) => x.endsWith('.sql')).sort()) await pg.exec(fs.readFileSync(new URL(f, MIGRATIONS), 'utf8'));
+  for (const dir of [MIGRATIONS, PENDING]) {
+    if (!fs.existsSync(dir)) continue;
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.sql')).sort()) await pg.exec(fs.readFileSync(new URL(f, dir), 'utf8'));
+  }
   for (const id of userIds) await pg.query('insert into auth.users (id) values ($1)', [id]);
   return pg;
 }

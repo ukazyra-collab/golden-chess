@@ -234,6 +234,8 @@ svg { display: block; }
 .gbtn.used svg path { fill: none; stroke: var(--muted); stroke-width: 1.3; }
 .gbtn:disabled { cursor: default; }
 @container gbtn (max-width: 150px) { .gbtn svg { display: none; } .gbtn .t2 { display: none; } }
+/* a long label (Russian: «Золотой ход сделан») takes two lines instead of being cut */
+@container gbtn (max-width: 150px) { .gbtn .t1 { white-space: normal; font-size: 13px; line-height: 1.15; } }
 @keyframes sheen { from { background-position: 0% 0 } to { background-position: 220% 0 } }
 .navs { display: flex; gap: 6px; flex: none; }
 .nbtn { width: 44px; height: 46px; border-radius: 12px; display: grid; place-items: center; color: var(--bone); background: var(--raise); }
@@ -288,10 +290,10 @@ svg { display: block; }
 .stage > .review { gap: 6px; }
 .stage > .review .rv-graph { height: 40px; }
 .stage > .review .coach { height: 142px; padding: 9px 11px; gap: 4px; }
-.stage > .review .coach-body { flex: 1; min-height: 0; overflow-y: auto; }
+.stage > .review .coach-body { flex: 1; min-height: 0; overflow-y: auto; padding-left: 0; } /* the whole width for the words */
 .stage > .review .coach p { font-size: 12.5px; line-height: 1.4; }
-.stage > .review .coach-acts { gap: 6px; padding-top: 2px; }
-.stage > .review .cbtn { height: 34px; padding: 0 10px; font-size: 13px; gap: 5px; }
+.stage > .review .coach-acts { gap: 5px; padding-top: 2px; }
+.stage > .review .cbtn { height: 34px; padding: 0 8px; font-size: 13px; gap: 4px; } /* three Russian labels in one row */
 .stage > .review .cbtn svg { width: 14px; height: 14px; }
 .coach.hint .rv-progress { margin-top: 2px; }
 .cbtn .sh { display: none; }
@@ -332,6 +334,8 @@ svg { display: block; }
 .rp-name { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; font-weight: 700; color: var(--muted); max-width: 92px; }
 .rp-name span { max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rp-name.me { color: var(--gold); }
+/* phones: narrower number columns, so a long class name (Russian «Превосходный») fits */
+@media (max-width: 420px) { .rp-row { grid-template-columns: minmax(0, 1fr) 78px 78px; gap: 6px; } .rp-name, .rp-name span { max-width: 78px; } }
 .rp-name .pc-ic { width: 22px; height: 22px; background-size: 100%; }
 .acc-box { min-width: 72px; padding: 8px 0; border-radius: 10px; font: 800 19px/1 var(--f-ui); font-variant-numeric: tabular-nums; }
 .acc-box.w { background: #f4efe4; color: #1d2120; } .acc-box.b { background: #1f2422; color: #f4efe4; box-shadow: inset 0 0 0 1px var(--line); }
@@ -487,6 +491,8 @@ svg { display: block; }
 .conn { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
 .conn.off { background: #5c6b68; box-shadow: 0 0 0 1.5px var(--danger); }
 .lvl output small { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.linkbtn.del-acct { align-self: center; margin-top: -12px; padding: 8px 12px; color: #ee8f80; font-weight: 600; }
+.linkbtn.del-acct:hover { color: #f6a89c; }
 .dlg-note { font-size: 13.5px; line-height: 1.5; color: var(--muted); background: var(--raise); border-radius: 12px; padding: 10px 14px; }
 .dlg-note.warn { color: #f3c7bf; }
 .rating-change { display: flex; flex-direction: column; gap: 4px; font-size: 14.5px; }

@@ -66,6 +66,8 @@
       confirm: 'Confirm', checking: 'Checking', resend: 'Send again', resendIn: 'Send again in {s} s', otherEmail: 'Use a different email',
       signedInAs: 'Signed in as {email}', signedSub: 'Your name, rating and games are saved to this account. Sign in with this email on any device.',
       signOut: 'Sign out', signedOutToast: 'Signed out. You\u2019re playing as a new guest.', progressSaved: 'Progress saved',
+      deleteAcct: 'Delete account', deleteQ: 'Delete your account?', deleteSub: 'Your name, ratings and sign-in ({email}) are deleted for good. Finished games stay in your opponents\u2019 history.',
+      deletedToast: 'Account deleted. You\u2019re playing as a new guest.',
       emailInvalid: 'Enter a valid email address', codeWrong: 'That code is wrong or has expired', tooMany: 'Too many tries. Wait a minute and try again.',
       sendFailed: 'Couldn\u2019t send the email. Try again later.', finishFirst: 'Finish your online game first',
       linkExpired: 'That sign-in link has expired. Ask for a new code.', signInFailed: 'Couldn\u2019t sign in. Try again.',
@@ -112,7 +114,7 @@
       navBots: 'Bots', easier: 'Easier', stronger: 'Stronger', yourColor: 'Your pieces', botOpp: 'vs {name}', unfinished: 'Game in progress',
       thinkingName: '{name} is thinking', playMain: 'Play', playFriendShort: 'Play a friend', friendT: 'Play a friend',
       friendLink: 'Send a link', friendLinkSub: 'Online. The game starts when your friend opens it',
-      friendHere: 'On this device', friendHereSub: 'Take turns on one screen', signInFree: 'Online play needs a free sign-in: email or Google',
+      friendHere: 'On this device', friendHereSub: 'Take turns on one screen', signInFree: 'Online play needs a free sign-in: email or Google', signInFreeEmail: 'Online play needs a free sign-in by email',
       passPlayLong: 'Two players on one device', learnCta: 'Play a bot', botScore: 'Your score: {w} won, {d} drawn, {l} lost', botNoGames: 'You haven’t played {name} yet',
       againBot: 'Play again',
       // game review: move classes, the coach's words, the report, game history
@@ -202,6 +204,8 @@
       confirm: 'Подтвердить', checking: 'Проверяем', resend: 'Отправить ещё раз', resendIn: 'Ещё раз через {s} с', otherEmail: 'Другая почта',
       signedInAs: 'Вы вошли как {email}', signedSub: 'Имя, рейтинг и партии сохранены в аккаунте. Входите с этой почтой на любом устройстве.',
       signOut: 'Выйти', signedOutToast: 'Вы вышли. Теперь вы играете как новый гость.', progressSaved: 'Прогресс сохранён',
+      deleteAcct: 'Удалить аккаунт', deleteQ: 'Удалить аккаунт?', deleteSub: 'Имя, рейтинг и вход ({email}) удалятся навсегда. Сыгранные партии останутся в истории соперников.',
+      deletedToast: 'Аккаунт удалён. Теперь вы играете как новый гость.',
       emailInvalid: 'Введите корректную почту', codeWrong: 'Код неверный или устарел', tooMany: 'Слишком много попыток. Подождите минуту и попробуйте снова.',
       sendFailed: 'Не удалось отправить письмо. Попробуйте позже.', finishFirst: 'Сначала доиграйте онлайн-партию',
       linkExpired: 'Ссылка для входа устарела. Запросите новый код.', signInFailed: 'Не удалось войти. Попробуйте ещё раз.',
@@ -248,7 +252,7 @@
       navBots: 'Боты', easier: 'Полегче', stronger: 'Посильнее', yourColor: 'Ваш цвет', botOpp: 'соперник: {name}', unfinished: 'Партия идёт',
       thinkingName: '{name} думает', playMain: 'Играть', playFriendShort: 'Играть с другом', friendT: 'Игра с другом',
       friendLink: 'Отправить ссылку', friendLinkSub: 'Онлайн. Партия начнётся, когда друг откроет ссылку',
-      friendHere: 'На одном устройстве', friendHereSub: 'Ходите по очереди на одном экране', signInFree: 'Для игры онлайн нужен вход по почте или через Google, это бесплатно',
+      friendHere: 'На одном устройстве', friendHereSub: 'Ходите по очереди на одном экране', signInFree: 'Для игры онлайн нужен вход по почте или через Google, это бесплатно', signInFreeEmail: 'Для игры онлайн нужен вход по почте, это бесплатно',
       passPlayLong: 'Вдвоём на одном устройстве', learnCta: 'Сыграть с ботом', botScore: 'Ваш счёт: побед {w}, ничьих {d}, поражений {l}', botNoGames: 'Вы ещё не играли с этим ботом',
       againBot: 'Ещё партия',
       c_brilliant: 'Блестящий', c_great: 'Отличный', c_miss: 'Упущенная возможность', c_goldmiss: 'Упущен золотой ход',
@@ -2185,6 +2189,10 @@
   };
   SupaNet.prototype.verifyCode = function (email, code, type) { return this.sb.auth.verifyOtp({ email: email, token: code, type: type }).then(authFail); };
   SupaNet.prototype.signOut = function () { return this.sb.auth.signOut({ scope: 'local' }).then(authFail); };
+  // the player's own account goes (delete_my_account() in the database: not during a live game)
+  SupaNet.prototype.deleteAccount = function () {
+    return this.sb.rpc('delete_my_account').then(function (r) { if (r.error) { var e = new Error(r.error.message || 'delete_failed'); e.data = { error: /live_game/.test(r.error.message || '') ? 'live_game' : 'delete_failed' }; throw e; } });
+  };
   // Google: the ID token Google gave us (see googleIdToken) is linked to this guest, or signs in
   SupaNet.prototype.googleToken = function (token, nonce, link) {
     var o = { provider: 'google', token: token, nonce: nonce };
@@ -2261,6 +2269,7 @@
     return Promise.resolve();
   };
   MockNet.prototype.googleToken = function () { return Promise.reject(new Error('unsupported')); };
+  MockNet.prototype.deleteAccount = function () { return postJson(this.base + '/delete', { token: this.uid }); };
   MockNet.prototype.history = function (uid, before, opp) { return postJson(this.base + '/history', { token: uid, before: before || null, opp: opp || null, limit: HIST_PAGE }).then(function (r) { return r.games || []; }); };
   MockNet.prototype.h2h = function (uid) { return postJson(this.base + '/h2h', { token: uid }).then(function (r) { return r.rows || []; }); };
   MockNet.prototype.top = function (pool) { return this.call('top', { pool: pool }).then(function (r) { return r.rows || []; }); };
@@ -2494,7 +2503,7 @@
         form.appendChild(o.page ? go2 : row([btn('secondary', T('cancel'), o.onCancel), go2]));
         form.addEventListener('submit', function (e) { e.preventDefault(); sendCode(inp.value); });
         card.appendChild(form);
-        if (NETCFG && NETCFG.googleAuth) {
+        if (googleShown()) {
           card.appendChild(h('div', { class: 'acct-or' }, esc(T('or'))));
           var gb = btn('secondary g-btn', T('continueGoogle'), google, 'btn-google'); gb.disabled = st.busy;
           gb.innerHTML = GOOGLE_G + '<span>' + esc(T('continueGoogle')) + '</span>';
@@ -2592,6 +2601,33 @@
     }
     return { stop: function () { alive = false; clearInterval(timer); } };
   }
+  // deleting the account (the stores ask for it inside the app): asked once more, then the page starts over as a guest
+  function confirmDeleteAccount() {
+    if (liveOnlineGame()) { toast(T('finishFirst')); return; }
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'delete';
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('deleteQ'))));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('deleteSub', { email: (me && me.email) || '' }).replace(' ()', ''))));
+      var er = h('div', { class: 'err', id: 'delete-err', role: 'alert' });
+      var row = h('div', { class: 'row-btns' });
+      var n = h('button', { class: 'secondary', type: 'button' }, esc(T('cancel')));
+      var y = h('button', { class: 'secondary danger', type: 'button', id: 'btn-delete-confirm' }, esc(T('deleteAcct')));
+      n.addEventListener('click', closeDialog);
+      y.addEventListener('click', function () {
+        y.disabled = n.disabled = true; er.textContent = '';
+        ensureNet().then(function () { return net.deleteAccount(); }).then(function () {
+          return net.signOut().catch(function () { /* the account is gone already */ });
+        }).then(function () {
+          save('online', null); save('notice', 'deleted'); save('pending', null); save('nameLater', null); save('reviewSums', {}); setUrl(null);
+          location.hash = 'play'; location.reload();
+        }, function (e) {
+          y.disabled = n.disabled = false;
+          er.textContent = e && e.data && e.data.error === 'live_game' ? T('finishFirst') : T('netError');
+        });
+      });
+      row.appendChild(n); row.appendChild(y); card.appendChild(row); card.appendChild(er);
+    });
+  }
   function doSignOut(onErr) {
     net.signOut().then(function () { save('online', null); save('notice', 'signedOut'); save('pending', null); setUrl(null); location.hash = 'play'; location.reload(); }, onErr);
   }
@@ -2681,6 +2717,9 @@
       return s;
     });
   }
+  // Google is offered everywhere but in the iPhone app: the App Store asks for Sign in with Apple next to any other
+  // company's sign-in (guideline 4.8). There the code by email reaches the same account (Supabase matches the address).
+  function googleShown() { return !!(NETCFG && NETCFG.googleAuth) && !(NATIVE.on && NATIVE.platform === 'ios'); }
   function googleOn() { return !!(NETCFG && NETCFG.googleAuth && NETCFG.googleClientId && NETCFG.mock == null) && !!(window.crypto && crypto.subtle && window.TextEncoder); }
   var gsi = null; // { ready: Promise of google.accounts.id, nonce: the raw nonce for Supabase, failed }
   function gsiLoad() {
@@ -3299,7 +3338,7 @@
       acts.appendChild(tcb);
       acts.appendChild(bigBtn('start-btn', T('playMain'), 'btn-start', function () { requireAccount({ kind: 'seek', tc: tc, rated: rated }); }));
       acts.appendChild(bigBtn('second-btn', T('playFriendShort'), 'btn-friend', friendSheet));
-      acts.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(signedIn() ? T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase() : T('signInFree'))));
+      acts.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(signedIn() ? T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase() : T(googleShown() ? 'signInFree' : 'signInFreeEmail'))));
     } else {
       acts.appendChild(bigBtn('start-btn', T('playBot'), 'btn-start', function () { go('bots'); }));
       acts.appendChild(bigBtn('second-btn', T('passPlayLong'), 'btn-pass', showLocalSetup));
@@ -3509,6 +3548,9 @@
           doSignOut(function (e) { so.disabled = false; soErr.textContent = authMsg(e); });
         });
         var row = h('div', { class: 'row-btns' }); row.appendChild(so); inn.appendChild(row); inn.appendChild(soErr);
+        var del = h('button', { type: 'button', class: 'linkbtn del-acct', id: 'btn-delete-acct' }, esc(T('deleteAcct')));
+        del.addEventListener('click', confirmDeleteAccount);
+        inn.appendChild(del);
       } else {
         var si = h('button', { type: 'button', class: 'primary', id: 'btn-profile-signin' }, esc(T('signIn')));
         si.addEventListener('click', function () { setPending({ kind: 'view', v: 'profile' }); go('signin'); });
@@ -3734,6 +3776,7 @@
       save('notice', null);
       ensureNet().then(function () {
         if (note === 'signedOut') toast(T('signedOutToast'));
+        else if (note === 'deleted') toast(T('deletedToast'));
         else {
           toast(signedIn() ? T('signedInAs', { email: me.email || '' }) : T('signInFailed'));
           if (signedIn()) signedInNext();

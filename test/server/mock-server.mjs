@@ -131,6 +131,21 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({ games: rows.slice(0, b.limit || 50).map(clone) }));
     return;
   }
+  // a player deletes their own account (delete_my_account() on Supabase)
+  if (req.method === 'POST' && u.pathname === '/delete') {
+    const b = await readBody(req), uid = b.token;
+    const send = (st, o) => { res.writeHead(st, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
+    if (!uid) return send(401, { error: 'not_signed_in' });
+    if ([...db.games.values()].some((g) => g.status === 'playing' && (g.white_id === uid || g.black_id === uid))) return send(400, { error: 'live_game' });
+    for (const g of db.games.values()) {
+      if (g.status === 'waiting' && g.host_id === uid) Object.assign(g, { status: 'aborted', result: '*', reason: 'abort' });
+      for (const k of ['white_id', 'black_id', 'host_id']) if (g[k] === uid) g[k] = null;
+    }
+    db.profiles.delete(uid); db.seeks.delete(uid);
+    for (const k of [...db.ratings.keys()]) if (k.startsWith(uid + '|')) db.ratings.delete(k);
+    const email = accounts.emailOf.get(uid); accounts.emailOf.delete(uid); if (email) accounts.uidOf.delete(email);
+    return send(200, { ok: true });
+  }
   // the score against each opponent over all finished games (head_to_head() on Supabase)
   if (req.method === 'POST' && u.pathname === '/h2h') {
     const b = await readBody(req), me = b.token, by = new Map();

@@ -19,7 +19,7 @@
 1. Supabase → **Authentication → URL Configuration → Redirect URLs** → добавить `goldenchess://auth`. Без этого вход из приложения вернётся не в приложение, а на сайт в браузере.
 2. Supabase → **Authentication → Sign In / Providers → Google**: включён, Client ID и Client Secret из Google Cloud. Там же включено **Allow manual linking** (гость привязывает Google к своему же аккаунту, рейтинг и партии остаются).
 3. Google Cloud: у клиента «Golden Chess web» источник `https://golden-chess.com` и адрес возврата `https://golden-chess.com/google.html` — их хватает и сайту, и приложению. Supabase проверяет токен Google по этому же Client ID.
-4. **Перед App Store:** если в приложении есть кнопка Google, нужен ещё вход через Apple (правило 4.8). Делается после одобрения платного аккаунта Apple — до этого для теста на своём iPhone ничего не нужно.
+4. **App Store, правило 4.8** (рядом со входом через другую компанию нужен вход через Apple): в приложении для iPhone кнопки Google нет (`googleShown()` в `src/ui/app.js`), там вход только по коду из письма — он попадает в тот же аккаунт, что и Google с той же почтой. Сайт и Android — с Google, как раньше.
 
 ## 2. iPhone по кабелю (без платного аккаунта)
 
@@ -51,11 +51,20 @@ npx cap open ios # откроется Xcode; в первый раз он мин�
 
 **Через Android Studio.** `cd golden-chess/app && npm install && sh build.sh && npx cap open android` → телефон по USB (**Settings → About phone → Build number** 7 раз → **Developer options → USB debugging**) → **▶ Run**.
 
-## 4. Магазины (когда одобрят аккаунты Kozyra Media)
+## 4. Магазины
 
-**App Store.** Сначала вход через Apple (раздел 1.4) и страница политики конфиденциальности на сайте. Потом `sh release.sh` → Xcode → Team = Kozyra Media → **Product → Archive → Distribute App → App Store Connect**. В App Store Connect: New App, Bundle ID `com.kozyramedia.goldenchess`, категория Games → Board, App Privacy: email и ID пользователя (для аккаунта), игровой контент; не для рекламы и не для слежки. `ITSAppUsesNonExemptEncryption = false` уже в `Info.plist`, вопрос про шифрование не задаётся.
+Удаление аккаунта (требуют оба магазина): **Профиль → Удалить аккаунт**, функция `delete_my_account()` в базе; адрес для форм магазинов — https://golden-chess.com/privacy.html#delete. Поддержка — https://golden-chess.com/support.html, политика — https://golden-chess.com/privacy.html. Скриншоты и графика для магазинов: `python3 test/store_shots.py <папка> en|ru` (Android 1080×2160, iPhone 6.9" 1320×2868, iPad 13" 2064×2752, баннер Google Play 1024×500, иконка 512).
 
-**Google Play.** Android Studio → **Build → Generate Signed App Bundle → Android App Bundle → Create new keystore** (файл `golden-chess-upload.jks` хранить вне репозитория, пароли записать — это ключ загрузки; приложение подписывает сам Google) → `.aab` в `android/app/release/` → Play Console → Create app «Golden Chess» → Internal testing → Production. Версии: `versionCode` +1 на каждую загрузку.
+**Google Play.** Каждая правка в `app/` собирает на GitHub ещё и неподписанный `.aab` (релиз **android-bundle**, файл `golden-chess-unsigned.aab`). Его подписывает ключ загрузки (`golden-chess-upload.jks`, alias `upload`; хранится вне репозитория, у владельца аккаунта вместе с паролем):
+
+```bash
+jarsigner -keystore golden-chess-upload.jks -sigalg SHA256withRSA -digestalg SHA-256 golden-chess-unsigned.aab upload
+jarsigner -verify golden-chess-unsigned.aab   # jar verified.
+```
+
+Приложение для пользователей подписывает сам Google (Play App Signing). Перед каждой новой загрузкой — `versionCode` +1 и `versionName` в `android/app/build.gradle`.
+
+**App Store.** `sh release.sh` → Xcode → Team = Kozyra Media → **Product → Archive → Distribute App → App Store Connect**. В App Store Connect: New App, Bundle ID `com.kozyramedia.goldenchess`, категория Games → Board, App Privacy: почта, имя, ID пользователя, игровой контент — для работы приложения, не для рекламы и не для слежки. `ITSAppUsesNonExemptEncryption = false` уже в `Info.plist`, вопрос про шифрование не задаётся. Перед каждой новой загрузкой — build +1 (Xcode → target App → General).
 
 ## Что где
 

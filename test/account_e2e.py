@@ -81,6 +81,15 @@ async def main():
             async def send_code(pg, email):
                 await pg.fill('#acct-email', email); await pg.click('#btn-send-code')
                 return await wait_for(pg, '!!document.getElementById("acct-code")', 5000)
+            async def sign_in_name(pg, email, name):  # the sign-in page, the code, the name
+                await pg.evaluate('__gc.closeDialog(); __gc.go("signin")')
+                await wait_for(pg, '!!document.getElementById("acct-email")', 3000)
+                await pg.wait_for_timeout(1100)  # the mock refuses a second code to the same address within a second
+                if not await send_code(pg, email): return False
+                await pg.fill('#acct-code', last_code(email)['code'])
+                if not await wait_for(pg, '!!document.getElementById("acct-name")', 5000): return False
+                await pg.fill('#acct-name', name); await pg.click('#btn-name')
+                return await wait_for(pg, '__gc.me && __gc.me.profile && __gc.me.profile.username === %s' % json.dumps(name), 5000)
             async def pair(A, B):
                 for pg in (A, B):
                     await pg.evaluate('__gc.closeDialog(); __gc.go("play")')
@@ -212,6 +221,27 @@ async def main():
             ok('and returns to it', await wait_for(B, '__gc.curView === "game" && __gc.game.status === "playing"', 3000))
             await abort(B)
             ok('game aborted', await wait_for(A, '__gc.game.reason === "abort"', 5000))
+
+            # ---- 7b. deleting an account: refused during a live game, then gone for good (B, Bob)
+            ok('new game paired (delete)', await pair(A, B))
+            await B.evaluate('__gc.go("profile")')  # on a phone the game hides the tab bar: back, then Profile
+            ok('profile during the game (B)', await wait_for(B, '__gc.curView === "profile"', 3000))
+            await wait_for(B, '!!document.getElementById("btn-delete-acct")', 3000)
+            await B.click('#btn-delete-acct')
+            ok('deleting mid-game is refused', await wait_for(B, '/finish/i.test(document.getElementById("toast").textContent)', 3000), await toast_text(B))
+            await abort(A)
+            await wait_for(B, '__gc.game.reason === "abort"', 5000)
+            uidB = await B.evaluate('__gc.me.uid')
+            await B.evaluate('__gc.closeDialog(); __gc.go("profile")'); await wait_for(B, '!!document.getElementById("btn-delete-acct")', 3000)
+            await B.click('#btn-delete-acct')
+            ok('asked once more, with the account named', await wait_for(B, '__gc.dialogKind === "delete" && /bob@example.com/.test(document.querySelector(".sheetdlg").textContent)', 3000))
+            await shot(B, '5-delete')
+            await B.click('#btn-delete-confirm')
+            ok('deleted: a new guest after reload', await wait_for(B, '!!window.__gc && !!__gc.me && __gc.me.uid !== %s && __gc.me.guest === true' % json.dumps(uidB), 8000))
+            ok('toast: account deleted', await wait_for(B, '/account deleted/i.test(document.getElementById("toast").textContent)', 3000), await toast_text(B))
+            ok('the profile is gone on the server', not [x for x in admin('profiles') if x['id'] == uidB])
+            ok('the finished games stay for the opponent', any(g['status'] == 'over' and (g['white_name'] == 'Bob' or g['black_name'] == 'Bob') for g in admin('games')))
+            ok('the name Bob is free again', await sign_in_name(B, 'bob@example.com', 'Bob'))
 
             # ---- 8. an expired sign-in link brings the player back with a clear message
             D = await open_page(await br.new_context(viewport={'width': 800, 'height': 900}), 'D', BASE + '#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired')
