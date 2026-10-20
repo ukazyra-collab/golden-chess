@@ -53,7 +53,7 @@ npx cap open ios # откроется Xcode; в первый раз он мин�
 
 ## 4. Магазины
 
-Удаление аккаунта (требуют оба магазина): **Профиль → Удалить аккаунт**, функция `delete_my_account()` в базе; адрес для форм магазинов — https://golden-chess.com/privacy.html#delete. Поддержка — https://golden-chess.com/support.html, политика — https://golden-chess.com/privacy.html. Скриншоты и графика для магазинов: `python3 test/store_shots.py <папка> en|ru` (Android 1080×2160, iPhone 6.9" 1320×2868, iPad 13" 2064×2752, баннер Google Play 1024×500, иконка 512).
+Удаление аккаунта (требуют оба магазина): **Профиль → Удалить аккаунт**, функция `delete_my_account()` в базе; адрес для форм магазинов — https://golden-chess.com/privacy.html#delete. Поддержка — https://golden-chess.com/support.html, политика — https://golden-chess.com/privacy.html. Скриншоты и графика для магазинов: `python3 test/store_shots.py <папка> en|ru` (Android 1080×2160, iPhone 6.9" 1320×2868, iPad 13" 2064×2752, баннер Google Play 1024×500, иконка 512). Google Play принимает скриншоты телефона только 9:16 — их собирает `python3 test/store_frames.py <папка> en|ru` (экран под подписью, 1080×1920). Готовые файлы и подписанный `.aab` лежат в ветке `store-builds` (папки `store/en`, `store/ru`).
 
 **Google Play.** Каждая правка в `app/` собирает на GitHub ещё и неподписанный `.aab` (релиз **android-bundle**, файл `golden-chess-unsigned.aab`). Его подписывает ключ загрузки (`golden-chess-upload.jks`, alias `upload`; хранится вне репозитория, у владельца аккаунта вместе с паролем):
 
