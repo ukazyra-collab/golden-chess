@@ -392,6 +392,11 @@ svg { display: block; }
 .gh-score-n span { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .gh-score-n span.me { text-align: right; color: var(--gold); }
 .gh-score-n b { font: 800 30px/1 var(--f-ui); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 .gh-score em { font-style: normal; font-size: 12.5px; color: var(--muted); }
+.h2h-over { width: 100%; background: var(--raise); padding: 14px 14px 12px; }
+.h2h-over .gh-score-n b { font-size: 26px; }
+.h2h-over em::after { content: '\203A'; margin-left: 6px; font-size: 15px; color: var(--bone); }
+.h2h-over:active { transform: scale(.985); }
+#profile-chips { margin-bottom: 4px; }
 .gh-empty { padding: 18px 4px; } .secondary.gh-more, .gh-card > .secondary { flex: none; width: 100%; }
 .gh-card { display: flex; flex-direction: column; gap: 6px; }
 .rv-verdict { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 13.5px; }
@@ -6540,6 +6545,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
           sp.addEventListener('click', function () { showAccount(showOver); });
           nudge.appendChild(sp); card.appendChild(nudge);
         }
+        var ms = h('div', { id: 'over-h2h-slot' }); card.appendChild(ms); renderMatch(ms);
         // rematch is the main action; the review sits next to it, a new opponent below
         var rv = h('button', { class: 'secondary', type: 'button', id: 'btn-over-review' }, esc(T('review')));
         rv.addEventListener('click', function () { closeDialog(); showReport(); renderSide(); });
@@ -6566,6 +6572,39 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       row.appendChild(again); row.appendChild(anaB);
       card.appendChild(row);
     });
+  }
+
+  // the score against this opponent over all their games together, the one just finished included (the result card);
+  // a tap opens all the games against them
+  function matchScore() {
+    var o = online, m = o && o.match, d = m && m.data;
+    if (!d || !game || !game.online || o.color < 0) return null;
+    var s = { id: m.opp, name: game.cfg.names[o.color ^ 1], w: d.w, d: d.d, l: d.l, n: d.n };
+    if (game.status === 'over' && game.reason !== 'abort' && !d.ids[o.id]) {
+      var r = humanOutcome(); s.n++;
+      if (r === 1) s.w++; else if (r === 0) s.d++; else s.l++;
+    }
+    return s.n ? s : null;
+  }
+  function renderMatch(slot) {
+    var s = matchScore();
+    slot.innerHTML = ''; slot.hidden = !s;
+    if (!s) return;
+    var b = h('button', { type: 'button', class: 'gh-score h2h-over', id: 'over-h2h' }, scoreHtml(s));
+    b.addEventListener('click', function () { closeDialog(); openOppGames(s.id); });
+    slot.appendChild(b);
+  }
+  // asked for as an online game opens (the games between the two so far), so the result card has the score at once;
+  // ids: the latest of those games, to tell whether the game on the board is already counted
+  function loadMatch(o, opp) {
+    o.match = { opp: opp, data: null };
+    Promise.all([net.h2h(me.uid), net.history(me.uid, null, opp)]).then(function (r) {
+      var row = (r[0] || []).filter(function (x) { return x.opp_id === opp; })[0] || { wins: 0, draws: 0, losses: 0, games: 0 }, ids = {};
+      (r[1] || []).forEach(function (g) { ids[g.id] = 1; });
+      o.match.data = { w: row.wins, d: row.draws, l: row.losses, n: row.games, ids: ids };
+      var slot = online === o && currentDialog ? document.getElementById('over-h2h-slot') : null;
+      if (slot) renderMatch(slot);
+    }, function () { /* no score on the card */ });
   }
 
   function abortable() { return (botGame() || onlineGame()) && game.records.length < 2; }
@@ -7735,6 +7774,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     board.setOrientation(orient);
     board.sync(game.pos.board, [], { instantAll: true });
     var opp = color === 0 ? s.black_id : s.white_id;
+    if (color >= 0 && opp) loadMatch(o, opp);
     o.sub = net.sub('g:' + s.id, {
       event: function (ev, p) { if (ev === 'state' && online === o) { o.lastEvent = perf(); onServerState(p); } },
       status: function (st) { if (online !== o) return; var was = o.connected; o.connected = st === 'SUBSCRIBED'; if (o.connected && !was) resyncOnline(); },
@@ -8303,6 +8343,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     host.innerHTML = '';
     var inn = h('div', { class: 'page-in' }); host.appendChild(inn);
     inn.appendChild(h('h1', { class: 'page-h' }, esc(T('navProfile'))));
+    var tail = []; // sign out and delete account sit at the end of the page, below the games and settings
     if (NETCFG) {
       if (!me && hasNetSession()) ensureNet().then(function () { if (curView === 'profile') renderProfile(); }, function () { /* offline */ });
       var nm = me && me.profile && signedIn() ? me.profile.username : T('profileGuest');
@@ -8330,10 +8371,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
           so.disabled = true;
           doSignOut(function (e) { so.disabled = false; soErr.textContent = authMsg(e); });
         });
-        var row = h('div', { class: 'row-btns' }); row.appendChild(so); inn.appendChild(row); inn.appendChild(soErr);
+        var row = h('div', { class: 'row-btns' }); row.appendChild(so);
         var del = h('button', { type: 'button', class: 'linkbtn del-acct', id: 'btn-delete-acct' }, esc(T('deleteAcct')));
         del.addEventListener('click', confirmDeleteAccount);
-        inn.appendChild(del);
+        tail.push(row, soErr, del);
       } else {
         var si = h('button', { type: 'button', class: 'primary', id: 'btn-profile-signin' }, esc(T('signIn')));
         si.addEventListener('click', function () { setPending({ kind: 'view', v: 'profile' }); go('signin'); });
@@ -8345,6 +8386,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     sc.appendChild(h('h2', null, esc(T('settings'))));
     buildSettings(sc, renderProfile);
     inn.appendChild(sc);
+    tail.forEach(function (x) { inn.appendChild(x); });
     var ll = h('button', { type: 'button', class: 'linkbtn', id: 'btn-howto' }, esc(T('howItWorks')));
     ll.addEventListener('click', function () { go('learn'); });
     inn.appendChild(ll);
@@ -8434,6 +8476,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     for (var k in by) out.push(by[k]);
     return out.sort(function (a, b) { return b.n - a.n || b.at - a.at; });
   }
+  // the score as chess counts a match: a win is a point, a draw half a point to each (6½ : 10½)
+  function pts(w, d) { var p = w + d / 2, n = Math.floor(p); return (n || p === n ? String(n) : '') + (p > n ? '½' : ''); }
+  function wdlText(o) {
+    if (lang !== 'en') return T('wdl', { w: o.w, d: o.d, l: o.l });
+    return o.w + (o.w === 1 ? ' win, ' : ' wins, ') + o.d + (o.d === 1 ? ' draw, ' : ' draws, ') + o.l + (o.l === 1 ? ' loss' : ' losses');
+  }
+  function gamesText(n) { return lang === 'en' && n === 1 ? '1 game' : T('gamesN', { n: n }); }
+  // You 6½ : 10½ Boris, and the wins, draws and losses under it (the games page and the result card)
+  function scoreHtml(o) {
+    return '<div class="gh-score-n"><span class="me">' + esc(T('you')) + '</span><b>' + pts(o.w, o.d) + ' : ' + pts(o.l, o.d) + '</b><span>' + esc(o.name) + '</span></div>' +
+      '<em>' + esc(wdlText(o)) + ' · ' + esc(gamesText(o.n)) + '</em>';
+  }
+  function chipsHtml(opps, all) {
+    var s = all ? '<button type="button" class="gh-chip' + (hist.filter ? '' : ' on') + '" data-opp="">' + esc(T('allOpponents')) + '</button>' : '';
+    opps.forEach(function (o) {
+      s += '<button type="button" class="gh-chip' + (all && hist.filter === o.id ? ' on' : '') + '" data-opp="' + esc(o.id) + '"><b>' + esc(o.name) + '</b><span>' + pts(o.w, o.d) + ':' + pts(o.l, o.d) + '</span></button>';
+    });
+    return s;
+  }
   function dayText(t) {
     var d = new Date(t), now = new Date(), y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
     var hm = d.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
@@ -8463,13 +8524,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     inn.appendChild(h('h1', { class: 'page-h' }, esc(T('games'))));
     if (!hist.items) { inn.appendChild(h('div', { class: 'muted' }, esc(T('connecting')) + '…')); return; }
     var items = hist.items, opps = h2hOf(items), sums = load('reviewSums', {});
-    if (opps.length) {
-      var chips = '<button type="button" class="gh-chip' + (hist.filter ? '' : ' on') + '" data-opp="">' + esc(T('allOpponents')) + '</button>';
-      opps.slice(0, 12).forEach(function (o) {
-        chips += '<button type="button" class="gh-chip' + (hist.filter === o.id ? ' on' : '') + '" data-opp="' + esc(o.id) + '"><b>' + esc(o.name) + '</b><span>' + o.w + ':' + o.l + '</span></button>';
-      });
-      inn.appendChild(h('div', { class: 'gh-chips', id: 'gh-chips' }, chips));
-    }
+    if (opps.length) inn.appendChild(h('div', { class: 'gh-chips', id: 'gh-chips' }, chipsHtml(opps.slice(0, 12), true)));
     var oppMore = false;
     if (hist.filter) {
       var o = opps.filter(function (x) { return x.id === hist.filter; })[0], seen = {};
@@ -8480,7 +8535,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
         items.sort(function (a, b) { return b.at - a.at; });
         oppMore = hist.opp.more;
       }
-      if (o) inn.appendChild(h('div', { class: 'gh-score', id: 'gh-score' }, '<div class="gh-score-n"><span class="me">' + esc(T('you')) + '</span><b>' + o.w + ' : ' + o.l + '</b><span>' + esc(o.name) + '</span></div><em>' + esc(T('h2hDraws', { d: o.d })) + ' · ' + esc(T('gamesN', { n: o.n })) + '</em>'));
+      if (o) inn.appendChild(h('div', { class: 'gh-score', id: 'gh-score' }, scoreHtml(o)));
     }
     var list = h('div', { class: 'gh-list', id: 'gh-list' }, items.map(function (it) { return histRow(it, sums); }).join(''));
     inn.appendChild(list);
@@ -8498,6 +8553,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     if (!hist.items || !hist.items.length) return;
     var card = h('div', { class: 'card gh-card', id: 'profile-games' });
     card.appendChild(h('h2', null, esc(T('games'))));
+    // the score against each opponent at a glance; a chip opens all the games against that opponent
+    var opps = h2hOf(hist.items);
+    if (opps.length) card.appendChild(h('div', { class: 'gh-chips', id: 'profile-chips' }, chipsHtml(opps.slice(0, 8), false)));
     card.appendChild(h('div', { class: 'gh-list' }, hist.items.slice(0, 4).map(function (it) { return histRow(it, load('reviewSums', {})); }).join('')));
     var all = h('button', { type: 'button', class: 'secondary', id: 'btn-all-games' }, esc(T('allGames')));
     all.addEventListener('click', function () { hist.filter = null; go('games'); });
@@ -8508,7 +8566,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     var row = e.target.closest('.gh-row');
     if (row) { openHistory(row.dataset.key); return; }
     var chip = e.target.closest('.gh-chip');
-    if (chip) { hist.filter = chip.dataset.opp || null; if (hist.filter) loadOppGames(hist.filter); renderGames(); }
+    if (chip) openOppGames(chip.dataset.opp || null);
+  }
+  // the games page for one opponent (or everyone): the score card and all the games against them
+  function openOppGames(id) {
+    hist.filter = id;
+    if (id) loadOppGames(id);
+    if (curView === 'games') renderGames(); else go('games');
   }
   // open a past game on the board, with its review
   function openHistory(key) {
@@ -8620,7 +8684,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     onlineAction: onlineAction, showNewGame: showNewGame, serverNow: serverNow, cancelPremoves: cancelPremoves,
     showAccount: showAccount, showSettings: showSettings, showOver: showOver, showReport: showReport,
     go: go, get curView() { return curView; }, showBotSetup: showBotSetup, showLocalSetup: showLocalSetup, botThinkMs: botThinkMs,
-    historyStale: function () { hist.at = 0; }
+    historyStale: function () { hist.at = 0; },
+    pts: pts
   };
 })();
 

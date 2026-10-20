@@ -105,6 +105,17 @@ async def main():
                     ok('game 2: the golden move went through', await W.evaluate('__gc.game.records[4].golden'))
                 await resign(B if k == 0 else A)  # Boris loses the first, Anna the second
                 ok(f'game {k + 1}: over', await wait_for(A, '__gc.game.status === "over"', 6000) and await wait_for(B, '__gc.game.status === "over"', 6000))
+                # the result card: the score between the two, the game just finished included
+                want_a, want_b = ('1 : 0', '0 : 1') if k == 0 else ('1 : 1', '1 : 1')
+                card_js = '(document.getElementById("over-h2h") || {}).textContent || ""'
+                ok(f'game {k + 1}: result card score (Anna {want_a} Boris)', await wait_for(A, f'(() => {{ const t = {card_js}; return t.includes("{want_a}") && t.includes("Boris"); }})()', 4000), await A.evaluate(card_js))
+                ok(f'game {k + 1}: result card score (Boris {want_b} Anna)', await wait_for(B, f'(() => {{ const t = {card_js}; return t.includes("{want_b}") && t.includes("Anna"); }})()', 4000), await B.evaluate(card_js))
+                if k == 0: await shot(A, '0-over-score')
+            # a tap on the score opens all the games against that opponent
+            await A.click('#over-h2h')
+            ok('result card score opens the games against Boris', await wait_for(A, '__gc.curView === "games" && /1 : 1/.test((document.getElementById("gh-score") || {}).textContent || "") && document.querySelector("#gh-chips .gh-chip.on b") && document.querySelector("#gh-chips .gh-chip.on b").textContent === "Boris"', 5000),
+               await A.evaluate('[__gc.curView, (document.getElementById("gh-score") || {}).textContent]'))
+            ok('points: a draw is half a point', await A.evaluate('__gc.pts(6, 1) === "6½" && __gc.pts(0, 1) === "½" && __gc.pts(10, 0) === "10" && __gc.pts(0, 0) === "0"'))
             await A.evaluate('__gc.closeDialog()'); await B.evaluate('__gc.closeDialog()')
 
             # ---- Profile: the last games; All games: the score with Boris and both games
@@ -113,6 +124,10 @@ async def main():
                await A.evaluate('document.querySelectorAll("#profile-games .gh-row").length'))
             rows = await A.evaluate('[...document.querySelectorAll("#profile-games .gh-row")].map(r => r.textContent)')
             ok('rows name the opponent and the rating change', all('Boris' in r for r in rows) and any('+' in r or '−' in r for r in rows), rows)
+            pchips = await A.evaluate('[...document.querySelectorAll("#profile-chips .gh-chip")].map(c => c.textContent)')
+            ok('profile: the score against Boris (1:1)', any('Boris' in c and '1:1' in c for c in pchips), pchips)
+            order = await A.evaluate('(() => { const ids = [...document.querySelectorAll("#view-profile .page-in > *")].map(e => e.id || e.className); return [ids.indexOf("profile-games"), ids.findIndex(x => /row-btns/.test(x))]; })()')
+            ok('profile: games come before sign out', order[0] >= 0 and order[1] > order[0], order)
             await shot(A, '1-profile')
             await A.click('#btn-all-games')
             ok('all games: the games page', await wait_for(A, '__gc.curView === "games" && document.querySelectorAll("#gh-list .gh-row").length === 2'))
@@ -209,10 +224,11 @@ async def main():
             ok('long history: the first page of games', await wait_for(A, 'document.querySelectorAll("#gh-list .gh-row").length === 51 && !!document.getElementById("btn-more-games")', 6000),
                await A.evaluate('document.querySelectorAll("#gh-list .gh-row").length'))
             chips = await A.evaluate('[...document.querySelectorAll("#gh-chips .gh-chip")].map(c => c.textContent)')
-            ok('long history: the score with Boris counts every game (32:26)', any('Boris' in c and '32:26' in c for c in chips), chips)
+            # 32 wins, 4 draws, 26 losses: 34 points to 28
+            ok('long history: the score with Boris counts every game (34:28 in points)', any('Boris' in c and '34:28' in c for c in chips), chips)
             await A.click('#gh-chips .gh-chip:nth-child(2)')
             sc = await A.evaluate('(document.getElementById("gh-score") || {}).textContent || ""')
-            ok('long history: score card 32 : 26, 4 draws, 62 games', '32 : 26' in sc and '4' in sc and '62' in sc, sc)
+            ok('long history: score card 34 : 28, 32 wins, 4 draws, 26 losses, 62 games', '34 : 28' in sc and '32 wins' in sc and '4 draws' in sc and '26 losses' in sc and '62 games' in sc, sc)
             await shot(A, '9-long-score')
             ok('long history: Boris\'s games, first page', await wait_for(A, 'document.querySelectorAll("#gh-list .gh-row").length === 50 && !!document.getElementById("btn-more-games")', 6000),
                await A.evaluate('document.querySelectorAll("#gh-list .gh-row").length'))
@@ -232,6 +248,10 @@ async def main():
             await A.reload(); await A.evaluate(HELPERS)
             await A.evaluate('__gc.go("games")')
             ok('Russian: Партии', await wait_for(A, '/Партии/.test(document.querySelector("#view-games h1").textContent)', 5000))
+            await wait_for(A, 'document.querySelectorAll("#gh-chips .gh-chip").length >= 2', 5000)
+            await A.click('#gh-chips .gh-chip:nth-child(2)')
+            sc = await A.evaluate('(document.getElementById("gh-score") || {}).textContent || ""')
+            ok('Russian: счёт в очках и победы/ничьи/поражения', 'Вы' in sc and '34 : 28' in sc and 'побед 32' in sc and 'ничьих 4' in sc and 'поражений 26' in sc, sc)
             await shot(A, '5-ru')
 
             for nm in errs:

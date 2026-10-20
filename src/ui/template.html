@@ -383,6 +383,11 @@ svg { display: block; }
 .gh-score-n span { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .gh-score-n span.me { text-align: right; color: var(--gold); }
 .gh-score-n b { font: 800 30px/1 var(--f-ui); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 .gh-score em { font-style: normal; font-size: 12.5px; color: var(--muted); }
+.h2h-over { width: 100%; background: var(--raise); padding: 14px 14px 12px; }
+.h2h-over .gh-score-n b { font-size: 26px; }
+.h2h-over em::after { content: '\203A'; margin-left: 6px; font-size: 15px; color: var(--bone); }
+.h2h-over:active { transform: scale(.985); }
+#profile-chips { margin-bottom: 4px; }
 .gh-empty { padding: 18px 4px; } .secondary.gh-more, .gh-card > .secondary { flex: none; width: 100%; }
 .gh-card { display: flex; flex-direction: column; gap: 6px; }
 .rv-verdict { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 13.5px; }
