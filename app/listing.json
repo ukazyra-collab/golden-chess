@@ -1,0 +1,20 @@
+{
+ "name": "Golden Chess",
+ "subtitle": "Chess with one golden move",
+ "privacyPolicyUrl": "https://golden-chess.com/privacy.html",
+ "supportUrl": "https://golden-chess.com/support.html",
+ "marketingUrl": "https://golden-chess.com",
+ "promotionalText": "Regular chess plus one golden move per game: teleport a queen, rook, bishop or knight to any empty square. Bots, friends and rated games online.",
+ "keywords": "chess,chess variant,golden move,chess puzzles,chess bot,board game,online chess,chess coach,rating",
+ "description": "Golden Chess is regular chess with one extra move for each player: once per game, teleport your queen, rook, bishop or knight to any empty square. That is the golden move. It cannot capture and cannot give check, but it can block one. Kings and pawns stay where they are. Everything else is the chess you know: castling, en passant, promotion.\n\nOne move changes everything: a rook lands behind the enemy lines, a knight appears next to the king, a bishop closes a diagonal at the last second. Save it for the right moment, or spend it early and press. The game is familiar in the first minute and new every time after.\n\nWHAT YOU GET\n• Eight bots from 600 to 2500, each with its own style, from a park player to a machine.\n• Rated games online: bullet, blitz and rapid, with a Golden Chess rating of your own.\n• Two players on one phone.\n• A review after every game: accuracy, brilliant moves, mistakes and blunders, and the golden moves you missed.\n• A coach that explains every mistake with the line that punishes it, and shows the best line, golden moves included.\n• Learn: the rule in pictures, then puzzles with golden moves to find.\n• Game history, premoves, smooth animations and sounds, dark board.\n• English and Russian. No ads.\n\nHOW IT WORKS\n1. Pick a bot, a friend on the same phone, or a rated game online.\n2. Play chess. When the moment comes, tap the golden move and put a piece anywhere.\n3. After the game, read the review and see what the golden move could have done.\n\nBots and two-player games need no account. Online games and the rating need a free one.",
+ "whatsNew": "Golden Chess on the App Store: one golden move per game, eight bots, rated games online, a review and a coach after every game.",
+ "copyright": "2026 Kozyra Media Group",
+ "review": {
+  "firstName": "Uladzislau",
+  "lastName": "Kazyra",
+  "email": "",
+  "phone": "",
+  "demoAccount": "",
+  "notes": "Golden Chess is a chess variant: regular chess plus one \"golden move\" per player per game (teleport a queen, rook, bishop or knight to any empty square; no capture, no check).\n\nMost of the app works without an account: tap Play → Bots and play any bot; Play → Two players for a local game; Learn for the rule and puzzles. Online rated games and the game history need an account.\n\nDEMO ACCOUNT: sign in with the e-mail and password given above (Profile → Sign in → \"I have a password\"; the default sign-in is a 6-digit code sent by e-mail). With an account you can also play a rated game online and open the review of any finished game (Profile → History → Start review); a game against a bot shows the same review without an account.\n\nSign-in options in this build: e-mail (6-digit code) and e-mail + password. Google sign-in is not offered in the iOS app (the web version offers it).\n\nThe app shows the live web app (golden-chess.com) in a native shell; the chess engine runs on the device."
+ }
+}
