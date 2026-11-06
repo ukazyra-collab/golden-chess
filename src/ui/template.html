@@ -673,6 +673,8 @@ svg { display: block; }
 .play-wrap { min-height: 100%; box-sizing: border-box; display: flex; align-items: flex-start; justify-content: center; gap: 48px;
   padding-block: 18px 32px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
 .play-board { display: none; flex: none; }
+.play-mark { align-self: center; width: 116px; height: 116px; margin: 6px 0 2px; }
+.play-mark .logo-big { width: 100%; height: 100%; filter: drop-shadow(0 10px 22px rgba(0, 0, 0, .45)) drop-shadow(0 0 28px rgba(240, 185, 65, .18)); }
 .play-reel { align-self: center; width: min(100%, 320px); width: clamp(200px, calc(100dvh - 540px - env(safe-area-inset-bottom, 0px)), 320px); max-width: 100%; display: flex; flex-direction: column; gap: 10px; margin: 0; }
 .play-reel .mini-board { box-shadow: 0 14px 34px rgba(0, 0, 0, .42); }
 .play-reel-cap { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 22px; font-weight: 700; font-size: 14.5px; line-height: 1.3; color: var(--bone); text-align: center; text-wrap: balance; }
