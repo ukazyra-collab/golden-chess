@@ -36,7 +36,7 @@ async def main():
                 shot = base64.b64encode(open(f'{DIR}/{src}-{n}.png', 'rb').read()).decode()
                 html = f"""<html><head><style>
                   html,body{{margin:0;width:{W}px;height:{H}px;overflow:hidden;background:#2a2f2d}}
-                  .bg{{position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(231,180,74,.20),rgba(42,47,45,0) 70%),#2a2f2d}}
+                  .bg{{position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(108,148,136,.32),rgba(42,47,45,0) 70%),#2a2f2d}}
                   .wrap{{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:{int(110*k)}px {int(70*k)}px {int(60*k)}px;box-sizing:border-box}}
                   .cap{{text-align:center;font-family:'Inter Display',Inter,sans-serif;flex:none}}
                   h1{{margin:0;font-weight:800;font-size:{int(74*k)}px;line-height:1.1;color:#f4efe4;letter-spacing:-.5px;text-wrap:balance}}

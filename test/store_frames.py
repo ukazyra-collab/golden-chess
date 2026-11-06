@@ -45,7 +45,7 @@ async def main():
             shot = base64.b64encode(open(f'{DIR}/android-{n}.png', 'rb').read()).decode()
             html = f"""<html><head><style>{css}
               html,body{{margin:0;width:1080px;height:1920px;overflow:hidden;background:#2a2f2d}}
-              .bg{{position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(231,180,74,.20),rgba(42,47,45,0) 70%),#2a2f2d}}
+              .bg{{position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(108,148,136,.32),rgba(42,47,45,0) 70%),#2a2f2d}}
               .wrap{{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:84px 60px 44px;box-sizing:border-box}}
               .cap{{text-align:center;font-family:Manrope,sans-serif;flex:none}}
               h1{{margin:0;font-weight:800;font-size:60px;line-height:1.1;color:#f4efe4;letter-spacing:-.5px;text-wrap:balance}}
