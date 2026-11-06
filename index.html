@@ -9650,14 +9650,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   }
 
   // ------------------------------------------------------------------ the launch intro
-  // In the app it takes over from the native splash (same mark, same charcoal); on the website it plays on the first
-  // visit only. A tap ends it early; reduced motion skips it.
+  // The app only: it takes over from the native splash (same picture). The website has no intro. A tap ends it early;
+  // reduced motion skips it.
   function intro() {
     var el = $('intro'); if (!el) return;
     var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var want = !reduced && !navigator.webdriver && !AUTH_HASH.test(location.hash || '') && (NATIVE.on || !load('introSeen', false));
+    var want = NATIVE.on && !reduced && !navigator.webdriver && !AUTH_HASH.test(location.hash || '');
     if (!want) { el.remove(); return; }
-    if (!NATIVE.on) save('introSeen', true);
     el.hidden = false; el.classList.add('run');
     if (NATIVE.on) NATIVE.call('SplashScreen', 'hide', { fadeOutDuration: 150 }).catch(function () { /* no plugin */ });
     var done = false;
