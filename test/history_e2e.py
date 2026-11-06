@@ -107,7 +107,7 @@ async def main():
                 ok(f'game {k + 1}: over', await wait_for(A, '__gc.game.status === "over"', 6000) and await wait_for(B, '__gc.game.status === "over"', 6000))
                 # the result card: the score between the two, the game just finished included
                 want_a, want_b = ('1 : 0', '0 : 1') if k == 0 else ('1 : 1', '1 : 1')
-                card_js = '(document.getElementById("over-h2h") || {}).textContent || ""'
+                card_js = '(document.querySelector(".sheetdlg.over") || {}).textContent || ""'
                 ok(f'game {k + 1}: result card score (Anna {want_a} Boris)', await wait_for(A, f'(() => {{ const t = {card_js}; return t.includes("{want_a}") && t.includes("Boris"); }})()', 4000), await A.evaluate(card_js))
                 ok(f'game {k + 1}: result card score (Boris {want_b} Anna)', await wait_for(B, f'(() => {{ const t = {card_js}; return t.includes("{want_b}") && t.includes("Anna"); }})()', 4000), await B.evaluate(card_js))
                 if k == 0: await shot(A, '0-over-score')

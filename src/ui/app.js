@@ -29,6 +29,7 @@
       r_fifty: '50-move rule', r_insufficient: 'Insufficient material', 'r_timeout-insufficient': 'Time ran out, but the opponent has too little material to mate', r_abort: 'Game aborted',
       r_left: 'by abandonment', oppLeft: 'Opponent left \u00b7 you win in {s} s',
       memberSince: 'Playing since {d}', recentGames: 'Recent games', yourRank: 'Your rank: #{n}', viewProfile: 'Profile',
+      allTime: 'All time', movesN: '{n} moves', vsBotScore: 'Against {name}',
       credits: 'One evening my friend Vitaly Skalaban and I got tired of seeing the same patterns in chess. He said: what if each player had one extra move? We spent the rest of his visit refining it on a wooden board. This app exists so we could keep playing after he flew home.',
       premoveCancelled: 'Premove cancelled', pgnCopied: 'PGN copied', pgnManual: 'Copy the PGN below',
       movesEmpty: 'Moves appear here. Golden moves are marked with a star.', movesEmptyShort: 'Moves appear here', yourMove: 'Your move', botThinking: 'Golden Bot is thinking', whiteMove: 'White to move', blackMove: 'Black to move',
@@ -175,6 +176,7 @@
       r_fifty: 'Правило 50 ходов', r_insufficient: 'Недостаточно материала', 'r_timeout-insufficient': 'Время вышло, но у соперника не хватает материала для мата', r_abort: 'Партия прервана',
       r_left: 'уход из партии', oppLeft: 'Соперник вышел \u00b7 победа через {s} с',
       memberSince: 'Играет с {d}', recentGames: 'Последние партии', yourRank: 'Ваше место: #{n}', viewProfile: 'Профиль',
+      allTime: 'За всё время', movesN: 'ходов: {n}', vsBotScore: 'Против {name}',
       credits: 'One evening my friend Vitaly Skalaban and I got tired of seeing the same patterns in chess. He said: what if each player had one extra move? We spent the rest of his visit refining it on a wooden board. This app exists so we could keep playing after he flew home.',
       premoveCancelled: 'Премув отменён', pgnCopied: 'PGN скопирован', pgnManual: 'Скопируйте PGN ниже',
       movesEmpty: 'Здесь будут ходы. Золотые ходы отмечены звездой.', movesEmptyShort: 'Здесь будут ходы', yourMove: 'Ваш ход', botThinking: 'Golden Bot думает', whiteMove: 'Ход белых', blackMove: 'Ход чёрных',
@@ -1452,6 +1454,7 @@
       stats[key] = s; save('stats', stats);
     }
     Sound.play(outcome === 1 ? 'win' : outcome === 0 ? 'draw' : (oppGame() && !spectating() ? 'lose' : 'win'));
+    noteSeries();
     renderAll(); persist();
     var g = game;
     // the result card, unless the player already opened something else (e.g. looking for the next game)
@@ -1775,28 +1778,61 @@
     return row;
   }
 
+  // today's score against the same opponent: the games in a row with them on this device (a sitting, up to a few hours)
+  function noteSeries() {
+    if (!onlineGame() || spectating() || game.reason === 'abort' || !online || !online.s) return;
+    var opp = online.color === 0 ? online.s.black_id : online.s.white_id;
+    if (!opp) return;
+    var sr = load('series', null), now = Date.now();
+    if (!sr || sr.opp !== opp || now - sr.at > 3 * 3600000) sr = { opp: opp, w: 0, d: 0, l: 0, ids: {}, at: now };
+    if (!sr.ids[online.id]) { sr.ids[online.id] = 1; var r = humanOutcome(); if (r === 1) sr.w++; else if (r === 0) sr.d++; else sr.l++; }
+    sr.at = now; save('series', sr);
+  }
+  function seriesScore() {
+    var sr = load('series', null), opp = online && online.s && online.color >= 0 ? (online.color === 0 ? online.s.black_id : online.s.white_id) : null;
+    return sr && opp && sr.opp === opp && (sr.w + sr.d + sr.l) ? sr : null;
+  }
+  // the two players face to face: avatar, name, rating (and what it did), the golden move each played; the score between
+  function faceoffHtml() {
+    var spec = spectating(), hum = game.cfg.human, L = spec ? 0 : hum, R = L ^ 1, st = onlineGame() && online ? online.s : null;
+    var res = game.result, pts = res === '1-0' ? ['1', '0'] : res === '0-1' ? ['0', '1'] : res === '1/2-1/2' ? ['½', '½'] : ['–', '–'];
+    function side(c) {
+      var mine = !spec && c === hum, bot = botGame() && c !== hum;
+      var nm = mine ? T('you') : sideLabel(c);
+      var ava = bot && window.GCBots ? GCBots.avatar(game.cfg.level - 1, lang)
+        : mine && !(me && me.profile) ? '<i class="pc-ic ' + BoardView.cls((c << 3) | 6) + '"></i>' // not signed in: the king of your colour
+        : esc(initial(mine ? me.profile.username : nm));
+      var rating = '';
+      if (st) {
+        var before = c === 0 ? st.white_rating : st.black_rating, after = c === 0 ? st.white_after : st.black_after, d = c === 0 ? st.white_diff : st.black_diff;
+        if (st.rated && d != null) rating = '<b>' + (after == null ? before + d : after) + '</b> <span class="' + (d >= 0 ? 'up' : 'down') + '">' + (d >= 0 ? '+' : '−') + Math.abs(d) + '</span>';
+        else if (before != null) rating = '<b>' + before + '</b>';
+      } else if (bot) rating = '<b>' + Engine.LEVELS[game.cfg.level - 1].elo + '</b>';
+      var gi = -1; game.records.forEach(function (r, k) { if (r.golden && r.color === c && gi < 0) gi = k; });
+      var gold = gi >= 0 ? '<i class="fo-gold">✦ ' + esc(game.records[gi].san) + ' <span>(' + (Math.floor(gi / 2) + 1) + ')</span></i>' : '<i class="fo-gold off">✧</i>';
+      return '<div class="fo-side"><div class="fo-ava' + (mine ? ' me' : '') + (bot ? ' bot' : '') + '">' + ava + '</div><div class="fo-name">' + esc(nm) + '</div>' +
+        (rating ? '<div class="fo-rating">' + rating + '</div>' : '') + gold + '</div>';
+    }
+    var out = humanOutcome();
+    return side(L) + '<div class="fo-mid' + (!spec && out === 1 ? ' win' : '') + '"><b>' + pts[L] + '</b><i>:</i><b>' + pts[R] + '</b></div>' + side(R);
+  }
   function showOver() {
-    var o = humanOutcome();
+    var o = humanOutcome(), reason = reasonText();
     openDialog(function (card) {
       currentDialog.dataset.kind = 'over';
-      card.appendChild(h('div', { class: 'dlg-title' + (o === 1 && !spectating() ? ' win' : '') }, esc(resultTitle())));
-      var reason = reasonText();
-      if (reason) card.appendChild(h('div', { class: 'dlg-sub' }, esc(reason.charAt(0).toUpperCase() + reason.slice(1))));
-      var golds = game.records.map(function (r, i) { return r.golden ? sideLabel(r.color) + ': ' + r.san + ' (' + (Math.floor(i / 2) + 1) + ')' : null; }).filter(Boolean);
-      card.appendChild(h('div', { class: 'over-stats' }, '<span>' + esc(T('movesPlayed')) + ': <b>' + Math.ceil(game.records.length / 2) + '</b></span><span>' + esc(T('goldenBy')) + ': <b>' + esc(golds.length ? golds.join(', ') : T('none')) + '</b></span>'));
-      var row = h('div', { class: 'row-btns' });
+      currentDialog.classList.add('center');
+      card.classList.add('over');
+      var sub = [];
+      if (reason) sub.push(reason.charAt(0).toUpperCase() + reason.slice(1));
+      sub.push(T('movesN', { n: Math.ceil(game.records.length / 2) }));
+      card.appendChild(h('div', { class: 'over-head' }, '<div class="dlg-title over-title' + (o === 1 && !spectating() ? ' win' : '') + '">' + esc(resultTitle()) + '</div><div class="over-sub">' + esc(sub.join(' · ')) + '</div>'));
+      var acts = h('div', { class: 'over-acts' });
+      var rv = h('button', { class: 'secondary', type: 'button', id: 'btn-over-review' }, esc(T('review')));
+      rv.addEventListener('click', function () { closeDialog(); showReport(); renderSide(); });
       if (onlineGame()) {
         var st = online && online.s;
-        if (st && st.rated && st.white_diff != null) {
-          var rl = h('div', { class: 'rating-change' });
-          [0, 1].forEach(function (c) {
-            if (!spectating() && c !== game.cfg.human) return;
-            var before = c === 0 ? st.white_rating : st.black_rating, after = c === 0 ? st.white_after : st.black_after, d = c === 0 ? st.white_diff : st.black_diff;
-            if (after == null) after = before + d;
-            rl.appendChild(h('div', null, esc(spectating() ? sideLabel(c) : T('ratingWord')) + ': <b>' + before + ' → ' + after + '</b> <span class="' + (d >= 0 ? 'up' : 'down') + '">' + (d >= 0 ? '+' : '−') + Math.abs(d) + '</span>'));
-          });
-          card.appendChild(rl);
-        } else if (st && !st.rated && st.status === 'over') card.appendChild(h('div', { class: 'dlg-note' }, esc(T('casualNote'))));
+        card.appendChild(h('div', { class: 'faceoff' }, faceoffHtml()));
+        if (st && !st.rated && st.status === 'over') card.appendChild(h('div', { class: 'dlg-note' }, esc(T('casualNote'))));
         if (st && st.rated && st.status === 'over' && !spectating() && me && me.guest) {
           var nudge = h('div', { class: 'dlg-note acct-nudge', id: 'acct-nudge' }, '<span>' + esc(T('guestRatingNote')) + '</span>');
           var sp = h('button', { type: 'button', class: 'linkbtn', id: 'btn-save-progress' }, esc(T('saveProgress')));
@@ -1804,19 +1840,26 @@
           nudge.appendChild(sp); card.appendChild(nudge);
         }
         var ms = h('div', { id: 'over-h2h-slot' }); card.appendChild(ms); renderMatch(ms);
-        // rematch is the main action; the review sits next to it, a new opponent below
-        var rv = h('button', { class: 'secondary', type: 'button', id: 'btn-over-review' }, esc(T('review')));
-        rv.addEventListener('click', function () { closeDialog(); showReport(); renderSide(); });
+        // rematch is the one bright action; the review under it, a new opponent as a quiet line
         if (!spectating()) {
           var rm = rematchState();
           var rb = h('button', { class: 'primary', type: 'button', id: 'btn-rematch' }, esc(rm.label)); rb.disabled = rm.disabled;
           rb.addEventListener('click', rematch);
+          acts.appendChild(rb);
+        }
+        acts.appendChild(rv);
+        card.appendChild(acts);
+        if (!spectating()) {
           var no = h('button', { class: 'linkbtn center', type: 'button', id: 'btn-new-opp' }, esc(T('newOpponent')));
           no.addEventListener('click', function () { closeDialog(); newOpponent(); });
-          row.appendChild(rb); row.appendChild(rv);
-          card.appendChild(row); card.appendChild(no);
-        } else { row.appendChild(rv); card.appendChild(row); }
+          card.appendChild(no);
+        }
         return;
+      }
+      if (botGame()) {
+        card.appendChild(h('div', { class: 'faceoff' }, faceoffHtml()));
+        var bs = stats['L' + game.cfg.level];
+        if (bs && bs.w + bs.d + bs.l) card.appendChild(h('div', { class: 'over-match one' }, '<div class="om"><span>' + esc(T('vsBotScore', { name: botName() })) + '</span><b>' + pts(bs.w, bs.d) + ' : ' + pts(bs.l, bs.d) + '</b><em>' + esc(wdlText({ w: bs.w, d: bs.d, l: bs.l })) + '</em></div>'));
       }
       // a game against the bot or on one device: play again (colours swap with the bot), or look through the game
       var again = h('button', { class: 'primary', type: 'button', id: 'btn-again' }, esc(T('againBot')));
@@ -1825,10 +1868,8 @@
         var s = { mode: game.cfg.mode, level: game.cfg.level, tc: game.cfg.tc ? game.cfg.tc.label : 'none', color: 'w' };
         startGame(s, { human: botGame() ? game.cfg.human ^ 1 : 0 });
       });
-      var anaB = h('button', { class: 'secondary', type: 'button', id: 'btn-over-review' }, esc(T('review')));
-      anaB.addEventListener('click', function () { closeDialog(); showReport(); renderSide(); });
-      row.appendChild(again); row.appendChild(anaB);
-      card.appendChild(row);
+      acts.appendChild(again); acts.appendChild(rv);
+      card.appendChild(acts);
     });
   }
 
@@ -1845,13 +1886,17 @@
     return s.n ? s : null;
   }
   function renderMatch(slot) {
-    var s = matchScore();
-    slot.innerHTML = ''; slot.hidden = !s;
-    if (!s) return;
-    var b = h('button', { type: 'button', class: 'gh-score h2h-over', id: 'over-h2h' }, scoreHtml(s));
-    b.addEventListener('click', function () { closeDialog(); openOppGames(s.id); });
+    var sc = matchScore(), sr = seriesScore();
+    slot.innerHTML = ''; slot.hidden = !sc;
+    if (!sc) return;
+    var both = sr && sr.w + sr.d + sr.l < sc.n;
+    var cell = function (label, w, d, l, n) { return '<div class="om"><span>' + esc(label) + '</span><b>' + pts(w, d) + ' : ' + pts(l, d) + '</b><em>' + esc(wdlText({ w: w, d: d, l: l })) + (n ? ' · ' + esc(gamesText(n)) : '') + '</em></div>'; };
+    var b = h('button', { type: 'button', class: 'over-match' + (both ? '' : ' one'), id: 'over-h2h' },
+      (both ? cell(T('today'), sr.w, sr.d, sr.l, 0) : '') + cell(both ? T('allTime') : T('allTime'), sc.w, sc.d, sc.l, sc.n));
+    b.addEventListener('click', function () { closeDialog(); openOppGames(sc.id); });
     slot.appendChild(b);
   }
+
   // asked for as an online game opens (the games between the two so far), so the result card has the score at once;
   // ids: the latest of those games, to tell whether the game on the board is already counted
   function loadMatch(o, opp) {

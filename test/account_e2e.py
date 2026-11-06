@@ -162,7 +162,7 @@ async def main():
             await click_move(Bl, 'e7', 'e5'); await wait_for(W, '__gc.game.records.length === 2 && !__gc.online.pending', 5000)
             await wait_for(Bl, '__gc.game.records.length === 2 && !__gc.online.pending', 5000)
             await Bl.click('#btn-menu'); await Bl.click('.menu-list button.danger'); await Bl.click('.sheetdlg .secondary.danger')
-            ok('rated game over, ratings changed', await wait_for(A, '!!document.querySelector(".rating-change")', 6000) and await wait_for(B, '!!document.querySelector(".rating-change")', 6000))
+            ok('rated game over, ratings changed', await wait_for(A, '!!document.querySelector(".fo-rating .up, .fo-rating .down")', 6000) and await wait_for(B, '!!document.querySelector(".fo-rating .up, .fo-rating .down")', 6000))
             ok('no guest nudge for an account', not await A.evaluate('!!document.getElementById("btn-save-progress")'))
             await wait_for(A, 'Object.values(__gc.me.ratings).some(r => r.games === 1)', 4000)
             ratA = await A.evaluate('JSON.stringify(__gc.me.ratings)')

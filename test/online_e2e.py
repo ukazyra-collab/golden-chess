@@ -200,7 +200,7 @@ async def main():
             ok('both see timeout', await wait_for(A, '__gc.game.status === "over" && __gc.game.reason === "timeout"', 6000) and await wait_for(B, '__gc.game.status === "over"', 6000))
             res = await A.evaluate('__gc.game.result')
             ok('black wins on time', res == '0-1', res)
-            ok('result dialog shows rating change', await wait_for(Bl, '!!document.querySelector(".rating-change")', 3000))
+            ok('result dialog shows rating change', await wait_for(Bl, '!!document.querySelector(".fo-rating .up, .fo-rating .down")', 3000))
             diffs = admin('game', game=gid)
             ok('ratings changed by Glicko-2', diffs['white_diff'] < 0 < diffs['black_diff'], (diffs['white_diff'], diffs['black_diff']))
             for nm, pg in (('A', A), ('B', B)):
