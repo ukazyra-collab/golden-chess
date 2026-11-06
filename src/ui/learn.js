@@ -17,24 +17,28 @@ var GCLearn = (function () {
     block: { fen: '3q2k1/Q4ppp/8/8/8/6P1/PP2n2P/R6K b - - 0 1 G', glow: -1, cap0: 'r2Cap0',
       steps: [{ uci: 'd8d5', cap: 'r2Cap1', wait: 2200 }, { sel: 'a7', wait: 1400 }, { uci: 'a7g2*', cap: 'r2Cap2', wait: 3200 }] }
   };
-  // the Play tab: a loop of short Joker Moves that turn the game (every line checked with the engine, test/reel_check.js)
+  // the Play tab: a loop of Joker Moves that turn the game, easy one-movers first, combinations last
+  // (every line checked with the engine: node test/reel_check.js)
   var REEL = [
-    // 1. mate on the board, the rook teleports into the line
-    { fen: '5rk1/5ppp/1Q6/8/P7/1B6/R4PPP/4q1K1 w - - 0 1 G', glow: 0, cap0: 'reelMate0',
-      steps: [{ sel: 'a2', wait: 1300 }, { uci: 'a2f1*', cap: 'reelMate', wait: 2600 }] },
-    // 2. the knight drops in next to the king: Rxh7 mate cannot be stopped
-    { fen: '1r5k/pppR3p/6p1/8/8/8/q4PP1/1NB3KR w - - 0 1 G', glow: 0, cap0: 'reelNet0',
-      steps: [{ sel: 'b1', wait: 1300 }, { uci: 'b1f6*', cap: 'reelNet', wait: 2600 }, { uci: 'a2g8', cap: 'reelNet2', wait: 1500 }, { uci: 'd7h7', wait: 900 }, { uci: 'g8h7', wait: 900 }, { uci: 'h1h7', cap: 'reelNet3', wait: 2600 }] },
-    // 3. the rook teleports and pins the queen to the king
+    // 1. the rook teleports and pins the queen to the king
     { fen: '4k2r/pp2qppp/8/8/8/8/PP3PPP/R2Q2K1 w - - 0 1 G', glow: 0, cap0: 'reelPin0',
       steps: [{ sel: 'a1', wait: 1300 }, { uci: 'a1e1*', cap: 'reelPin', wait: 2200 }, { uci: 'e8f8', wait: 900 }, { uci: 'e1e7', cap: 'reelPin2', wait: 2400 }] },
+    // 2. mate on the board, the rook teleports into the line
+    { fen: '5rk1/5ppp/1Q6/8/P7/1B6/R4PPP/4q1K1 w - - 0 1 G', glow: 0, cap0: 'reelMate0',
+      steps: [{ sel: 'a2', wait: 1300 }, { uci: 'a2f1*', cap: 'reelMate', wait: 2600 }] },
+    // 3. the knight lands between the queen and a rook
+    { fen: 'r1b1r1k1/1q1p1ppp/p7/1p6/4PB2/6P1/PP3P1P/1N1Q1RK1 w - - 0 1 G', glow: 0, cap0: 'reelFork0',
+      steps: [{ sel: 'b1', wait: 1300 }, { uci: 'b1d6*', cap: 'reelFork', wait: 2400 }, { uci: 'b7c7', wait: 900 }, { uci: 'd6e8', cap: 'reelFork2', wait: 2400 }] },
     // 4. the bishop appears on the diagonal: the queen goes for a bishop
     { fen: '2r4k/1p3p1p/6p1/4q3/8/8/1P3PPP/R2R1BK1 w - - 0 1 G', glow: 0, cap0: 'reelDiag0',
       steps: [{ sel: 'f1', wait: 1300 }, { uci: 'f1d4*', cap: 'reelDiag', wait: 2400 }, { uci: 'e5d4', wait: 900 }, { uci: 'd1d4', cap: 'reelDiag2', wait: 2400 }] },
     // 5. a check that is mate in normal chess, blocked by a teleport
     { fen: '3q2k1/Q4ppp/8/8/8/6P1/PP2n2P/R6K b - - 0 1 G', glow: -1, cap0: 'reelBlock0',
       steps: [{ uci: 'd8d5', cap: 'reelBlock1', wait: 1800 }, { sel: 'a7', wait: 1200 }, { uci: 'a7g2*', cap: 'reelBlock', wait: 2600 }] },
-    // 6. both sides hold a Joker Move: White pins the queen, Black drops a rook into the line
+    // 6. the knight drops in next to the king: Rxh7 mate cannot be stopped
+    { fen: '1r5k/pppR3p/6p1/8/8/8/q4PP1/1NB3KR w - - 0 1 G', glow: 0, cap0: 'reelNet0',
+      steps: [{ sel: 'b1', wait: 1300 }, { uci: 'b1f6*', cap: 'reelNet', wait: 2600 }, { uci: 'a2g8', cap: 'reelNet2', wait: 1500 }, { uci: 'd7h7', wait: 900 }, { uci: 'g8h7', wait: 900 }, { uci: 'h1h7', cap: 'reelNet3', wait: 2600 }] },
+    // 7. both sides hold a Joker Move: White pins the queen, Black drops a rook into the line
     { fen: '2n1k2r/pp2qppp/8/8/8/8/PP3PPP/R2Q2K1 w - - 0 1 Gg', glow: 0, cap0: 'reelBoth0',
       steps: [{ sel: 'a1', wait: 1200 }, { uci: 'a1e1*', cap: 'reelBoth1', wait: 2400, refuted: true }, { sel: 'h8', wait: 1200 }, { uci: 'h8e4*', cap: 'reelBoth2', wait: 2400 }, { uci: 'e1e4', wait: 900 }, { uci: 'e7e4', cap: 'reelBoth3', wait: 2600 }] }
   ];
@@ -376,6 +380,7 @@ var GCLearn = (function () {
       inn.appendChild(cta);
       // the closing titles: where the game came from
       inn.appendChild(el('p', 'credits learn-credits', esc(T('credits'))));
+      var pv = el('a', 'page-foot', esc(T('privacy'))); pv.href = ctx.privacyUrl ? ctx.privacyUrl() : 'privacy.html'; pv.target = '_blank'; pv.rel = 'noopener'; inn.appendChild(pv);
 
       demos.forEach(function (d) { d.wanted = view === 'learn'; watch(d); d.update(); });
     }

@@ -651,12 +651,12 @@ svg { display: block; }
 .play-wrap { min-height: 100%; box-sizing: border-box; display: flex; align-items: flex-start; justify-content: center; gap: 48px;
   padding-block: 18px 32px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
 .play-board { display: none; flex: none; }
-.play-reel { align-self: center; width: min(100%, 320px); width: clamp(200px, calc(100dvh - 560px - env(safe-area-inset-bottom, 0px)), 320px); max-width: 100%; display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.play-reel { align-self: center; width: min(100%, 320px); width: clamp(200px, calc(100dvh - 540px - env(safe-area-inset-bottom, 0px)), 320px); max-width: 100%; display: flex; flex-direction: column; gap: 10px; margin: 0; }
 .play-reel .mini-board { box-shadow: 0 14px 34px rgba(0, 0, 0, .42); }
 .play-reel-cap { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 22px; font-weight: 700; font-size: 14.5px; line-height: 1.3; color: var(--bone); text-align: center; text-wrap: balance; }
 .play-board .play-reel-cap { margin-top: 12px; font-size: 16px; }
 .play-col { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 22px; }
-.play-main { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding-bottom: 6px; }
+.play-main { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 3vh 0 6px; }
 @media (max-width: 767px) { .play-wrap { align-items: stretch; } }
 .play-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; }
 .play-head .brand svg { width: 28px; height: 28px; }
@@ -698,8 +698,8 @@ svg { display: block; }
 .play-row .second-btn { flex: 1; min-width: 0; padding: 0 10px; font-size: 16px; }
 @media (max-width: 360px) { .play-row .second-btn { font-size: 15px; } }
 .play-meta { text-align: center; font-size: 13.5px; color: var(--muted); line-height: 1.45; }
-.home-foot { align-self: center; margin-top: auto; padding: 6px 4px; font-size: 12.5px; color: var(--muted); opacity: .8; text-decoration: none; }
-.home-foot:hover { color: var(--bone); text-decoration: underline; text-underline-offset: 3px; }
+.page-foot { align-self: center; margin-top: 8px; padding: 6px 4px; font-size: 12.5px; color: var(--muted); opacity: .8; text-decoration: none; }
+.page-foot:hover { color: var(--bone); text-decoration: underline; text-underline-offset: 3px; }
 .opt-btn { width: 100%; min-height: 76px; border-radius: 16px; background: var(--raise); color: var(--bone); display: flex; align-items: center; gap: 14px; padding: 12px 16px; box-sizing: border-box; text-align: left; box-shadow: 0 3px 0 var(--edge); }
 .opt-btn:hover { background: var(--raise-hi); }
 .opt-btn.main { background: var(--act); color: var(--act-ink); box-shadow: 0 3px 0 var(--act-edge); }
@@ -4461,24 +4461,28 @@ var GCLearn = (function () {
     block: { fen: '3q2k1/Q4ppp/8/8/8/6P1/PP2n2P/R6K b - - 0 1 G', glow: -1, cap0: 'r2Cap0',
       steps: [{ uci: 'd8d5', cap: 'r2Cap1', wait: 2200 }, { sel: 'a7', wait: 1400 }, { uci: 'a7g2*', cap: 'r2Cap2', wait: 3200 }] }
   };
-  // the Play tab: a loop of short Joker Moves that turn the game (every line checked with the engine, test/reel_check.js)
+  // the Play tab: a loop of Joker Moves that turn the game, easy one-movers first, combinations last
+  // (every line checked with the engine: node test/reel_check.js)
   var REEL = [
-    // 1. mate on the board, the rook teleports into the line
-    { fen: '5rk1/5ppp/1Q6/8/P7/1B6/R4PPP/4q1K1 w - - 0 1 G', glow: 0, cap0: 'reelMate0',
-      steps: [{ sel: 'a2', wait: 1300 }, { uci: 'a2f1*', cap: 'reelMate', wait: 2600 }] },
-    // 2. the knight drops in next to the king: Rxh7 mate cannot be stopped
-    { fen: '1r5k/pppR3p/6p1/8/8/8/q4PP1/1NB3KR w - - 0 1 G', glow: 0, cap0: 'reelNet0',
-      steps: [{ sel: 'b1', wait: 1300 }, { uci: 'b1f6*', cap: 'reelNet', wait: 2600 }, { uci: 'a2g8', cap: 'reelNet2', wait: 1500 }, { uci: 'd7h7', wait: 900 }, { uci: 'g8h7', wait: 900 }, { uci: 'h1h7', cap: 'reelNet3', wait: 2600 }] },
-    // 3. the rook teleports and pins the queen to the king
+    // 1. the rook teleports and pins the queen to the king
     { fen: '4k2r/pp2qppp/8/8/8/8/PP3PPP/R2Q2K1 w - - 0 1 G', glow: 0, cap0: 'reelPin0',
       steps: [{ sel: 'a1', wait: 1300 }, { uci: 'a1e1*', cap: 'reelPin', wait: 2200 }, { uci: 'e8f8', wait: 900 }, { uci: 'e1e7', cap: 'reelPin2', wait: 2400 }] },
+    // 2. mate on the board, the rook teleports into the line
+    { fen: '5rk1/5ppp/1Q6/8/P7/1B6/R4PPP/4q1K1 w - - 0 1 G', glow: 0, cap0: 'reelMate0',
+      steps: [{ sel: 'a2', wait: 1300 }, { uci: 'a2f1*', cap: 'reelMate', wait: 2600 }] },
+    // 3. the knight lands between the queen and a rook
+    { fen: 'r1b1r1k1/1q1p1ppp/p7/1p6/4PB2/6P1/PP3P1P/1N1Q1RK1 w - - 0 1 G', glow: 0, cap0: 'reelFork0',
+      steps: [{ sel: 'b1', wait: 1300 }, { uci: 'b1d6*', cap: 'reelFork', wait: 2400 }, { uci: 'b7c7', wait: 900 }, { uci: 'd6e8', cap: 'reelFork2', wait: 2400 }] },
     // 4. the bishop appears on the diagonal: the queen goes for a bishop
     { fen: '2r4k/1p3p1p/6p1/4q3/8/8/1P3PPP/R2R1BK1 w - - 0 1 G', glow: 0, cap0: 'reelDiag0',
       steps: [{ sel: 'f1', wait: 1300 }, { uci: 'f1d4*', cap: 'reelDiag', wait: 2400 }, { uci: 'e5d4', wait: 900 }, { uci: 'd1d4', cap: 'reelDiag2', wait: 2400 }] },
     // 5. a check that is mate in normal chess, blocked by a teleport
     { fen: '3q2k1/Q4ppp/8/8/8/6P1/PP2n2P/R6K b - - 0 1 G', glow: -1, cap0: 'reelBlock0',
       steps: [{ uci: 'd8d5', cap: 'reelBlock1', wait: 1800 }, { sel: 'a7', wait: 1200 }, { uci: 'a7g2*', cap: 'reelBlock', wait: 2600 }] },
-    // 6. both sides hold a Joker Move: White pins the queen, Black drops a rook into the line
+    // 6. the knight drops in next to the king: Rxh7 mate cannot be stopped
+    { fen: '1r5k/pppR3p/6p1/8/8/8/q4PP1/1NB3KR w - - 0 1 G', glow: 0, cap0: 'reelNet0',
+      steps: [{ sel: 'b1', wait: 1300 }, { uci: 'b1f6*', cap: 'reelNet', wait: 2600 }, { uci: 'a2g8', cap: 'reelNet2', wait: 1500 }, { uci: 'd7h7', wait: 900 }, { uci: 'g8h7', wait: 900 }, { uci: 'h1h7', cap: 'reelNet3', wait: 2600 }] },
+    // 7. both sides hold a Joker Move: White pins the queen, Black drops a rook into the line
     { fen: '2n1k2r/pp2qppp/8/8/8/8/PP3PPP/R2Q2K1 w - - 0 1 Gg', glow: 0, cap0: 'reelBoth0',
       steps: [{ sel: 'a1', wait: 1200 }, { uci: 'a1e1*', cap: 'reelBoth1', wait: 2400, refuted: true }, { sel: 'h8', wait: 1200 }, { uci: 'h8e4*', cap: 'reelBoth2', wait: 2400 }, { uci: 'e1e4', wait: 900 }, { uci: 'e7e4', cap: 'reelBoth3', wait: 2600 }] }
   ];
@@ -4820,6 +4824,7 @@ var GCLearn = (function () {
       inn.appendChild(cta);
       // the closing titles: where the game came from
       inn.appendChild(el('p', 'credits learn-credits', esc(T('credits'))));
+      var pv = el('a', 'page-foot', esc(T('privacy'))); pv.href = ctx.privacyUrl ? ctx.privacyUrl() : 'privacy.html'; pv.target = '_blank'; pv.rel = 'noopener'; inn.appendChild(pv);
 
       demos.forEach(function (d) { d.wanted = view === 'learn'; watch(d); d.update(); });
     }
@@ -5171,6 +5176,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       r2T: 'It can block a check', r2P: 'Teleport a piece into the line of a check. Your own king must be safe afterwards.',
       reelMate0: 'Check. In normal chess this is mate.', reelMate: 'The rook drops in and blocks it. White is fine.',
       reelNet0: 'Black has the queen. No mate in sight.', reelNet: 'The knight lands on f6: Rxh7 is mate, and nothing stops it.', reelNet2: 'The queen rushes back to cover h7\u2026', reelNet3: 'Mate.',
+      reelFork0: 'Two rooks and the queen. The knight has not left b1.', reelFork: 'The knight lands on d6: queen and rook forked.', reelFork2: 'The queen steps away, the rook is gone. White is a rook up.',
       reelPin0: 'The queen stands in front of the king.', reelPin: 'The rook teleports and pins it.', reelPin2: 'The king steps aside, the queen is lost.',
       reelDiag0: 'Queen and king on one diagonal.', reelDiag: 'The bishop appears, protected by the rook. The queen is pinned.', reelDiag2: 'A queen for a bishop. White is a rook up.',
       reelBlock0: 'Black is about to give check.', reelBlock1: 'In normal chess this is mate.', reelBlock: 'The queen lands on g2 and blocks it. White is winning.',
@@ -5326,6 +5332,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       r2T: 'Им можно закрыться от шаха', r2P: 'Поставьте фигуру на линию шаха. Ваш король после хода должен быть в безопасности.',
       reelMate0: 'Шах. В обычных шахматах это мат.', reelMate: 'Ладья прыгает и закрывает линию. У белых всё в порядке.',
       reelNet0: 'У чёрных ферзь. Мата не видно.', reelNet: 'Конь садится на f6: Лxh7 — мат, и его не остановить.', reelNet2: 'Ферзь бежит защищать h7\u2026', reelNet3: 'Мат.',
+      reelFork0: 'Две ладьи и ферзь. Конь ещё на b1.', reelFork: 'Конь садится на d6: вилка на ферзя и ладью.', reelFork2: 'Ферзь отходит, ладья съедена. У белых лишняя ладья.',
       reelPin0: 'Ферзь стоит перед королём.', reelPin: 'Ладья телепортируется и связывает его.', reelPin2: 'Король отходит, ферзь потерян.',
       reelDiag0: 'Ферзь и король на одной диагонали.', reelDiag: 'Слон появляется под защитой ладьи. Ферзь связан.', reelDiag2: 'Ферзь за слона. У белых лишняя ладья.',
       reelBlock0: 'Чёрные сейчас дадут шах.', reelBlock1: 'В обычных шахматах это мат.', reelBlock: 'Ферзь садится на g2 и закрывает. Белые выигрывают.',
@@ -8928,7 +8935,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     game.paused = false; if (game.clock) game.clock.since = perf();
   }
   function kit() {
-    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ T: T, esc: esc, h: h, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup }); if (curView) learnKit.active(curView); }
+    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ T: T, esc: esc, h: h, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
     return learnKit;
   }
 
@@ -9003,9 +9010,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
         acts.appendChild(off);
       } else if (window.GC_SITE) acts.appendChild(h('div', { class: 'offline-note' }, esc(T('onlineElsewhere')) + ' <a class="site-link" href="' + esc(window.GC_SITE) + '" target="_blank" rel="noopener">' + esc(window.GC_SITE.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>'));
     }
-    // the privacy policy, quietly at the bottom of the home screen (Google's brand check looks for it here)
-    var pv = NETCFG ? 'privacy.html' : window.GC_SITE ? window.GC_SITE + 'privacy.html' : '';
-    if (pv) col.appendChild(h('a', { class: 'home-foot', id: 'home-privacy', href: pv, target: '_blank', rel: 'noopener' }, esc(T('privacy'))));
     // the reel plays on the Play tab only (learnKit.active pauses it elsewhere)
     if (kit()) { learnKit.heroBoard(reelHost, reelCap); reelHost.appendChild(reelCap); }
   }
@@ -9179,6 +9183,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   }
 
   // ---- Profile: account, ratings, settings
+  // the privacy policy (a static <link rel=privacy-policy> in the page head points there too)
+  function privacyUrl() { return NETCFG ? 'privacy.html' : window.GC_SITE ? window.GC_SITE + 'privacy.html' : 'privacy.html'; }
   function renderProfile() {
     var host = $('view-profile');
     host.innerHTML = '';
@@ -9232,6 +9238,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     buildSettings(sc, renderProfile);
     inn.appendChild(sc);
     tail.forEach(function (x) { inn.appendChild(x); });
+    inn.appendChild(h('a', { class: 'page-foot', id: 'home-privacy', href: privacyUrl(), target: '_blank', rel: 'noopener' }, esc(T('privacy'))));
     var ll = h('button', { type: 'button', class: 'linkbtn', id: 'btn-howto' }, esc(T('howItWorks')));
     ll.addEventListener('click', function () { go('learn'); });
     inn.appendChild(ll);

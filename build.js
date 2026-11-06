@@ -51,7 +51,7 @@ const DESC = 'Chess with one Joker Move per game: teleport a queen, rook, bishop
 // plain http (an old link, the github.io redirect before HTTPS is enforced) goes to https: one origin, one saved session
 const TO_HTTPS = '<script>if(location.protocol==="http:"&&/(^|\\.)golden-chess\\.com$/.test(location.hostname))location.replace("https://golden-chess.com"+location.pathname+location.search+location.hash)</script>';
 const webHead = TO_HTTPS + '<title>Joker Chess</title><meta name="description" content="' + DESC + '"><meta name="theme-color" content="#2a2f2d">' +
-  '<link rel="icon" href="' + ICON + '"><link rel="apple-touch-icon" href="apple-touch-icon.png">' +
+  '<link rel="icon" href="' + ICON + '"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="privacy-policy" href="privacy.html">' +
   '<meta property="og:title" content="Joker Chess"><meta property="og:description" content="' + DESC + '">' +
   '<meta property="og:type" content="website"><meta property="og:url" content="' + SITE + '"><meta property="og:image" content="' + SITE + 'og.png">' +
   '<meta name="twitter:card" content="summary_large_image">';

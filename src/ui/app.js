@@ -104,6 +104,7 @@
       r2T: 'It can block a check', r2P: 'Teleport a piece into the line of a check. Your own king must be safe afterwards.',
       reelMate0: 'Check. In normal chess this is mate.', reelMate: 'The rook drops in and blocks it. White is fine.',
       reelNet0: 'Black has the queen. No mate in sight.', reelNet: 'The knight lands on f6: Rxh7 is mate, and nothing stops it.', reelNet2: 'The queen rushes back to cover h7\u2026', reelNet3: 'Mate.',
+      reelFork0: 'Two rooks and the queen. The knight has not left b1.', reelFork: 'The knight lands on d6: queen and rook forked.', reelFork2: 'The queen steps away, the rook is gone. White is a rook up.',
       reelPin0: 'The queen stands in front of the king.', reelPin: 'The rook teleports and pins it.', reelPin2: 'The king steps aside, the queen is lost.',
       reelDiag0: 'Queen and king on one diagonal.', reelDiag: 'The bishop appears, protected by the rook. The queen is pinned.', reelDiag2: 'A queen for a bishop. White is a rook up.',
       reelBlock0: 'Black is about to give check.', reelBlock1: 'In normal chess this is mate.', reelBlock: 'The queen lands on g2 and blocks it. White is winning.',
@@ -259,6 +260,7 @@
       r2T: 'Им можно закрыться от шаха', r2P: 'Поставьте фигуру на линию шаха. Ваш король после хода должен быть в безопасности.',
       reelMate0: 'Шах. В обычных шахматах это мат.', reelMate: 'Ладья прыгает и закрывает линию. У белых всё в порядке.',
       reelNet0: 'У чёрных ферзь. Мата не видно.', reelNet: 'Конь садится на f6: Лxh7 — мат, и его не остановить.', reelNet2: 'Ферзь бежит защищать h7\u2026', reelNet3: 'Мат.',
+      reelFork0: 'Две ладьи и ферзь. Конь ещё на b1.', reelFork: 'Конь садится на d6: вилка на ферзя и ладью.', reelFork2: 'Ферзь отходит, ладья съедена. У белых лишняя ладья.',
       reelPin0: 'Ферзь стоит перед королём.', reelPin: 'Ладья телепортируется и связывает его.', reelPin2: 'Король отходит, ферзь потерян.',
       reelDiag0: 'Ферзь и король на одной диагонали.', reelDiag: 'Слон появляется под защитой ладьи. Ферзь связан.', reelDiag2: 'Ферзь за слона. У белых лишняя ладья.',
       reelBlock0: 'Чёрные сейчас дадут шах.', reelBlock1: 'В обычных шахматах это мат.', reelBlock: 'Ферзь садится на g2 и закрывает. Белые выигрывают.',
@@ -3861,7 +3863,7 @@
     game.paused = false; if (game.clock) game.clock.since = perf();
   }
   function kit() {
-    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ T: T, esc: esc, h: h, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup }); if (curView) learnKit.active(curView); }
+    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ T: T, esc: esc, h: h, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
     return learnKit;
   }
 
@@ -3936,9 +3938,6 @@
         acts.appendChild(off);
       } else if (window.GC_SITE) acts.appendChild(h('div', { class: 'offline-note' }, esc(T('onlineElsewhere')) + ' <a class="site-link" href="' + esc(window.GC_SITE) + '" target="_blank" rel="noopener">' + esc(window.GC_SITE.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>'));
     }
-    // the privacy policy, quietly at the bottom of the home screen (Google's brand check looks for it here)
-    var pv = NETCFG ? 'privacy.html' : window.GC_SITE ? window.GC_SITE + 'privacy.html' : '';
-    if (pv) col.appendChild(h('a', { class: 'home-foot', id: 'home-privacy', href: pv, target: '_blank', rel: 'noopener' }, esc(T('privacy'))));
     // the reel plays on the Play tab only (learnKit.active pauses it elsewhere)
     if (kit()) { learnKit.heroBoard(reelHost, reelCap); reelHost.appendChild(reelCap); }
   }
@@ -4112,6 +4111,8 @@
   }
 
   // ---- Profile: account, ratings, settings
+  // the privacy policy (a static <link rel=privacy-policy> in the page head points there too)
+  function privacyUrl() { return NETCFG ? 'privacy.html' : window.GC_SITE ? window.GC_SITE + 'privacy.html' : 'privacy.html'; }
   function renderProfile() {
     var host = $('view-profile');
     host.innerHTML = '';
@@ -4165,6 +4166,7 @@
     buildSettings(sc, renderProfile);
     inn.appendChild(sc);
     tail.forEach(function (x) { inn.appendChild(x); });
+    inn.appendChild(h('a', { class: 'page-foot', id: 'home-privacy', href: privacyUrl(), target: '_blank', rel: 'noopener' }, esc(T('privacy'))));
     var ll = h('button', { type: 'button', class: 'linkbtn', id: 'btn-howto' }, esc(T('howItWorks')));
     ll.addEventListener('click', function () { go('learn'); });
     inn.appendChild(ll);
