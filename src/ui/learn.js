@@ -17,6 +17,16 @@ var GCLearn = (function () {
     block: { fen: '3q2k1/Q4ppp/8/8/8/6P1/PP2n2P/R6K b - - 0 1 G', glow: -1, cap0: 'r2Cap0',
       steps: [{ uci: 'd8d5', cap: 'r2Cap1', wait: 2200 }, { sel: 'a7', wait: 1400 }, { uci: 'a7g2*', cap: 'r2Cap2', wait: 3200 }] }
   };
+  // the Play tab: a loop of short Joker Moves, each in a different role (positions checked with the engine)
+  var REEL = [
+    { fen: '5rk1/5ppp/1Q6/8/P7/1B6/R4PPP/4q1K1 w - - 0 1 G', glow: 0, cap0: 'reelMate0', steps: [{ sel: 'a2', wait: 1300 }, { uci: 'a2f1*', cap: 'reelMate', wait: 2600 }] },
+    { fen: '3q2k1/5p1p/2r3r1/8/8/8/5PPP/1N1Q2K1 w - - 0 1 G', glow: 0, cap0: 'reelFork0', steps: [{ sel: 'b1', wait: 1300 }, { uci: 'b1e5*', cap: 'reelFork', wait: 2600 }] },
+    { fen: '4k2r/pp2qppp/8/8/8/8/PP3PPP/R2Q2K1 w - - 0 1 G', glow: 0, cap0: 'reelPin0', steps: [{ sel: 'a1', wait: 1300 }, { uci: 'a1e1*', cap: 'reelPin', wait: 2200 }, { uci: 'e8f8', wait: 900 }, { uci: 'e1e7', cap: 'reelPin2', wait: 2400 }] },
+    { fen: '3q2k1/Q4ppp/8/8/8/6P1/PP2n2P/R6K b - - 0 1 G', glow: -1, cap0: 'reelBlock0', steps: [{ uci: 'd8d5', cap: 'reelBlock1', wait: 1800 }, { sel: 'a7', wait: 1200 }, { uci: 'a7g2*', cap: 'reelBlock', wait: 2600 }] },
+    { fen: '2r4k/5p2/7p/4q3/8/8/1P3PPP/5BK1 w - - 0 1 G', glow: 0, cap0: 'reelDiag0', steps: [{ sel: 'f1', wait: 1300 }, { uci: 'f1c3*', cap: 'reelDiag', wait: 2600 }] },
+    { fen: '4r1k1/3n1p1p/6p1/q7/2B5/8/3B1PPP/6K1 w - - 0 1 G', glow: 0, cap0: 'reelBishops0', steps: [{ sel: 'd2', wait: 1300 }, { uci: 'd2d3*', cap: 'reelBishops', wait: 2600 }] }
+  ];
+  REEL.forEach(function (d, i) { d.next = REEL[(i + 1) % REEL.length]; });
   // where a rook may teleport: gold dots; empty squares it may not use (they would give check): red crosses
   var RULE_DIAGRAM = { fen: '4k3/8/2n5/8/8/8/5PPP/R5K1 w - - 0 1 G', sel: 'a1' };
   var PUZZLES = [
@@ -76,7 +86,8 @@ var GCLearn = (function () {
   Demo.prototype.step = function () {
     var self = this, s = this.d.steps[this.i], v = this.mb.view;
     if (!s) {
-      this.timer = setTimeout(function () { self.reset(); self.timer = setTimeout(function () { self.step(); }, 1300); }, 400);
+      // the script is over: hold, then start again (a chained script goes on to the next one)
+      this.timer = setTimeout(function () { if (self.d.next) self.d = self.d.next; self.reset(); self.timer = setTimeout(function () { self.step(); }, 1300); }, 400);
       return;
     }
     this.i++;
@@ -356,10 +367,10 @@ var GCLearn = (function () {
 
       demos.forEach(function (d) { d.wanted = view === 'learn'; watch(d); d.update(); });
     }
-    // the Play tab on wide screens: the same Joker Move on a bigger board
-    function heroBoard(host) {
-      if (playDemo) { host.appendChild(playDemo.mb.wrap); playDemo.mb.fit(); }
-      else { playDemo = new Demo(host, DEMOS.hero, ctx, null); watch(playDemo); }
+    // the Play tab: the reel of Joker Moves (one board, the scripts chained), its caption under the board
+    function heroBoard(host, cap) {
+      if (playDemo) { host.appendChild(playDemo.mb.wrap); playDemo.cap = cap || null; playDemo.mb.fit(); playDemo.stop(); playDemo.reset(); }
+      else { playDemo = new Demo(host, REEL[0], ctx, cap || null); watch(playDemo); }
       playDemo.wanted = view === 'play'; playDemo.update();
     }
     function active(v) {

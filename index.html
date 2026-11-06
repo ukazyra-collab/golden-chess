@@ -661,6 +661,10 @@ svg { display: block; }
 .play-wrap { min-height: 100%; box-sizing: border-box; display: flex; align-items: flex-start; justify-content: center; gap: 48px;
   padding-block: 18px 32px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
 .play-board { display: none; flex: none; }
+.play-reel { align-self: center; width: min(100%, 320px); width: max(200px, min(100%, 320px, calc(100dvh - 470px))); display: flex; flex-direction: column; gap: 10px; margin: 2px 0 6px; }
+.play-reel .mini-board { box-shadow: 0 14px 34px rgba(0, 0, 0, .42); }
+.play-reel-cap { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 22px; font-weight: 700; font-size: 14.5px; line-height: 1.3; color: var(--bone); text-align: center; text-wrap: balance; }
+.play-board .play-reel-cap { margin-top: 12px; font-size: 16px; }
 .play-col { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 22px; }
 .play-main { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding-bottom: 4vh; }
 @media (max-width: 767px) { .play-wrap { align-items: stretch; } }
@@ -4465,6 +4469,16 @@ var GCLearn = (function () {
     block: { fen: '3q2k1/Q4ppp/8/8/8/6P1/PP2n2P/R6K b - - 0 1 G', glow: -1, cap0: 'r2Cap0',
       steps: [{ uci: 'd8d5', cap: 'r2Cap1', wait: 2200 }, { sel: 'a7', wait: 1400 }, { uci: 'a7g2*', cap: 'r2Cap2', wait: 3200 }] }
   };
+  // the Play tab: a loop of short Joker Moves, each in a different role (positions checked with the engine)
+  var REEL = [
+    { fen: '5rk1/5ppp/1Q6/8/P7/1B6/R4PPP/4q1K1 w - - 0 1 G', glow: 0, cap0: 'reelMate0', steps: [{ sel: 'a2', wait: 1300 }, { uci: 'a2f1*', cap: 'reelMate', wait: 2600 }] },
+    { fen: '3q2k1/5p1p/2r3r1/8/8/8/5PPP/1N1Q2K1 w - - 0 1 G', glow: 0, cap0: 'reelFork0', steps: [{ sel: 'b1', wait: 1300 }, { uci: 'b1e5*', cap: 'reelFork', wait: 2600 }] },
+    { fen: '4k2r/pp2qppp/8/8/8/8/PP3PPP/R2Q2K1 w - - 0 1 G', glow: 0, cap0: 'reelPin0', steps: [{ sel: 'a1', wait: 1300 }, { uci: 'a1e1*', cap: 'reelPin', wait: 2200 }, { uci: 'e8f8', wait: 900 }, { uci: 'e1e7', cap: 'reelPin2', wait: 2400 }] },
+    { fen: '3q2k1/Q4ppp/8/8/8/6P1/PP2n2P/R6K b - - 0 1 G', glow: -1, cap0: 'reelBlock0', steps: [{ uci: 'd8d5', cap: 'reelBlock1', wait: 1800 }, { sel: 'a7', wait: 1200 }, { uci: 'a7g2*', cap: 'reelBlock', wait: 2600 }] },
+    { fen: '2r4k/5p2/7p/4q3/8/8/1P3PPP/5BK1 w - - 0 1 G', glow: 0, cap0: 'reelDiag0', steps: [{ sel: 'f1', wait: 1300 }, { uci: 'f1c3*', cap: 'reelDiag', wait: 2600 }] },
+    { fen: '4r1k1/3n1p1p/6p1/q7/2B5/8/3B1PPP/6K1 w - - 0 1 G', glow: 0, cap0: 'reelBishops0', steps: [{ sel: 'd2', wait: 1300 }, { uci: 'd2d3*', cap: 'reelBishops', wait: 2600 }] }
+  ];
+  REEL.forEach(function (d, i) { d.next = REEL[(i + 1) % REEL.length]; });
   // where a rook may teleport: gold dots; empty squares it may not use (they would give check): red crosses
   var RULE_DIAGRAM = { fen: '4k3/8/2n5/8/8/8/5PPP/R5K1 w - - 0 1 G', sel: 'a1' };
   var PUZZLES = [
@@ -4524,7 +4538,8 @@ var GCLearn = (function () {
   Demo.prototype.step = function () {
     var self = this, s = this.d.steps[this.i], v = this.mb.view;
     if (!s) {
-      this.timer = setTimeout(function () { self.reset(); self.timer = setTimeout(function () { self.step(); }, 1300); }, 400);
+      // the script is over: hold, then start again (a chained script goes on to the next one)
+      this.timer = setTimeout(function () { if (self.d.next) self.d = self.d.next; self.reset(); self.timer = setTimeout(function () { self.step(); }, 1300); }, 400);
       return;
     }
     this.i++;
@@ -4804,10 +4819,10 @@ var GCLearn = (function () {
 
       demos.forEach(function (d) { d.wanted = view === 'learn'; watch(d); d.update(); });
     }
-    // the Play tab on wide screens: the same Joker Move on a bigger board
-    function heroBoard(host) {
-      if (playDemo) { host.appendChild(playDemo.mb.wrap); playDemo.mb.fit(); }
-      else { playDemo = new Demo(host, DEMOS.hero, ctx, null); watch(playDemo); }
+    // the Play tab: the reel of Joker Moves (one board, the scripts chained), its caption under the board
+    function heroBoard(host, cap) {
+      if (playDemo) { host.appendChild(playDemo.mb.wrap); playDemo.cap = cap || null; playDemo.mb.fit(); playDemo.stop(); playDemo.reset(); }
+      else { playDemo = new Demo(host, REEL[0], ctx, cap || null); watch(playDemo); }
       playDemo.wanted = view === 'play'; playDemo.update();
     }
     function active(v) {
@@ -5150,6 +5165,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       ruleH: 'The rule', r1T: 'Any empty square',
       r1P: 'A queen, rook, bishop or knight. No captures, and never a check: joker dots show where this rook can go, red crosses mark squares that would give check.',
       r2T: 'It can block a check', r2P: 'Teleport a piece into the line of a check. Your own king must be safe afterwards.',
+      reelMate0: 'Check. In normal chess this is mate.', reelMate: 'The rook drops in and blocks it.',
+      reelFork0: 'A knight sits at home on b1.', reelFork: 'Now it forks both rooks.',
+      reelPin0: 'The queen stands in front of the king.', reelPin: 'The rook teleports and pins it.', reelPin2: 'The king steps aside, the queen is lost.',
+      reelBlock0: 'Black is about to give check.', reelBlock1: 'In normal chess this is mate.', reelBlock: 'The queen lands on g2 and blocks it.',
+      reelDiag0: 'Queen and king on one diagonal.', reelDiag: 'The bishop appears and pins the queen.',
+      reelBishops0: 'One bishop on the light squares.', reelBishops: 'Now both are, and the weak squares fall.',
       r2Cap0: 'Black is about to give check.', r2Cap1: 'The queen checks along the diagonal. In normal chess, that is mate.', r2Cap2: 'The <b>Joker Move</b> blocks it: the queen lands on g2, protected by the king.',
       r3T: 'Once per game, for each side', r3P: 'It replaces your normal move. While the joker is lit, it\u2019s still in your hand.', inHand: 'still in hand', usedUp: 'used',
       whyH: 'Why it changes chess',
@@ -5299,6 +5320,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       ruleH: 'Правило', r1T: 'Любое пустое поле',
       r1P: 'Ферзь, ладья, слон или конь. Без взятия и никогда с шахом: точки джокера показывают, куда может перенестись ладья, красные крестики — поля, где был бы шах.',
       r2T: 'Им можно закрыться от шаха', r2P: 'Поставьте фигуру на линию шаха. Ваш король после хода должен быть в безопасности.',
+      reelMate0: 'Шах. В обычных шахматах это мат.', reelMate: 'Ладья прыгает и закрывает линию.',
+      reelFork0: 'Конь стоит дома на b1.', reelFork: 'И сразу вилка на обе ладьи.',
+      reelPin0: 'Ферзь стоит перед королём.', reelPin: 'Ладья телепортируется и связывает его.', reelPin2: 'Король отходит, ферзь потерян.',
+      reelBlock0: 'Чёрные сейчас дадут шах.', reelBlock1: 'В обычных шахматах это мат.', reelBlock: 'Ферзь садится на g2 и закрывает.',
+      reelDiag0: 'Ферзь и король на одной диагонали.', reelDiag: 'Слон появляется и связывает ферзя.',
+      reelBishops0: 'Один слон на белых полях.', reelBishops: 'Теперь оба, и слабые поля падают.',
       r2Cap0: 'Чёрные сейчас дадут шах.', r2Cap1: 'Ферзь даёт шах по диагонали. В обычных шахматах это мат.', r2Cap2: '<b>Джокер</b> закрывает шах: ферзь встаёт на g2 под защитой короля.',
       r3T: 'Один раз за партию у каждого', r3P: 'Он заменяет обычный ход. Пока звезда горит, ход у вас в запасе.', inHand: 'в запасе', usedUp: 'использован',
       whyH: 'Чем это меняет шахматы',
@@ -8897,7 +8924,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     game.paused = false; if (game.clock) game.clock.since = perf();
   }
   function kit() {
-    if (!learnKit && window.GCLearn) learnKit = GCLearn.create({ T: T, esc: esc, h: h, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup });
+    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ T: T, esc: esc, h: h, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup }); if (curView) learnKit.active(curView); }
     return learnKit;
   }
 
@@ -8923,7 +8950,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   // ---- Play: the start screen. One main action (Play), one quiet one (Play a friend).
   function renderPlay() {
     var host = $('view-play');
-    var bwOld = host.querySelector('.play-board');
     host.innerHTML = '';
     var wrap = h('div', { class: 'play-wrap' }), bw = h('div', { class: 'play-board' }), col = h('div', { class: 'play-col' });
     wrap.appendChild(bw); wrap.appendChild(col); host.appendChild(wrap);
@@ -8938,6 +8964,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     }
     col.appendChild(head);
     var main = h('div', { class: 'play-main' }); col.appendChild(main);
+    // the reel of Joker Moves: beside the menu on wide screens, above it everywhere else
+    var wide = window.matchMedia && matchMedia('(min-width: 1100px)').matches, reelHost = wide ? bw : h('div', { class: 'play-reel' });
+    var reelCap = h('div', { class: 'play-reel-cap', 'aria-live': 'polite' });
+    if (!wide) main.appendChild(reelHost);
     var acts = h('div', { class: 'play-actions' });
     main.appendChild(acts);
     var lr = localResume(); if (lr) acts.appendChild(lr);
@@ -8972,8 +9002,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     // the privacy policy, quietly at the bottom of the home screen (Google's brand check looks for it here)
     var pv = NETCFG ? 'privacy.html' : window.GC_SITE ? window.GC_SITE + 'privacy.html' : '';
     if (pv) col.appendChild(h('a', { class: 'home-foot', id: 'home-privacy', href: pv, target: '_blank', rel: 'noopener' }, esc(T('privacy'))));
-    // wide screens: a board beside the menu, showing a Joker Move
-    if (window.matchMedia && matchMedia('(min-width: 1100px)').matches && kit()) learnKit.heroBoard(bw, bwOld);
+    // the reel plays on the Play tab only (learnKit.active pauses it elsewhere)
+    if (kit()) { learnKit.heroBoard(reelHost, reelCap); reelHost.appendChild(reelCap); }
   }
   function onlineTc() { return ONLINE_TCS.indexOf(lastSetup.otc) >= 0 ? lastSetup.otc : '3+2'; }
   function bigBtn(cls, label, id, fn) {

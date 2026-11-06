@@ -102,6 +102,12 @@
       ruleH: 'The rule', r1T: 'Any empty square',
       r1P: 'A queen, rook, bishop or knight. No captures, and never a check: joker dots show where this rook can go, red crosses mark squares that would give check.',
       r2T: 'It can block a check', r2P: 'Teleport a piece into the line of a check. Your own king must be safe afterwards.',
+      reelMate0: 'Check. In normal chess this is mate.', reelMate: 'The rook drops in and blocks it.',
+      reelFork0: 'A knight sits at home on b1.', reelFork: 'Now it forks both rooks.',
+      reelPin0: 'The queen stands in front of the king.', reelPin: 'The rook teleports and pins it.', reelPin2: 'The king steps aside, the queen is lost.',
+      reelBlock0: 'Black is about to give check.', reelBlock1: 'In normal chess this is mate.', reelBlock: 'The queen lands on g2 and blocks it.',
+      reelDiag0: 'Queen and king on one diagonal.', reelDiag: 'The bishop appears and pins the queen.',
+      reelBishops0: 'One bishop on the light squares.', reelBishops: 'Now both are, and the weak squares fall.',
       r2Cap0: 'Black is about to give check.', r2Cap1: 'The queen checks along the diagonal. In normal chess, that is mate.', r2Cap2: 'The <b>Joker Move</b> blocks it: the queen lands on g2, protected by the king.',
       r3T: 'Once per game, for each side', r3P: 'It replaces your normal move. While the joker is lit, it\u2019s still in your hand.', inHand: 'still in hand', usedUp: 'used',
       whyH: 'Why it changes chess',
@@ -251,6 +257,12 @@
       ruleH: 'Правило', r1T: 'Любое пустое поле',
       r1P: 'Ферзь, ладья, слон или конь. Без взятия и никогда с шахом: точки джокера показывают, куда может перенестись ладья, красные крестики — поля, где был бы шах.',
       r2T: 'Им можно закрыться от шаха', r2P: 'Поставьте фигуру на линию шаха. Ваш король после хода должен быть в безопасности.',
+      reelMate0: 'Шах. В обычных шахматах это мат.', reelMate: 'Ладья прыгает и закрывает линию.',
+      reelFork0: 'Конь стоит дома на b1.', reelFork: 'И сразу вилка на обе ладьи.',
+      reelPin0: 'Ферзь стоит перед королём.', reelPin: 'Ладья телепортируется и связывает его.', reelPin2: 'Король отходит, ферзь потерян.',
+      reelBlock0: 'Чёрные сейчас дадут шах.', reelBlock1: 'В обычных шахматах это мат.', reelBlock: 'Ферзь садится на g2 и закрывает.',
+      reelDiag0: 'Ферзь и король на одной диагонали.', reelDiag: 'Слон появляется и связывает ферзя.',
+      reelBishops0: 'Один слон на белых полях.', reelBishops: 'Теперь оба, и слабые поля падают.',
       r2Cap0: 'Чёрные сейчас дадут шах.', r2Cap1: 'Ферзь даёт шах по диагонали. В обычных шахматах это мат.', r2Cap2: '<b>Джокер</b> закрывает шах: ферзь встаёт на g2 под защитой короля.',
       r3T: 'Один раз за партию у каждого', r3P: 'Он заменяет обычный ход. Пока звезда горит, ход у вас в запасе.', inHand: 'в запасе', usedUp: 'использован',
       whyH: 'Чем это меняет шахматы',
@@ -3849,7 +3861,7 @@
     game.paused = false; if (game.clock) game.clock.since = perf();
   }
   function kit() {
-    if (!learnKit && window.GCLearn) learnKit = GCLearn.create({ T: T, esc: esc, h: h, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup });
+    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ T: T, esc: esc, h: h, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup }); if (curView) learnKit.active(curView); }
     return learnKit;
   }
 
@@ -3875,7 +3887,6 @@
   // ---- Play: the start screen. One main action (Play), one quiet one (Play a friend).
   function renderPlay() {
     var host = $('view-play');
-    var bwOld = host.querySelector('.play-board');
     host.innerHTML = '';
     var wrap = h('div', { class: 'play-wrap' }), bw = h('div', { class: 'play-board' }), col = h('div', { class: 'play-col' });
     wrap.appendChild(bw); wrap.appendChild(col); host.appendChild(wrap);
@@ -3890,6 +3901,10 @@
     }
     col.appendChild(head);
     var main = h('div', { class: 'play-main' }); col.appendChild(main);
+    // the reel of Joker Moves: beside the menu on wide screens, above it everywhere else
+    var wide = window.matchMedia && matchMedia('(min-width: 1100px)').matches, reelHost = wide ? bw : h('div', { class: 'play-reel' });
+    var reelCap = h('div', { class: 'play-reel-cap', 'aria-live': 'polite' });
+    if (!wide) main.appendChild(reelHost);
     var acts = h('div', { class: 'play-actions' });
     main.appendChild(acts);
     var lr = localResume(); if (lr) acts.appendChild(lr);
@@ -3924,8 +3939,8 @@
     // the privacy policy, quietly at the bottom of the home screen (Google's brand check looks for it here)
     var pv = NETCFG ? 'privacy.html' : window.GC_SITE ? window.GC_SITE + 'privacy.html' : '';
     if (pv) col.appendChild(h('a', { class: 'home-foot', id: 'home-privacy', href: pv, target: '_blank', rel: 'noopener' }, esc(T('privacy'))));
-    // wide screens: a board beside the menu, showing a Joker Move
-    if (window.matchMedia && matchMedia('(min-width: 1100px)').matches && kit()) learnKit.heroBoard(bw, bwOld);
+    // the reel plays on the Play tab only (learnKit.active pauses it elsewhere)
+    if (kit()) { learnKit.heroBoard(reelHost, reelCap); reelHost.appendChild(reelCap); }
   }
   function onlineTc() { return ONLINE_TCS.indexOf(lastSetup.otc) >= 0 ? lastSetup.otc : '3+2'; }
   function bigBtn(cls, label, id, fn) {
