@@ -9,6 +9,7 @@ altool looks too) or from ASC_KEY_PATH.
   python3 asc.py capability                  turns Sign in with Apple on for the bundle id (the App ID capability; the app's entitlements ask for it)
   python3 asc.py metadata                    app info, age rating, version 1.1, the English texts, the review details (listing.json)
   python3 asc.py screenshots DIR             uploads DIR/iphone67/*.png (1290x2796) and DIR/ipad129/*.png (2048x2732) to version 1.1
+  python3 asc.py screens DIR                 how Apple's processing of each uploaded screenshot stands; a set with a failed or stuck one is uploaded again from DIR
   python3 asc.py build [--wait]              the newest build of 1.4: its state; --wait until Apple has processed it; attaches it to the version
   python3 asc.py submit                      sends version 1.1 to App Review
   python3 asc.py cancel                      takes the version back from the review queue (then metadata / screenshots / submit again)
@@ -145,16 +146,39 @@ def cmd_screenshots(d):
         if not st: st = api('POST', '/v1/appScreenshotSets', {'data': {'type': 'appScreenshotSets', 'attributes': {'screenshotDisplayType': kind}, 'relationships': {'appStoreVersionLocalization': rel('appStoreVersionLocalizations', loc['id'])}}})['data']
         have = api('GET', f"/v1/appScreenshotSets/{st['id']}/appScreenshots").get('data') or []
         for s in have: api('DELETE', f"/v1/appScreenshots/{s['id']}")   # the set is replaced whole, in our order
-        for f in files:
-            p = os.path.join(folder, f); data = open(p, 'rb').read()
-            sc = api('POST', '/v1/appScreenshots', {'data': {'type': 'appScreenshots', 'attributes': {'fileName': f, 'fileSize': len(data)}, 'relationships': {'appScreenshotSet': rel('appScreenshotSets', st['id'])}}})['data']
-            for op in sc['attributes']['uploadOperations']:
-                chunk = data[op['offset']:op['offset'] + op['length']]
-                req = urllib.request.Request(op['url'], method=op['method'], data=chunk, headers={h['name']: h['value'] for h in op['requestHeaders']})
-                with urllib.request.urlopen(req, timeout=300) as r: r.read()
-            api('PATCH', f"/v1/appScreenshots/{sc['id']}", {'data': {'type': 'appScreenshots', 'id': sc['id'], 'attributes': {'uploaded': True, 'sourceFileChecksum': hashlib.md5(data).hexdigest()}}})
-            print(sub, f, 'uploaded')
+        for f in files: upload_screenshot(st, folder, f); print(sub, f, 'uploaded')
     print('screenshots done')
+
+def upload_screenshot(st, folder, f):
+    data = open(os.path.join(folder, f), 'rb').read()
+    sc = api('POST', '/v1/appScreenshots', {'data': {'type': 'appScreenshots', 'attributes': {'fileName': f, 'fileSize': len(data)}, 'relationships': {'appScreenshotSet': rel('appScreenshotSets', st['id'])}}})['data']
+    for op in sc['attributes']['uploadOperations']:
+        chunk = data[op['offset']:op['offset'] + op['length']]
+        req = urllib.request.Request(op['url'], method=op['method'], data=chunk, headers={h['name']: h['value'] for h in op['requestHeaders']})
+        with urllib.request.urlopen(req, timeout=300) as r: r.read()
+    api('PATCH', f"/v1/appScreenshots/{sc['id']}", {'data': {'type': 'appScreenshots', 'id': sc['id'], 'attributes': {'uploaded': True, 'sourceFileChecksum': hashlib.md5(data).hexdigest()}}})
+
+# where each uploaded screenshot stands (AWAITING_UPLOAD / UPLOAD_COMPLETE / COMPLETE / FAILED, with Apple's reason). `submit` is
+# refused while any is unfinished; a set with a FAILED or stuck one is replaced whole from DIR (deleted, uploaded again in order)
+def cmd_screens(d, fix=True):
+    a, v = version(create=False); v or sys.exit('no version')
+    vl = api('GET', f"/v1/appStoreVersions/{v['id']}/appStoreVersionLocalizations").get('data') or []
+    loc = next((l for l in vl if l['attributes']['locale'] == LOCALE), None) or sys.exit('no English localization')
+    sets = api('GET', f"/v1/appStoreVersionLocalizations/{loc['id']}/appScreenshotSets").get('data') or []
+    bad = 0
+    for st in sets:
+        kind = st['attributes']['screenshotDisplayType']; sub = next((k for k, t in SETS.items() if t == kind), None)
+        shots = api('GET', f"/v1/appScreenshotSets/{st['id']}/appScreenshots").get('data') or []; unfinished = []
+        for s in shots:
+            at = s['attributes']; ds = at.get('assetDeliveryState') or {}; state = ds.get('state'); errs = ds.get('errors') or []
+            print(kind, at.get('fileName'), state, '; '.join(e.get('description') or e.get('code') or '' for e in errs))
+            if state not in ('COMPLETE', 'UPLOAD_COMPLETE'): unfinished.append(s)
+        bad += len(unfinished)
+        folder = sub and os.path.join(d, sub); files = sorted(f for f in os.listdir(folder) if f.lower().endswith('.png')) if folder and os.path.isdir(folder) else []
+        if unfinished and fix and files:
+            for s in shots: api('DELETE', f"/v1/appScreenshots/{s['id']}")
+            for f in files: upload_screenshot(st, folder, f); print(' ', sub, f, 'uploaded again')
+    print('unfinished screenshots:', bad)
 
 def cmd_build(wait=False):
     a, v = version()
@@ -175,13 +199,14 @@ def cmd_submit():
     subs = api('GET', f"/v1/reviewSubmissions?filter[app]={a['id']}&filter[state]=READY_FOR_REVIEW,WAITING_FOR_REVIEW,IN_REVIEW&limit=5").get('data') or []
     sub = subs[0] if subs else api('POST', '/v1/reviewSubmissions', {'data': {'type': 'reviewSubmissions', 'attributes': {'platform': 'IOS'}, 'relationships': {'app': rel('apps', a['id'])}}})['data']
     # screenshots are post-processed for a few minutes after the upload; adding the version and submitting are refused until they are done — wait and retry
-    for attempt in range(30):
+    # (up to an hour; `screens` shows which screenshot Apple is still chewing on, or has rejected)
+    for attempt in range(60):
         try:
             items = api('GET', f"/v1/reviewSubmissions/{sub['id']}/items").get('data') or []
             if not items: api('POST', '/v1/reviewSubmissionItems', {'data': {'type': 'reviewSubmissionItems', 'relationships': {'reviewSubmission': rel('reviewSubmissions', sub['id']), 'appStoreVersion': rel('appStoreVersions', v['id'])}}})
             api('PATCH', f"/v1/reviewSubmissions/{sub['id']}", {'data': {'type': 'reviewSubmissions', 'id': sub['id'], 'attributes': {'submitted': True}}}); break
         except SystemExit as e:
-            if ('ASSET_IN_POST_PROCESSING' in str(e) or 'being processed' in str(e)) and attempt < 29: print('assets still processing — waiting a minute'); time.sleep(60)
+            if ('ASSET_IN_POST_PROCESSING' in str(e) or 'being processed' in str(e)) and attempt < 59: print('assets still processing — waiting a minute', flush=True); time.sleep(60)
             else: raise
     print('submitted for review:', VERSION)
 
@@ -210,6 +235,7 @@ if __name__ == '__main__':
     elif c == 'capability': cmd_capability()
     elif c == 'metadata': cmd_metadata()
     elif c == 'screenshots': cmd_screenshots(sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, 'store', 'appstore'))
+    elif c == 'screens': cmd_screens(sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, 'store', 'appstore'), fix='--no-fix' not in sys.argv)
     elif c == 'build': cmd_build('--wait' in sys.argv)
     elif c == 'submit': cmd_submit()
     elif c == 'cancel': cmd_cancel()
