@@ -343,6 +343,8 @@ var GCLearn = (function () {
       cta.type = 'button'; cta.id = 'learn-play';
       cta.addEventListener('click', function () { ctx.go('bots'); });
       inn.appendChild(cta);
+      // the closing titles: where the game came from
+      inn.appendChild(el('p', 'credits learn-credits', esc(T('credits'))));
 
       demos.forEach(function (d) { d.wanted = view === 'learn'; watch(d); d.update(); });
     }

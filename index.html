@@ -831,6 +831,8 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 .try-actions .sbtn.hot { background: var(--gold); color: var(--gold-ink); }
 .rules-full .rules li { font-size: 14.5px; }
 .learn-cta { align-self: flex-start; width: auto; padding: 0 34px; }
+.credits { margin: 8px 0 0; padding-top: 12px; border-top: 1px solid rgba(71, 79, 75, .5); font-size: 12.5px; line-height: 1.5; color: var(--muted); max-width: 52ch; }
+.learn-credits { margin-top: 28px; }
 @media (prefers-reduced-motion: reduce) { .start-btn:active { transform: none; } }
 .p-wP{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PHBhdGggZD0iTTIyLjUgOWMtMi4yMSAwLTQgMS43OS00IDQgMCAuODkuMjkgMS43MS43OCAyLjM4QzE3LjMzIDE2LjUgMTYgMTguNTkgMTYgMjFjMCAyLjAzLjk0IDMuODQgMi40MSA1LjAzLTMgMS4wNi03LjQxIDUuNTUtNy40MSAxMy40N2gyM2MwLTcuOTItNC40MS0xMi40MS03LjQxLTEzLjQ3IDEuNDctMS4xOSAyLjQxLTMgMi40MS01LjAzIDAtMi40MS0xLjMzLTQuNS0zLjI4LTUuNjIuNDktLjY3Ljc4LTEuNDkuNzgtMi4zOCAwLTIuMjEtMS43OS00LTQtNHoiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==")}
 .p-wB{background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0NSIgaGVpZ2h0PSI0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxnIGZpbGw9IiNmZmYiIHN0cm9rZS1saW5lY2FwPSJidXR0Ij48cGF0aCBkPSJNOSAzNmMzLjM5LS45NyAxMC4xMS40MyAxMy41LTIgMy4zOSAyLjQzIDEwLjExIDEuMDMgMTMuNSAyIDAgMCAxLjY1LjU0IDMgMi0uNjguOTctMS42NS45OS0zIC41LTMuMzktLjk3LTEwLjExLjQ2LTEzLjUtMS0zLjM5IDEuNDYtMTAuMTEuMDMtMTMuNSAxLTEuMzU0LjQ5LTIuMzIzLjQ3LTMtLjUgMS4zNTQtMS45NCAzLTIgMy0yeiIvPjxwYXRoIGQ9Ik0xNSAzMmMyLjUgMi41IDEyLjUgMi41IDE1IDAgLjUtMS41IDAtMiAwLTIgMC0yLjUtMi41LTQtMi41LTQgNS41LTEuNSA2LTExLjUtNS0xNS41LTExIDQtMTAuNSAxNC01IDE1LjUgMCAwLTIuNSAxLjUtMi41IDQgMCAwLS41LjUgMCAyeiIvPjxwYXRoIGQ9Ik0yNSA4YTIuNSAyLjUgMCAxIDEtNSAwIDIuNSAyLjUgMCAxIDEgNSAweiIvPjwvZz48cGF0aCBkPSJNMTcuNSAyNmgxME0xNSAzMGgxNW0tNy41LTE0LjV2NU0yMCAxOGg1IiBzdHJva2UtbGluZWpvaW49Im1pdGVyIi8+PC9nPjwvc3ZnPg==")}
@@ -4533,6 +4535,8 @@ var GCLearn = (function () {
       cta.type = 'button'; cta.id = 'learn-play';
       cta.addEventListener('click', function () { ctx.go('bots'); });
       inn.appendChild(cta);
+      // the closing titles: where the game came from
+      inn.appendChild(el('p', 'credits learn-credits', esc(T('credits'))));
 
       demos.forEach(function (d) { d.wanted = view === 'learn'; watch(d); d.update(); });
     }
@@ -4809,6 +4813,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       r_fifty: '50-move rule', r_insufficient: 'Insufficient material', 'r_timeout-insufficient': 'Time ran out, but the opponent has too little material to mate', r_abort: 'Game aborted',
       r_left: 'by abandonment', oppLeft: 'Opponent left \u00b7 you win in {s} s',
       memberSince: 'Playing since {d}', recentGames: 'Recent games', yourRank: 'Your rank: #{n}', viewProfile: 'Profile',
+      credits: 'One evening my friend Vitaly Skalaban and I got tired of seeing the same patterns in chess. He said: what if each player had one extra move? We spent the rest of his visit refining it on a wooden board. This app exists so we could keep playing after he flew home.',
       premoveCancelled: 'Premove cancelled', pgnCopied: 'PGN copied', pgnManual: 'Copy the PGN below',
       movesEmpty: 'Moves appear here. Golden moves are marked with a star.', movesEmptyShort: 'Moves appear here', yourMove: 'Your move', botThinking: 'Golden Bot is thinking', whiteMove: 'White to move', blackMove: 'Black to move',
       best: 'Best', depth: 'depth {n}', mateIn: 'mate in {n}', mated: 'checkmate', noMoves: 'No legal moves', analysisStarting: 'Engine is thinking',
@@ -4954,6 +4959,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       r_fifty: 'Правило 50 ходов', r_insufficient: 'Недостаточно материала', 'r_timeout-insufficient': 'Время вышло, но у соперника не хватает материала для мата', r_abort: 'Партия прервана',
       r_left: 'уход из партии', oppLeft: 'Соперник вышел \u00b7 победа через {s} с',
       memberSince: 'Играет с {d}', recentGames: 'Последние партии', yourRank: 'Ваше место: #{n}', viewProfile: 'Профиль',
+      credits: 'One evening my friend Vitaly Skalaban and I got tired of seeing the same patterns in chess. He said: what if each player had one extra move? We spent the rest of his visit refining it on a wooden board. This app exists so we could keep playing after he flew home.',
       premoveCancelled: 'Премув отменён', pgnCopied: 'PGN скопирован', pgnManual: 'Скопируйте PGN ниже',
       movesEmpty: 'Здесь будут ходы. Золотые ходы отмечены звездой.', movesEmptyShort: 'Здесь будут ходы', yourMove: 'Ваш ход', botThinking: 'Golden Bot думает', whiteMove: 'Ход белых', blackMove: 'Ход чёрных',
       best: 'Лучший', depth: 'глубина {n}', mateIn: 'мат в {n}', mated: 'мат', noMoves: 'Нет ходов', analysisStarting: 'Движок думает',
@@ -6748,6 +6754,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       ['rule1', 'rule2', 'rule3', 'rule4', 'rule5'].forEach(function (k) { ol.appendChild(h('li', null, '<span>' + esc(T(k)) + '</span>')); });
       card.appendChild(ol);
       card.appendChild(h('div', { class: 'howto' }, T('howto')));
+      card.appendChild(h('p', { class: 'credits', id: 'credits' }, esc(T('credits'))));
       var row = h('div', { class: 'row-btns' }), d = h('button', { class: 'primary', type: 'button' }, esc(T('done')));
       d.addEventListener('click', closeDialog); row.appendChild(d); card.appendChild(row);
     });

@@ -29,6 +29,7 @@
       r_fifty: '50-move rule', r_insufficient: 'Insufficient material', 'r_timeout-insufficient': 'Time ran out, but the opponent has too little material to mate', r_abort: 'Game aborted',
       r_left: 'by abandonment', oppLeft: 'Opponent left \u00b7 you win in {s} s',
       memberSince: 'Playing since {d}', recentGames: 'Recent games', yourRank: 'Your rank: #{n}', viewProfile: 'Profile',
+      credits: 'One evening my friend Vitaly Skalaban and I got tired of seeing the same patterns in chess. He said: what if each player had one extra move? We spent the rest of his visit refining it on a wooden board. This app exists so we could keep playing after he flew home.',
       premoveCancelled: 'Premove cancelled', pgnCopied: 'PGN copied', pgnManual: 'Copy the PGN below',
       movesEmpty: 'Moves appear here. Golden moves are marked with a star.', movesEmptyShort: 'Moves appear here', yourMove: 'Your move', botThinking: 'Golden Bot is thinking', whiteMove: 'White to move', blackMove: 'Black to move',
       best: 'Best', depth: 'depth {n}', mateIn: 'mate in {n}', mated: 'checkmate', noMoves: 'No legal moves', analysisStarting: 'Engine is thinking',
@@ -174,6 +175,7 @@
       r_fifty: 'Правило 50 ходов', r_insufficient: 'Недостаточно материала', 'r_timeout-insufficient': 'Время вышло, но у соперника не хватает материала для мата', r_abort: 'Партия прервана',
       r_left: 'уход из партии', oppLeft: 'Соперник вышел \u00b7 победа через {s} с',
       memberSince: 'Играет с {d}', recentGames: 'Последние партии', yourRank: 'Ваше место: #{n}', viewProfile: 'Профиль',
+      credits: 'One evening my friend Vitaly Skalaban and I got tired of seeing the same patterns in chess. He said: what if each player had one extra move? We spent the rest of his visit refining it on a wooden board. This app exists so we could keep playing after he flew home.',
       premoveCancelled: 'Премув отменён', pgnCopied: 'PGN скопирован', pgnManual: 'Скопируйте PGN ниже',
       movesEmpty: 'Здесь будут ходы. Золотые ходы отмечены звездой.', movesEmptyShort: 'Здесь будут ходы', yourMove: 'Ваш ход', botThinking: 'Golden Bot думает', whiteMove: 'Ход белых', blackMove: 'Ход чёрных',
       best: 'Лучший', depth: 'глубина {n}', mateIn: 'мат в {n}', mated: 'мат', noMoves: 'Нет ходов', analysisStarting: 'Движок думает',
@@ -1968,6 +1970,7 @@
       ['rule1', 'rule2', 'rule3', 'rule4', 'rule5'].forEach(function (k) { ol.appendChild(h('li', null, '<span>' + esc(T(k)) + '</span>')); });
       card.appendChild(ol);
       card.appendChild(h('div', { class: 'howto' }, T('howto')));
+      card.appendChild(h('p', { class: 'credits', id: 'credits' }, esc(T('credits'))));
       var row = h('div', { class: 'row-btns' }), d = h('button', { class: 'primary', type: 'button' }, esc(T('done')));
       d.addEventListener('click', closeDialog); row.appendChild(d); card.appendChild(row);
     });
