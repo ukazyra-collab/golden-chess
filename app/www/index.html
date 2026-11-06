@@ -4880,6 +4880,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       r_left: 'by abandonment', oppLeft: 'Opponent left \u00b7 you win in {s} s',
       memberSince: 'Playing since {d}', recentGames: 'Recent games', yourRank: 'Your rank: #{n}', viewProfile: 'Profile',
       allTime: 'All time', movesN: '{n} moves', vsBotScore: 'Against {name}',
+      playFreeNote: 'No sign-up needed. Sign in later to keep your rating on any device.',
       credits: 'One evening my friend Vitaly Skalaban and I got tired of seeing the same patterns in chess. He said: what if each player had one extra move? We spent the rest of his visit refining it on a wooden board. This app exists so we could keep playing after he flew home.',
       premoveCancelled: 'Premove cancelled', pgnCopied: 'PGN copied', pgnManual: 'Copy the PGN below',
       movesEmpty: 'Moves appear here. Golden moves are marked with a star.', movesEmptyShort: 'Moves appear here', yourMove: 'Your move', botThinking: 'Golden Bot is thinking', whiteMove: 'White to move', blackMove: 'Black to move',
@@ -5027,6 +5028,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       r_left: 'уход из партии', oppLeft: 'Соперник вышел \u00b7 победа через {s} с',
       memberSince: 'Играет с {d}', recentGames: 'Последние партии', yourRank: 'Ваше место: #{n}', viewProfile: 'Профиль',
       allTime: 'За всё время', movesN: 'ходов: {n}', vsBotScore: 'Против {name}',
+      playFreeNote: 'Без регистрации. Войти можно потом — чтобы рейтинг остался с вами на любом устройстве.',
       credits: 'One evening my friend Vitaly Skalaban and I got tired of seeing the same patterns in chess. He said: what if each player had one extra move? We spent the rest of his visit refining it on a wooden board. This app exists so we could keep playing after he flew home.',
       premoveCancelled: 'Премув отменён', pgnCopied: 'PGN скопирован', pgnManual: 'Скопируйте PGN ниже',
       movesEmpty: 'Здесь будут ходы. Золотые ходы отмечены звездой.', movesEmptyShort: 'Здесь будут ходы', yourMove: 'Ваш ход', botThinking: 'Golden Bot думает', whiteMove: 'Ход белых', blackMove: 'Ход чёрных',
@@ -8584,10 +8586,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   // ---- online play needs an account; the chosen action continues after signing in (even across a reload)
   function setPending(a) { a.at = Date.now(); save('pending', a); }
   function takePending() { var a = load('pending', null); save('pending', null); return a && a.at && Date.now() - a.at < 30 * 60000 ? a : null; }
+  // Online play asks for nothing: a guest gets an account on the spot (an anonymous session with a made-up name) and
+  // plays rated games on it. Signing in (the chip on the start screen, Profile, the result card) keeps that progress
+  // on any device; nothing is gated behind it.
   function requireAccount(a) {
     if (!NETCFG) return;
-    function proceed() { if (signedIn()) runPending(a); else { setPending(a); go('signin'); } }
-    if (!me && hasNetSession()) ensureNet().then(proceed, proceed); else proceed();
+    ensureNet().then(function () { runPending(a); }, function () { toast(T('netError')); });
   }
   function runPending(a) {
     if (!a) return;
@@ -8637,7 +8641,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       row.appendChild(bigBtn('second-btn', T('playFriendShort'), 'btn-friend', friendSheet));
       row.appendChild(bigBtn('second-btn', T('playBotShort'), 'btn-bot', function () { go('bots'); }));
       acts.appendChild(row);
-      acts.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(signedIn() ? T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase() : T(appleShown() ? 'signInFreeApple' : googleShown() ? 'signInFree' : 'signInFreeEmail'))));
+      acts.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(signedIn() ? T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase() : T('playFreeNote'))));
     } else {
       acts.appendChild(bigBtn('start-btn', T('playBot'), 'btn-start', function () { go('bots'); }));
       acts.appendChild(bigBtn('second-btn', T('passPlayLong'), 'btn-pass', showLocalSetup));

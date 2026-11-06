@@ -106,11 +106,15 @@ async def main():
             ctxB = await br.new_context(viewport={'width': 390, 'height': 844}, has_touch=True, is_mobile=True)
             A = await open_page(ctxA, 'A'); B = await open_page(ctxB, 'B')
 
-            # ---- 1. a guest presses Start Game: the sign-in page, a new account with a name, then the search starts
+            # ---- 1. a guest presses Play: the search starts at once, no account asked; the sign-in page (from the chip) makes
+            #         a real account out of the guest, with a name, and goes back to what they were doing
             await wait_for(A, '!!document.getElementById("btn-start")')
             await A.click('#btn-start')
-            ok('Start Game sends a guest to the sign-in page', await wait_for(A, '__gc.curView === "signin" && !!document.getElementById("acct-email")', 4000))
-            ok('the search waits for the sign-in', '"seek"' in (await A.evaluate('localStorage.getItem("goldenchess.pending")') or ''))
+            ok('Play starts the search for a guest at once', await wait_for(A, '__gc.dialogKind === "lobby" && __gc.me && __gc.me.guest === true', 6000))
+            await A.click('#btn-cancel-lobby'); await A.wait_for_timeout(200)
+            ok('the guest has a made-up name', bool(await A.evaluate('__gc.me.profile && __gc.me.profile.username')))
+            await A.click('#acct-chip')
+            ok('the chip opens the sign-in page', await wait_for(A, '__gc.curView === "signin" && !!document.getElementById("acct-email")', 4000))
             ok('no tab bar on the sign-in page (rail on a computer)', await A.evaluate('getComputedStyle(document.getElementById("rail")).display !== "none"'))
             await shot(A, '1-signin')
             await A.fill('#acct-email', 'not-an-email'); await A.click('#btn-send-code')
@@ -132,7 +136,7 @@ async def main():
             ok('toast: signed in as', 'alice@example.com' in (await toast_text(A)), await toast_text(A))
             await shot(A, '2-name')
             await A.fill('#acct-name', 'Alice'); await A.click('#btn-name')
-            ok('the search starts right after', await wait_for(A, '__gc.dialogKind === "lobby"', 5000))
+            ok('back on Play right after', await wait_for(A, '__gc.curView === "play" && !__gc.dialogOpen', 5000))
             ok('same id as the guest, now with an email', await A.evaluate('__gc.me.uid') == uidA and await A.evaluate('__gc.me.guest === false && __gc.me.email === "alice@example.com"'))
             ok('name saved', await A.evaluate('__gc.me.profile.username') == 'Alice')
             prof = [x for x in admin('profiles') if x['id'] == uidA][0]

@@ -84,13 +84,16 @@ async def main():
                 await wait_for(pg, '!!document.getElementById("acct-name")', 5000)
                 await pg.fill('#acct-name', name); await pg.click('#btn-name')
 
-            # ---- 1. both players press Start Game (3+2), sign in, and find each other
+            # ---- 1. both players sign in (the chip on the start screen; Play itself needs no account), press Play (3+2) and find each other
             for pg, email, name in ((A, 'alice@example.com', 'Alice'), (B, 'bob@example.com', 'Bob')):
                 await wait_for(pg, '!!document.getElementById("btn-start")')
                 ok('Play tab offers 3+2', '3+2' in (await pg.text_content('#play-tc')))
-                await pg.click('#btn-start')
+                ok(f'{name}: the start screen says no sign-up is needed', 'no sign-up' in (await pg.text_content('#play-meta')).lower())
+                await pg.click('#acct-chip')
                 await sign_in(pg, email, name)
-                ok(f'{name}: the search starts right after signing in', await wait_for(pg, '__gc.dialogKind === "lobby"', 5000))
+                ok(f'{name}: back on Play after signing in', await wait_for(pg, '__gc.curView === "play" && !__gc.dialogOpen', 5000))
+                await pg.click('#btn-start')
+                ok(f'{name}: the search starts', await wait_for(pg, '__gc.dialogKind === "lobby"', 5000))
                 await pg.wait_for_timeout(150)
             ok('paired: both pages in the online game', await wait_for(A, '__gc.online && __gc.game.cfg.mode === "online"', 8000) and await wait_for(B, '__gc.online && __gc.game.cfg.mode === "online"', 8000))
             ca, cb = await A.evaluate('__gc.online.color'), await B.evaluate('__gc.online.color')
@@ -242,10 +245,10 @@ async def main():
             ok('casual game', await A.evaluate('__gc.game.cfg.rated') == False and await A.evaluate('__gc.game.cfg.tc.label') == '5+0')
             ok('url switched to ?game=', 'game=' in B.url and 'join=' not in B.url, B.url)
 
-            # ---- 12. a third person opening the invite link signs in, then watches
+            # ---- 12. a third person opening the invite link watches at once, as a guest (no sign-in asked)
             C = await open_page(await br.new_context(viewport={'width': 800, 'height': 900}), 'C', link)
-            await sign_in(C, 'carol@example.com', 'Carol')
-            ok('spectator sees the game', await wait_for(C, '__gc.online && __gc.online.color === -1', 6000))
+            ok('spectator sees the game', await wait_for(C, '__gc.online && __gc.online.color === -1', 8000))
+            ok('spectator: a guest, nothing asked', await C.evaluate('__gc.me && __gc.me.guest === true && __gc.curView === "game"'))
             wa = A if await A.evaluate('__gc.online.color') == 0 else B
             await click_move(wa, 'd2', 'd4')
             ok('spectator receives moves', await wait_for(C, '__gc.game.records.length === 1', 5000))
@@ -268,7 +271,10 @@ async def main():
             D = await open_page(ctxD, 'D')
             await D.evaluate('window.__gcFastBot = 1; window.__gcSeekMs = 700')
             await wait_for(D, '!!document.getElementById("btn-start")'); await D.click('#btn-start')
-            await sign_in(D, 'dina@example.com', 'Dina')
+            ok('house: a guest presses Play and the search starts at once, no sign-in', await wait_for(D, '__gc.dialogKind === "lobby" && __gc.me && __gc.me.guest === true', 6000))
+            await D.click('#btn-cancel-lobby'); await D.wait_for_timeout(200)
+            await D.click('#acct-chip'); await sign_in(D, 'dina@example.com', 'Dina')
+            await wait_for(D, '__gc.curView === "play" && !__gc.dialogOpen', 5000); await D.click('#btn-start')
             ok('house: the search shows a filling bar', await wait_for(D, '__gc.dialogKind === "lobby" && !!document.querySelector("#seek-bar.fill")', 5000))
             t0 = time.time()
             ok('house: an opponent is found when the bar is full', await wait_for(D, '__gc.online && __gc.game.cfg.mode === "online"', 8000))

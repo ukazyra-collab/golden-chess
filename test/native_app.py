@@ -316,7 +316,7 @@ async def main():
         await pg.evaluate('__gc.go("play")')
         ok = await wait_for(pg, '!!document.getElementById("play-meta")')
         meta = await pg.evaluate('document.getElementById("play-meta") ? document.getElementById("play-meta").textContent : ""')
-        check('iphone: the Play tab says sign-in is by email, no Google', ok and 'email' in meta and 'Google' not in meta, meta)
+        check('iphone: the Play tab says no sign-up is needed (nothing about Google)', ok and 'No sign-up' in meta and 'Google' not in meta, meta)
         await pg.goto(SITE + '#signin'); await pg.wait_for_timeout(600)
         # a sign-in that finished while the app was closed: the app starts with the link
         await pg.evaluate('localStorage.setItem("test.launchUrl", "goldenchess://auth#access_token=AT9&expires_in=3600&refresh_token=RT9&token_type=bearer")')
@@ -344,7 +344,7 @@ async def main():
         await pg.evaluate('__gc.go("play")')
         ok = await wait_for(pg, '!!document.getElementById("play-meta")')
         meta = await pg.evaluate('document.getElementById("play-meta").textContent')
-        check('iphone+apple: the Play tab names Apple and Google', ok and 'Apple' in meta and 'Google' in meta, meta)
+        check('iphone+apple: the Play tab still asks for nothing', ok and 'No sign-up' in meta, meta)
         await pg.goto(SITE + '#signin'); await pg.wait_for_timeout(500)
         await pg.screenshot(path=os.path.join(ROOT, 'test/shots/ios-signin-apple.png'))
         await pg.click('#btn-apple')
