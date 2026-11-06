@@ -1228,11 +1228,13 @@
   }
   // move classes as players know them from chess.com: a glyph in a coloured circle; sym: shown in the move list,
   // badge: shown on the board
+  // the Joker Move mark in notation and reports: our jester silhouette, black, the size of a notation symbol
+  var JOKER_SYM = '<svg class="jsym" viewBox="2 0 96 100" aria-hidden="true"><g><rect x="24" y="90" width="52" height="9" rx="4"/> <rect x="24" y="90" width="52" height="5" rx="3"/> <rect x="30" y="84" width="40" height="8" rx="3"/> <path d="M40 86 L41 70 L59 70 L60 86 Z"/> <path d="M43 86 L44 72 L56 72 L57 86 Z"/> <path d="M31 40 C25 35 25 27 30 25 C34 28 36 34 36 40 Z"/> <path d="M69 40 C75 35 75 27 70 25 C66 28 64 34 64 40 Z"/> <circle cx="50" cy="54" r="27"/> <circle cx="50" cy="56" r="21"/> <ellipse cx="50" cy="66" rx="14" ry="9"/> <path d="M40 67 C44 74 56 74 60 67" stroke-width="2.8" stroke-linecap="round"/> <circle cx="50" cy="60" r="7"/> <ellipse cx="47.4" cy="57.4" rx="2" ry="1.4" /> <ellipse cx="41" cy="49" rx="4.8" ry="5.2"/><ellipse cx="59" cy="49" rx="4.8" ry="5.2"/> <circle cx="41.6" cy="49.6" r="3.2"/><circle cx="59.6" cy="49.6" r="3.2"/> <circle cx="42.8" cy="48.2" r="1.1"/><circle cx="60.8" cy="48.2" r="1.1"/> <path d="M35.5 42.5 C38.5 39.5 43.5 39.5 46 41.5" stroke-width="2.3" stroke-linecap="round"/> <path d="M54 41.5 C56.5 39.5 61.5 39.5 64.5 42.5" stroke-width="2.3" stroke-linecap="round"/> <path d="M34 30 C26 24 14 20 6 24 C14 26 20 30 26 36 Z"/> <path d="M35 34 C45 31 48.5 20 50 2 C51.5 20 55 31 65 34 Z"/> <path d="M66 30 C74 24 86 20 94 24 C86 26 80 30 74 36 Z"/> <path d="M29 35 C40 26 60 26 71 35 L71 39 C60 31 40 31 29 39 Z"/> <circle cx="6" cy="24" r="3.2" stroke-width=".8"/> <circle cx="50" cy="3.5" r="3.2" stroke-width=".8"/> <circle cx="94" cy="24" r="3.2" stroke-width=".8"/></g></svg>', JOKER_CHIP = '<span class="jchip">' + JOKER_SYM + '</span>';
   var CLS = {
     brilliant: { g: '!!', sym: 1, badge: 1 }, great: { g: '!', sym: 1, badge: 1 }, best: { g: '★', badge: 1 },
     excellent: { g: '✓', badge: 1 }, good: { g: '✓', badge: 1 },
     inaccuracy: { g: '?!', sym: 1, badge: 1 }, mistake: { g: '?', sym: 1, badge: 1 }, miss: { g: '✕', sym: 1, badge: 1 },
-    blunder: { g: '??', sym: 1, badge: 1 }, goldmiss: { g: '🤡', sym: 1, badge: 1 }
+    blunder: { g: '??', sym: 1, badge: 1 }, goldmiss: { g: JOKER_SYM, sym: 1, badge: 1, html: 1 }
   };
   var GOOD_CLS = { brilliant: 1, great: 1, best: 1, excellent: 1, good: 1 };
   function clsIcon(cls) { return '<span class="ci ci-' + cls + '" aria-hidden="true">' + (CLS[cls] ? CLS[cls].g : '') + '</span>'; }
@@ -1670,7 +1672,7 @@
       [strip, sheet].forEach(function (host) {
         host.querySelectorAll('[data-ply]').forEach(function (el) {
           var mv = review.moves[+el.dataset.ply - 1];
-          if (mv && CLS[mv.cls] && CLS[mv.cls].sym) { var i = document.createElement('i'); i.className = 'sym s-' + mv.cls; i.textContent = CLS[mv.cls].g; el.appendChild(i); }
+          if (mv && CLS[mv.cls] && CLS[mv.cls].sym) { var i = document.createElement('i'); i.className = 'sym s-' + mv.cls; if (CLS[mv.cls].html) i.innerHTML = JOKER_CHIP; else i.textContent = CLS[mv.cls].g; el.appendChild(i); }
         });
       });
     }
@@ -1841,7 +1843,7 @@
         else if (before != null) rating = '<b>' + before + '</b>';
       } else if (bot) rating = '<b>' + Engine.LEVELS[game.cfg.level - 1].elo + '</b>';
       var gi = -1; game.records.forEach(function (r, k) { if (r.golden && r.color === c && gi < 0) gi = k; });
-      var gold = gi >= 0 ? '<i class="fo-gold">🤡 ' + esc(game.records[gi].san) + ' <span>(' + (Math.floor(gi / 2) + 1) + ')</span></i>' : '<i class="fo-gold off">✧</i>';
+      var gold = gi >= 0 ? '<i class="fo-gold">' + JOKER_CHIP + ' ' + esc(game.records[gi].san) + ' <span>(' + (Math.floor(gi / 2) + 1) + ')</span></i>' : '<i class="fo-gold off">✧</i>';
       return '<div class="fo-side"><div class="fo-ava' + (mine ? ' me' : '') + (bot ? ' bot' : '') + '">' + ava + '</div><div class="fo-name">' + esc(nm) + '</div>' +
         (rating ? '<div class="fo-rating">' + rating + '</div>' : '') + gold + '</div>';
     }
@@ -4332,7 +4334,7 @@
     if (it.diff != null) sub.push('<b class="' + (it.diff >= 0 ? 'up' : 'down') + '">' + (it.diff >= 0 ? '+' : '−') + Math.abs(it.diff) + '</b>');
     var right = acc != null ? '<span class="gh-acc" title="' + esc(T('accuracy')) + '">' + acc.toFixed(1) + '</span>' : '<span class="gh-rev" aria-label="' + esc(T('reviewShort')) + '">' + ICON.search + '</span>';
     return '<button type="button" class="gh-row" data-key="' + esc(it.key) + '"><span class="gh-res r-' + mark[0] + '">' + mark[1] + '</span><span class="gh-main"><span class="gh-opp"><b>' +
-      esc(it.opp.name) + '</b>' + (it.opp.rating ? '<em>' + it.opp.rating + '</em>' : '') + (it.golden ? '<i class="gh-gold" title="' + esc(T('golden')) + '">🤡</i>' : '') + '</span><span class="gh-sub">' + sub.join('<i class="gh-dot"></i>') + '</span></span>' + right + '</button>';
+      esc(it.opp.name) + '</b>' + (it.opp.rating ? '<em>' + it.opp.rating + '</em>' : '') + (it.golden ? '<i class="gh-gold" title="' + esc(T('golden')) + '">' + JOKER_CHIP + '</i>' : '') + '</span><span class="gh-sub">' + sub.join('<i class="gh-dot"></i>') + '</span></span>' + right + '</button>';
   }
   function renderGames() {
     var host = $('view-games');
@@ -4551,7 +4553,7 @@
   function intro() {
     var el = $('intro'); if (!el) return;
     var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var want = !reduced && !AUTH_HASH.test(location.hash || '') && (NATIVE.on || !load('introSeen', false));
+    var want = !reduced && !navigator.webdriver && !AUTH_HASH.test(location.hash || '') && (NATIVE.on || !load('introSeen', false));
     if (!want) { el.remove(); return; }
     if (!NATIVE.on) save('introSeen', true);
     el.hidden = false; el.classList.add('run');

@@ -285,6 +285,12 @@ svg { display: block; }
 /* move classes (chess.com's colours, a little lighter for the dark board) */
 .s-brilliant { color: #2fc5b0; } .s-great { color: #6fa6dc; } .s-best { color: #7fbf4d; } .s-excellent { color: #97c45c; } .s-good { color: #a9b98a; }
 .s-inaccuracy { color: #e5c84a; } .s-mistake { color: #ec9a45; } .s-miss { color: #f08470; } .s-blunder { color: #e9533f; } .s-goldmiss { color: var(--gold); }
+.jsym { display: inline-block; width: 1em; height: 1em; vertical-align: -.14em; flex: none; }
+.jsym g { fill: #141716; stroke: #141716; }
+.jchip { display: inline-grid; place-items: center; width: 1.3em; height: 1.3em; border-radius: 50%; background: var(--gold); vertical-align: -.08em; flex: none; }
+.jchip .jsym { width: .86em; height: .86em; vertical-align: 0; }
+.ci-goldmiss .jsym { width: 66%; height: 66%; vertical-align: 0; }
+.mv .sym.s-goldmiss { font-size: 11px; margin-left: 3px; }
 .ci { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; font: 800 11px/1 var(--f-ui); letter-spacing: -.04em; color: #fff; }
 .ci-brilliant { background: #2fc5b0; } .ci-great { background: #6fa6dc; } .ci-best { background: #7fbf4d; } .ci-excellent { background: #97c45c; color: #16210c; }
 .ci-good { background: #a9b98a; color: #16210c; } .ci-inaccuracy { background: #e5c84a; color: #2a2108; } .ci-mistake { background: #ec9a45; } .ci-miss { background: #f08470; }
@@ -408,7 +414,6 @@ svg { display: block; }
 .v-best { color: var(--muted); } .v-best b { color: var(--bone); }
 .rv-hint { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
 .mv .sym { font-style: normal; font-weight: 800; font-size: 11px; margin-left: 2px; }
-.mv .sym.s-goldmiss { font-size: 12px; }
 .var-tag { color: var(--muted); font-size: 12px; font-weight: 700; padding: 0 4px 0 10px; }
 .mv.var { color: #cfe3e8; }
 .var-exit { margin-left: 6px; padding: 4px 9px; border-radius: 6px; background: var(--raise); font-size: 12px; font-weight: 700; color: var(--bone); white-space: nowrap; }
@@ -419,7 +424,7 @@ svg { display: block; }
 .bd-best::after { content: "\2605"; background: #7fbf4d; color: #fff; } .bd-inaccuracy::after { content: "?!"; background: #e5c84a; }
 .bd-excellent::after { content: "\2713"; background: #97c45c; color: #16210c; } .bd-good::after { content: "\2713"; background: #a9b98a; color: #16210c; }
 .bd-mistake::after { content: "?"; background: #ec9a45; color: #fff; } .bd-miss::after { content: "\2715"; background: #f08470; color: #fff; }
-.bd-blunder::after { content: "??"; background: #e9533f; color: #fff; } .bd-goldmiss::after { content: "\1F921"; background: var(--gold); box-shadow: 0 0 0 2px #e9533f, 0 1px 3px rgba(0, 0, 0, .45); }
+.bd-blunder::after { content: "??"; background: #e9533f; color: #fff; } .bd-goldmiss::after { content: ""; background: var(--gold) url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%222%200%2096%20100%22%3E%3Cg%20fill%3D%22%23141716%22%20stroke%3D%22%23141716%22%3E%3Crect%20x%3D%2224%22%20y%3D%2290%22%20width%3D%2252%22%20height%3D%229%22%20rx%3D%224%22/%3E%20%3Crect%20x%3D%2224%22%20y%3D%2290%22%20width%3D%2252%22%20height%3D%225%22%20rx%3D%223%22/%3E%20%3Crect%20x%3D%2230%22%20y%3D%2284%22%20width%3D%2240%22%20height%3D%228%22%20rx%3D%223%22/%3E%20%3Cpath%20d%3D%22M40%2086%20L41%2070%20L59%2070%20L60%2086%20Z%22/%3E%20%3Cpath%20d%3D%22M43%2086%20L44%2072%20L56%2072%20L57%2086%20Z%22/%3E%20%3Cpath%20d%3D%22M31%2040%20C25%2035%2025%2027%2030%2025%20C34%2028%2036%2034%2036%2040%20Z%22/%3E%20%3Cpath%20d%3D%22M69%2040%20C75%2035%2075%2027%2070%2025%20C66%2028%2064%2034%2064%2040%20Z%22/%3E%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2254%22%20r%3D%2227%22/%3E%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2256%22%20r%3D%2221%22/%3E%20%3Cellipse%20cx%3D%2250%22%20cy%3D%2266%22%20rx%3D%2214%22%20ry%3D%229%22/%3E%20%3Cpath%20d%3D%22M40%2067%20C44%2074%2056%2074%2060%2067%22%20stroke-width%3D%222.8%22%20stroke-linecap%3D%22round%22/%3E%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2260%22%20r%3D%227%22/%3E%20%3Cellipse%20cx%3D%2247.4%22%20cy%3D%2257.4%22%20rx%3D%222%22%20ry%3D%221.4%22%20/%3E%20%3Cellipse%20cx%3D%2241%22%20cy%3D%2249%22%20rx%3D%224.8%22%20ry%3D%225.2%22/%3E%3Cellipse%20cx%3D%2259%22%20cy%3D%2249%22%20rx%3D%224.8%22%20ry%3D%225.2%22/%3E%20%3Ccircle%20cx%3D%2241.6%22%20cy%3D%2249.6%22%20r%3D%223.2%22/%3E%3Ccircle%20cx%3D%2259.6%22%20cy%3D%2249.6%22%20r%3D%223.2%22/%3E%20%3Ccircle%20cx%3D%2242.8%22%20cy%3D%2248.2%22%20r%3D%221.1%22/%3E%3Ccircle%20cx%3D%2260.8%22%20cy%3D%2248.2%22%20r%3D%221.1%22/%3E%20%3Cpath%20d%3D%22M35.5%2042.5%20C38.5%2039.5%2043.5%2039.5%2046%2041.5%22%20stroke-width%3D%222.3%22%20stroke-linecap%3D%22round%22/%3E%20%3Cpath%20d%3D%22M54%2041.5%20C56.5%2039.5%2061.5%2039.5%2064.5%2042.5%22%20stroke-width%3D%222.3%22%20stroke-linecap%3D%22round%22/%3E%20%3Cpath%20d%3D%22M34%2030%20C26%2024%2014%2020%206%2024%20C14%2026%2020%2030%2026%2036%20Z%22/%3E%20%3Cpath%20d%3D%22M35%2034%20C45%2031%2048.5%2020%2050%202%20C51.5%2020%2055%2031%2065%2034%20Z%22/%3E%20%3Cpath%20d%3D%22M66%2030%20C74%2024%2086%2020%2094%2024%20C86%2026%2080%2030%2074%2036%20Z%22/%3E%20%3Cpath%20d%3D%22M29%2035%20C40%2026%2060%2026%2071%2035%20L71%2039%20C60%2031%2040%2031%2029%2039%20Z%22/%3E%20%3Ccircle%20cx%3D%226%22%20cy%3D%2224%22%20r%3D%223.2%22%20stroke-width%3D%22.8%22/%3E%20%3Ccircle%20cx%3D%2250%22%20cy%3D%223.5%22%20r%3D%223.2%22%20stroke-width%3D%22.8%22/%3E%20%3Ccircle%20cx%3D%2294%22%20cy%3D%2224%22%20r%3D%223.2%22%20stroke-width%3D%22.8%22/%3E%3C/g%3E%3C/svg%3E") center / 64% no-repeat; box-shadow: 0 0 0 2px #e9533f, 0 1px 3px rgba(0, 0, 0, .45); }
 
 /* ---- scoresheet side panel (wide) ---- */
 .side { grid-area: side; display: none; flex-direction: column; min-height: 0; max-height: calc(var(--bs) + 2 * var(--bar-h) + var(--ctl-h) + 18px); background: var(--panel); border-radius: 16px; overflow: hidden; }
