@@ -32,13 +32,14 @@ const SITE = 'https://golden-chess.com/';
 const pieces = JSON.parse(rd('build/pieces.json'));
 let css = '';
 for (const [k, svg] of Object.entries(pieces)) css += `.p-${k}{background-image:url("data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}")}\n`;
+const SCENE = rd('app/resources/scene.svg').replace(/^<\?xml[^>]*>\s*/, '');
 const core = rd('src/core.js'), engine = rd('src/engine.js');
 const workerSrc = [core, engine, rd('src/worker.js')].join('\n;\n');
 const mainSrc = [core, engine, rd('src/book.js'), rd('src/review.js'), rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/ui/learn.js'), rd('src/ui/bots.js'), rd('src/ui/app.js')].join('\n;\n');
 const supa = rd('vendor/supabase-js-2.117.2.umd.js');
 for (const [name, src] of [['worker', workerSrc], ['main', mainSrc], ['supabase', supa]]) if (/<\/script/i.test(src)) throw new Error(name + ' contains </script');
 
-const page = (pre) => rd('src/ui/template.html').replace('/*PIECE_CSS*/', () => css).replace('/*ENGINE_SRC*/', () => workerSrc).replace('/*MAIN_SRC*/', () => pre + mainSrc);
+const page = (pre) => rd('src/ui/template.html').replace('/*PIECE_CSS*/', () => css).replace('<!--INTRO_SCENE-->', () => SCENE).replace('/*ENGINE_SRC*/', () => workerSrc).replace('/*MAIN_SRC*/', () => pre + mainSrc);
 const body = page('');
 // the artifact can't reach the game server, so it points to the website for online play
 const artifactBody = page('window.GC_SITE = ' + JSON.stringify(SITE) + ';\n');

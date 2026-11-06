@@ -100,11 +100,20 @@ def monochrome_svg(px):
             f'<g transform="translate(18 18) scale({72 / 1024})">{art(mono=True)}</g></svg>')
 
 
-def splash_svg(w, h, size):
-    # the knight and the star (no board) in the middle of the launch screen; size = width of the 1024 design
-    k = size / 1024
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}">{defs(92)}{ART_DEFS}'
-            f'<rect width="{w}" height="{h}" fill="{GROUND}"/><g transform="translate({w / 2 - size / 2:.2f} {h / 2 - size / 2:.2f}) scale({k:.5f})">{art(color="#f0b941")}</g></svg>')
+SCENE_FILE = os.path.join(APP, 'resources/scene.svg')
+
+
+def splash_svg(w, h, size=None):
+    # the first frame of the launch intro: the Joker alone on charcoal, zoomed in (the intro then zooms out to the board);
+    # the scene is 390 x 844, scaled to the canvas height and centred
+    svg = open(SCENE_FILE, encoding='utf-8').read()
+    inner = re.search(r'<svg[^>]*>(.*)</svg>', svg, re.S).group(1)
+    inner = re.sub(r'<!--board-->.*?<!--/board-->', '', inner, flags=re.S)
+    inner = re.sub(r'<!--dim-->.*?<!--/dim-->', '', inner, flags=re.S)
+    k = h / 844
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}">'
+            f'<rect width="{w}" height="{h}" fill="{GROUND}"/>'
+            f'<g transform="translate({(w - 390 * k) / 2:.2f} 0) scale({k:.5f})"><g transform="translate(195 540) scale(1.22) translate(-195 -540)">{inner}</g></g></svg>')
 
 
 async def render(page, svg, w, h, path, alpha=True):
