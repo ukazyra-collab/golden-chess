@@ -5,7 +5,7 @@ const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
 
 export function createMemoryRepo(now) {
   const iso = (t) => new Date(t).toISOString();
-  const db = { games: new Map(), profiles: new Map(), ratings: new Map(), seeks: new Map(), house: new Map() };
+  const db = { games: new Map(), profiles: new Map(), ratings: new Map(), seeks: new Map(), house: new Map(), admins: new Set() };
   const GAME_DEFAULTS = { status: 'playing', white_id: null, black_id: null, white_name: null, black_name: null, white_rating: null, black_rating: null,
     host_id: null, host_color: null, rated: true, moves: [], sans: [], turn_started_at: null, result: null, reason: null, white_diff: null, black_diff: null,
     white_after: null, black_after: null, draw_offer: null, rematch_offer: null, rematch_game: null, version: 0, house: null, house_style: null };
@@ -90,6 +90,7 @@ export function createMemoryRepo(now) {
       return { game: g.id, house: h.user_id };
     },
     async houseOf(uid) { return clone(db.house.get(uid) || null); },
+    async isAdmin(uid) { return db.admins.has(uid); },
     async abortWaiting(uid) { for (const g of db.games.values()) if (g.host_id === uid && g.status === 'waiting') Object.assign(g, { status: 'aborted', result: '*', reason: 'abort' }); },
     async deleteSeek(uid) { db.seeks.delete(uid); },
     async top(pool, n) {

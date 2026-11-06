@@ -73,6 +73,10 @@
       sendFailed: 'Couldn\u2019t send the email. Try again later.', finishFirst: 'Finish your online game first',
       linkExpired: 'That sign-in link has expired. Ask for a new code.', signInFailed: 'Couldn\u2019t sign in. Try again.',
       continueGoogle: 'Continue with Google', continueApple: 'Continue with Apple', or: 'or', houseNote: 'Account run by the developer', oppCard: 'Opponent', gamesWithYou: 'Games with you',
+      stats: 'Statistics', loading: 'Loading', stAccounts: 'accounts', stRegistered: '{n} registered', stGuests: '{n} guests', stNew7: 'new this week', stNew30: '{n} in 30 days',
+      stActive7: 'played online this week', stActive30: '{n} in 30 days', stGames7: 'online games this week', stGames30: '{n} in 30 days', stTotal: '{n} in all',
+      stMethods: 'Google / Apple / email', stReturned: 'came back another day', stLive: '{n} playing now', stHouseShare: '{n} vs house players in 30 days',
+      stPools: 'Last 30 days: bullet {bullet}, blitz {blitz}, rapid {rapid}', stLegend: 'games per day (top {g}), dots: new accounts',
       guestNote: 'Guest: your rating is kept on this device only.', saveProgress: 'Save progress',
       guestRatingNote: 'Your rating is kept on this device only. Add your email to keep it.',
       back: 'Back', navPlay: 'Play', navLearn: 'Learn', navRatings: 'Ratings', navProfile: 'Profile',
@@ -212,6 +216,10 @@
       sendFailed: 'Не удалось отправить письмо. Попробуйте позже.', finishFirst: 'Сначала доиграйте онлайн-партию',
       linkExpired: 'Ссылка для входа устарела. Запросите новый код.', signInFailed: 'Не удалось войти. Попробуйте ещё раз.',
       continueGoogle: 'Войти через Google', continueApple: 'Войти через Apple', or: 'или', houseNote: 'Аккаунт, управляемый разработчиком', oppCard: 'Соперник', gamesWithYou: 'Партий с вами',
+      stats: 'Статистика', loading: 'Загрузка', stAccounts: 'аккаунтов', stRegistered: 'зарегистрировано {n}', stGuests: 'гостей {n}', stNew7: 'новых за неделю', stNew30: '{n} за 30 дней',
+      stActive7: 'играли онлайн за неделю', stActive30: '{n} за 30 дней', stGames7: 'онлайн-партий за неделю', stGames30: '{n} за 30 дней', stTotal: 'всего {n}',
+      stMethods: 'Google / Apple / почта', stReturned: 'вернулись в другой день', stLive: 'сейчас играют: {n}', stHouseShare: '{n} с ботами за 30 дней',
+      stPools: 'За 30 дней: пуля {bullet}, блиц {blitz}, рапид {rapid}', stLegend: 'партий в день (максимум {g}), точки: новые аккаунты',
       guestNote: 'Гость: рейтинг хранится только на этом устройстве.', saveProgress: 'Сохранить прогресс',
       guestRatingNote: 'Рейтинг хранится только на этом устройстве. Добавьте почту, чтобы не потерять его.',
       back: 'Назад', navPlay: 'Играть', navLearn: 'Обучение', navRatings: 'Рейтинг', navProfile: 'Профиль',
@@ -2242,6 +2250,8 @@
     var o = { provider: provider, token: token, nonce: nonce };
     return (link ? this.sb.auth.linkIdentity(o) : this.sb.auth.signInWithIdToken(o)).then(authFail);
   };
+  // the owner's statistics (admin_stats() in the database answers only the accounts in `admins`)
+  SupaNet.prototype.adminStats = function () { return this.sb.rpc('admin_stats').then(function (r) { if (r.error) throw r.error; return r.data; }); };
   // Apple says the name only the first time: it goes on the account (offered when the player picks their name)
   SupaNet.prototype.setFullName = function (name) { return this.sb.auth.updateUser({ data: { full_name: name } }).then(authFail); };
   // a player's finished games, newest first (HIST_PAGE at a time, older than `before`); opp: only those against one player
@@ -2327,6 +2337,7 @@
     return this.authCall({ op: 'idtoken', provider: provider, idtoken: token }).then(function (r) { if (r && r.uid) self.uid = r.uid; return r; });
   };
   MockNet.prototype.setFullName = function () { return Promise.resolve(); };
+  MockNet.prototype.adminStats = function () { return postJson(this.base + '/admin', { op: 'stats', token: this.uid }); };
   MockNet.prototype.deleteAccount = function () { return postJson(this.base + '/delete', { token: this.uid }); };
   MockNet.prototype.history = function (uid, before, opp) { return postJson(this.base + '/history', { token: uid, before: before || null, opp: opp || null, limit: HIST_PAGE }).then(function (r) { return r.games || []; }); };
   MockNet.prototype.h2h = function (uid) { return postJson(this.base + '/h2h', { token: uid }).then(function (r) { return r.rows || []; }); };
@@ -2354,7 +2365,7 @@
     try { getClient(); } catch (e) { return Promise.reject(e); }
     netReady = net.ready().then(function () { return Promise.all([net.call('hello'), net.account().catch(function () { return null; })]); }).then(function (rr) {
       var r = rr[0], a = rr[1];
-      me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest, gname: a && a.gname || '' };
+      me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest, gname: a && a.gname || '', admin: !!r.admin };
       (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; });
       if (!userSub) userSub = net.sub('u:' + net.uid, { event: function (ev, p) { if (ev === 'paired' && p && p.game && lobby) onPaired(p.game); } });
       return r;
@@ -2366,7 +2377,7 @@
     if (!net || !me) return Promise.resolve();
     return Promise.all([net.call('hello'), net.account().catch(function () { return null; })]).then(function (rr) {
       var r = rr[0], a = rr[1];
-      me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; });
+      me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; }); me.admin = !!r.admin;
       if (a) { me.email = a.email || null; me.guest = a.guest; me.gname = a.gname || ''; }
     }, function () { /* ignore */ });
   }
@@ -3790,7 +3801,7 @@
     if (signedIn()) {
       var r = me.ratings[pool];
       my.innerHTML = '<div class="big">' + esc(ratingText(pool)) + '</div><div class="meta"><b>' + esc(T('yourRating')) + '</b><span>' +
-        esc(r && r.games ? T('gamesN', { n: r.games }) + ', ' + T('wdl', { w: r.wins, d: r.draws, l: r.losses }) : T('noGamesYet')) + '</span></div>';
+        esc(r && r.games ? gamesText(r.games) + ', ' + T('wdl', { w: r.wins, d: r.draws, l: r.losses }) : T('noGamesYet')) + '</span></div>';
     } else {
       my.className += ' out';
       my.appendChild(h('div', { class: 'muted' }, esc(T('signInToRate'))));
@@ -3838,7 +3849,7 @@
         var grid = h('div', { class: 'pool-grid' });
         ['bullet', 'blitz', 'rapid'].forEach(function (p) {
           var r = me.ratings[p];
-          grid.appendChild(h('div', { class: 'pool-card' }, '<span class="h"><span class="ic-' + p + '">' + POOL_ICON[p] + '</span>' + esc(T(p)) + '</span><span class="r">' + esc(ratingText(p)) + '</span><span class="g">' + esc(r && r.games ? T('gamesN', { n: r.games }) : T('noGamesYet')) + '</span>'));
+          grid.appendChild(h('div', { class: 'pool-card' }, '<span class="h"><span class="ic-' + p + '">' + POOL_ICON[p] + '</span>' + esc(T(p)) + '</span><span class="r">' + esc(ratingText(p)) + '</span><span class="g">' + esc(r && r.games ? gamesText(r.games) : T('noGamesYet')) + '</span>'));
         });
         inn.appendChild(grid);
         var so = h('button', { type: 'button', class: 'secondary danger', id: 'btn-signout' }, esc(T('signOut')));
@@ -3859,6 +3870,7 @@
       }
     }
     profileGames(inn);
+    if (NETCFG && me && me.admin && signedIn()) inn.appendChild(statsCard());
     var sc = h('div', { class: 'card', id: 'settings-card' });
     sc.appendChild(h('h2', null, esc(T('settings'))));
     buildSettings(sc, renderProfile);
@@ -3871,6 +3883,46 @@
     // the privacy policy sits next to the site (privacy.html); the offline copies link to the site's one
     var pv = NETCFG ? 'privacy.html' : window.GC_SITE ? window.GC_SITE + 'privacy.html' : '';
     if (pv) inn.appendChild(h('a', { class: 'credit privacy-link', id: 'privacy-link', href: pv, target: '_blank', rel: 'noopener' }, esc(T('privacy'))));
+  }
+  // ---- the owner's statistics: accounts and how they signed in, who plays online and how much, by day for a month
+  var statsCache = null;
+  function statsCard() {
+    var card = h('div', { class: 'card stats-card', id: 'stats-card' });
+    card.appendChild(h('h2', null, esc(T('stats'))));
+    var body = h('div', { class: 'stats-body' }, '<div class="muted">' + esc(T('loading')) + '…</div>');
+    card.appendChild(body);
+    var draw = function (st) {
+      var m = st.methods || {}, pools = st.pools || {};
+      var tile = function (n, label, sub) { return '<div class="st-tile"><b>' + esc(String(n)) + '</b><span>' + esc(label) + '</span>' + (sub ? '<em>' + esc(sub) + '</em>' : '') + '</div>'; };
+      var html = '<div class="st-grid">' +
+        tile(st.accounts, T('stAccounts'), T('stRegistered', { n: st.registered }) + ', ' + T('stGuests', { n: st.guests })) +
+        tile(st.new7, T('stNew7'), T('stNew30', { n: st.new30 })) +
+        tile(st.active7, T('stActive7'), T('stActive30', { n: st.active30 })) +
+        tile(st.games7, T('stGames7'), T('stGames30', { n: st.games30 }) + ', ' + T('stTotal', { n: st.games })) +
+        tile((m.google || 0) + ' / ' + (m.apple || 0) + ' / ' + (m.email || 0), T('stMethods'), '') +
+        tile(st.returned, T('stReturned'), T('stLive', { n: st.live }) + ', ' + T('stHouseShare', { n: st.games_house30 })) + '</div>';
+      html += '<div class="st-sub">' + esc(T('stPools', { bullet: pools.bullet || 0, blitz: pools.blitz || 0, rapid: pools.rapid || 0 })) + '</div>';
+      // a month by day: online games as bars, new accounts as dots on top
+      var days = st.days || [], maxG = 1, maxN = 1;
+      days.forEach(function (d) { maxG = Math.max(maxG, d.games); maxN = Math.max(maxN, d.new); });
+      var W = 300, H = 60, bw = W / Math.max(1, days.length);
+      var svg = '<svg class="st-chart" viewBox="0 0 ' + W + ' ' + (H + 14) + '" preserveAspectRatio="none" aria-hidden="true">';
+      days.forEach(function (d, i) {
+        var hg = Math.round((d.games / maxG) * H), x = i * bw;
+        svg += '<rect x="' + (x + 0.5).toFixed(1) + '" y="' + (H - hg) + '" width="' + Math.max(1, bw - 1).toFixed(1) + '" height="' + hg + '" class="bar"/>';
+        if (d.new) svg += '<circle cx="' + (x + bw / 2).toFixed(1) + '" cy="' + (H + 7) + '" r="' + (2 + 3 * d.new / maxN).toFixed(1) + '" class="dot"/>';
+      });
+      svg += '</svg>';
+      var first = days.length ? days[0].d.slice(5).replace('-', '.') : '', last = days.length ? days[days.length - 1].d.slice(5).replace('-', '.') : '';
+      html += '<div class="st-chart-wrap">' + svg + '<div class="st-axis"><span>' + esc(first) + '</span><span>' + esc(T('stLegend', { g: maxG })) + '</span><span>' + esc(last) + '</span></div></div>';
+      body.innerHTML = html;
+    };
+    var load = function () {
+      ensureNet().then(function () { return net.adminStats(); }).then(function (st) { statsCache = { at: Date.now(), st: st }; if (card.isConnected) draw(st); },
+        function () { if (card.isConnected) body.innerHTML = '<div class="muted">' + esc(T('netError')) + '</div>'; });
+    };
+    if (statsCache && Date.now() - statsCache.at < 60000) draw(statsCache.st); else load();
+    return card;
   }
   // ---- game history: online games (from the server; anyone may read games) and games against the bots or on one
   // device (kept on the device, newest 200). The score against each opponent, each game's accuracy once reviewed.

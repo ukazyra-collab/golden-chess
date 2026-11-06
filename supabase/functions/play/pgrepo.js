@@ -77,6 +77,10 @@ export function createPgRepo(sql) {
         ${a.base}::int, ${a.inc}::int, ${a.startFen}::text) as j`;
       return r[0].j;
     },
+    async isAdmin(uid) {
+      if (!UUID.test(String(uid))) return false;
+      try { return (await sql`select 1 from public.admins where user_id = ${uid}`).length > 0; } catch (e) { return false; } // no admins table yet: nobody is
+    },
     async houseOf(uid) {
       if (!UUID.test(String(uid))) return null;
       return first(await sql`select to_jsonb(h) as j from public.house h where h.user_id = ${uid}`);

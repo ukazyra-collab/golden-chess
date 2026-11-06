@@ -207,6 +207,21 @@ const server = http.createServer(async (req, res) => {
     else if (b.op === 'ratings') out = [...db.ratings.values()].map(clone);
     else if (b.op === 'profiles') out = [...db.profiles.values()].map(clone);
     else if (b.op === 'addhouse') out = { id: addHouse(b) };   // a house player: { name, level, target, style, online_from, online_hours }
+    else if (b.op === 'addadmin') db.admins.add(b.uid);
+    else if (b.op === 'stats') {                                 // admin_stats() in memory (the shape the Profile card draws)
+      if (!db.admins.has(b.token)) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'not_admin' })); return; }
+      const t = now(), day = (x) => new Date(x).toISOString().slice(0, 10), over = [...db.games.values()].filter((g) => g.status === 'over');
+      const human = (u) => db.profiles.has(u) && !db.profiles.get(u).house, players = (gs) => new Set(gs.flatMap((g) => [g.white_id, g.black_id]).filter(human)).size;
+      const since = (d) => over.filter((g) => Date.parse(g.updated_at) > t - d * 86400000);
+      const profs = [...db.profiles.values()].filter((p) => !p.house), days = [];
+      for (let i = 30; i >= 0; i--) { const d = day(t - i * 86400000); const gs = over.filter((g) => day(Date.parse(g.updated_at)) === d); days.push({ d, games: gs.length, new: profs.filter((p) => day(Date.parse(p.created_at)) === d).length, players: players(gs) }); }
+      const seen = new Map(); over.forEach((g) => [g.white_id, g.black_id].filter(human).forEach((u) => { if (!seen.has(u)) seen.set(u, new Set()); seen.get(u).add(day(Date.parse(g.updated_at))); }));
+      out = { accounts: profs.length, registered: profs.filter((p) => !p.is_guest).length, guests: profs.filter((p) => p.is_guest).length, house: db.house.size,
+        methods: { email: [...accounts.emailOf.keys()].filter(human).length }, new7: profs.filter((p) => Date.parse(p.created_at) > t - 7 * 86400000).length, new30: profs.length,
+        games: over.length, games7: since(7).length, games30: since(30).length, games_house30: since(30).filter((g) => g.house).length, live: [...db.games.values()].filter((g) => g.status === 'playing').length,
+        active7: players(since(7)), active30: players(since(30)), returned: [...seen.values()].filter((s) => s.size >= 2).length,
+        pools: since(30).reduce((a, g) => (a[g.pool] = (a[g.pool] || 0) + 1, a), {}), days };
+    }
     else if (b.op === 'house') out = [...db.house.values()].map(clone);
     else if (b.op === 'outbox') out = accounts.outbox.filter((m) => !b.to || m.to === b.to);
     else if (b.op === 'addgames') {

@@ -206,8 +206,8 @@ export function createLogic(opts) {
     if (!prof) throw new Fail('profile');
     // a guest who has since saved the account with an email (or Google) login
     if (guest !== null && prof.is_guest !== guest) prof = (await repo.setGuest(uid, guest)) || Object.assign(prof, { is_guest: guest });
-    const [ratings, live] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid)]);
-    return { profile: prof, ratings: ratings || [], live: live || null, now: now() };
+    const [ratings, live, admin] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid), repo.isAdmin ? repo.isAdmin(uid) : false]);
+    return { profile: prof, ratings: ratings || [], live: live || null, now: now(), admin: !!admin || undefined };
   };
 
   A.rename = async (uid, b) => {

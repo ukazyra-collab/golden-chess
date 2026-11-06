@@ -1,5 +1,5 @@
-// Golden Chess: the published plugin pins capacitor-swift-pm 7.x; this copy builds against Capacitor 8 (see app/README.md)
 // swift-tools-version: 5.9
+// Golden Chess: the published plugin pins capacitor-swift-pm 7.x; this copy builds against Capacitor 8 (see app/README.md)
 import PackageDescription
 
 let package = Package(

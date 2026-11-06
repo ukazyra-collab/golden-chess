@@ -313,6 +313,20 @@ async def main():
             ok('house: a rematch asked for is taken: a new game, colours swapped', await wait_for(D, '__gc.online && __gc.online.id !== "%s" && __gc.online.s.house === "%s"' % (gid, 'b' if hc == 0 else 'w'), 8000), await D.evaluate('__gc.online && [__gc.online.id, __gc.online.s.house]'))
             ok('house: no console errors (D)', not [e for e in errs['D'] if 'favicon' not in e], errs['D'][:3])
 
+            # ---- 15. the owner's statistics card in Profile (admins only)
+            await D.evaluate('__gc.go("profile")')
+            ok('stats: no card for an ordinary player', await wait_for(D, '!!document.getElementById("profile-games")', 5000) and not await D.evaluate('!!document.getElementById("stats-card")'))
+            admin('addadmin', uid=await D.evaluate('__gc.me.uid'))
+            await D.evaluate('__gc.go("play")'); await D.wait_for_timeout(200)
+            await D.evaluate('window.__gcStatsRefresh = 1')
+            await D.reload(); await D.evaluate(HELPERS); await D.wait_for_timeout(600)
+            await D.evaluate('__gc.go("profile")')
+            ok('stats: the owner gets the Statistics card', await wait_for(D, '!!document.getElementById("stats-card") && document.querySelectorAll("#stats-card .st-tile").length === 6', 8000))
+            tiles = await D.evaluate('[...document.querySelectorAll("#stats-card .st-tile b")].map(b => b.textContent)')
+            ok('stats: accounts, games and active players counted (house players left out)', int(tiles[0]) >= 3 and int(tiles[3]) >= 2 and int(tiles[2]) >= 1, tiles)
+            ok('stats: a month of bars', await D.evaluate('document.querySelectorAll("#stats-card .st-chart .bar").length') == 31)
+            await D.screenshot(path=os.path.join(ROOT, 'test/shots/profile-stats.png'))
+
             for nm in errs:
                 bad = [e for e in errs[nm] if 'favicon' not in e]
                 ok(f'no console errors ({nm})', not bad, bad[:3])

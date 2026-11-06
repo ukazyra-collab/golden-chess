@@ -17,10 +17,9 @@ const B = PG ? 'bbbbbbbb-0000-4000-8000-000000000002' : 'bob';
 const C = PG ? 'cccccccc-0000-4000-8000-000000000003' : 'carol';
 const D = PG ? 'dddddddd-0000-4000-8000-000000000004' : 'dave';
 const H = PG ? 'eeeeeeee-0000-4000-8000-000000000005' : 'house1';
-let repo, inspect, cleanup = async () => {}, addHouse;
+let repo, inspect, cleanup = async () => {}, addHouse, pg;
 if (PG) {
   const { setupPg } = await import('./pg-harness.mjs');
-  let pg;
   ({ repo, inspect, cleanup, pg } = await setupPg([A, B, C, D, H]));
   // a house player as the seed script makes one: a profile marked house, its house row, a rating at its target
   addHouse = async (o) => {
@@ -367,6 +366,24 @@ check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.erro
   r = await ok(C, { action: 'house', tc: '1+0' });
   check('house: a free house player is seated for anyone', r.game && r.game.house, r);
   await ok(C, { action: 'resign', game: r.game.id });
+}
+
+// ---- the owner's statistics (admin_stats(): only for accounts in admins; house players left out)
+if (PG) {
+  const stats = async (uid) => (await pg.query("select set_config('request.jwt.claim.sub', $1, true), public.admin_stats() as s", [uid])).rows[0].s;
+  let failed = null;
+  try { await stats(A); } catch (e) { failed = String(e.message || e); }
+  check('stats: not for an ordinary player', failed && /not_admin/.test(failed), failed);
+  await pg.query('insert into public.admins (user_id) values ($1)', [A]);
+  await pg.query("insert into auth.identities (user_id, provider) values ($1, 'google'), ($2, 'email')", [A, B]);
+  r = await ok(A, { action: 'hello' });
+  check('stats: hello tells the owner they are an admin', r.admin === true, r);
+  check('stats: an ordinary player is not told so', (await ok(B, { action: 'hello' })).admin === undefined);
+  const st = await stats(A);
+  check('stats: accounts counted without the house player', st.accounts === 4 && st.house === 1, st);
+  check('stats: sign-in methods', st.methods && st.methods.google === 1 && st.methods.email === 1, st.methods);
+  check('stats: games, active players, the last 30 days by day', st.games >= 5 && st.active30 >= 2 && Array.isArray(st.days) && st.days.length === 31 && st.days.some((d) => d.games >= 1), [st.games, st.active30, st.days && st.days.length]);
+  check('stats: house games counted apart', st.games_house30 >= 3 && st.games_house30 <= st.games30, [st.games_house30, st.games30]);
 }
 
 // leaderboard

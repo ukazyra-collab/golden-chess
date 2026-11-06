@@ -528,6 +528,17 @@ svg { display: block; }
 .seekbar i { position: absolute; top: 0; bottom: 0; width: 30%; border-radius: 2px; background: var(--bone); animation: seek 1.4s ease-in-out infinite; }
 .seekbar.fill i { width: 0; animation: none; background: var(--gold); transition: width linear; }
 .pbar.tap { cursor: pointer; }
+.stats-card .st-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.st-tile { background: var(--raise); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.st-tile b { font-size: 22px; font-weight: 800; letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
+.st-tile span { font-size: 12.5px; color: var(--bone); }
+.st-tile em { font-style: normal; font-size: 11.5px; color: var(--muted); }
+.st-sub { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+.st-chart-wrap { margin-top: 10px; }
+.st-chart { width: 100%; height: 86px; display: block; }
+.st-chart .bar { fill: var(--gold); opacity: .85; }
+.st-chart .dot { fill: var(--bone); opacity: .8; }
+.st-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 2px; }
 .house-note { font-size: 12.5px; color: var(--muted); padding: 8px 10px; border-radius: 10px; background: var(--raise); }
 .opp-lines b { color: var(--bone); }
 @keyframes seek { 0% { left: -30% } 100% { left: 100% } }

@@ -15,6 +15,7 @@ const SUPABASE_STUBS = `
   create role anon; create role authenticated; create role service_role;
   create schema auth;
   create table auth.users (id uuid primary key);
+  create table auth.identities (user_id uuid, provider text);
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   create schema realtime;
   create table realtime.messages (id bigserial primary key, topic text, extension text, payload jsonb, event text, private boolean);
