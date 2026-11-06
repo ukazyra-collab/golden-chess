@@ -10,7 +10,7 @@ ROOT = os.path.dirname(APP)
 RES = os.path.join(APP, 'android/app/src/main/res')
 IOS = os.path.join(APP, 'ios/App/App/Assets.xcassets')
 
-GROUND, DARK, LIGHT = '#2a2f2d', '#3a423f', '#4a5350'
+GROUND, DARK, LIGHT = '#232826', '#232826', '#2c3230'
 
 
 def star(cx, cy, r):
@@ -51,6 +51,7 @@ ART_DEFS = ('<defs><linearGradient id="kgold" x1="0" y1="0" x2="1" y2="1"><stop 
 
 
 MASCOT_FILE = os.path.join(APP, 'resources/mascot.svg')
+MARK_FILE = os.path.join(APP, 'resources/mark.svg')
 
 
 def mascot(mono=False):
@@ -66,12 +67,14 @@ def mascot(mono=False):
 
 
 def art(mono=False, scale=0.84):
-    # the mascot in 1024 design units, centred for the round masks of Android icons too
+    # the Joker Chess mark (app/resources/mark.svg): the jester silhouette in bone on charcoal
     k = 1024 * scale / 100
-    body = f'<g transform="translate({512 - 50 * k:.2f} {512 - 50 * k + 10:.2f}) scale({k:.4f})">{mascot(mono)}</g>'
+    svg = open(MARK_FILE, encoding='utf-8').read()
+    inner = re.search(r'<svg[^>]*>(.*)</svg>', svg, re.S).group(1)
     if mono:
-        return body
-    return f'<circle cx="512" cy="540" r="430" fill="url(#glow)"/><g filter="url(#ksh)">{body}</g>'
+        inner = re.sub(r'(fill|stroke)="[^"]*"', lambda m: m.group(1) + '="#fff"', inner)
+        return f'<g transform="translate({512 - 50 * k:.2f} {512 - 50 * k + 10:.2f}) scale({k:.4f})">{inner}</g>'
+    return f'<g transform="translate({512 - 50 * k:.2f} {512 - 50 * k + 10:.2f}) scale({k:.4f})">{inner}</g>'
 
 
 def icon_svg(px, shape='square'):
