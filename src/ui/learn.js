@@ -17,14 +17,26 @@ var GCLearn = (function () {
     block: { fen: '3q2k1/Q4ppp/8/8/8/6P1/PP2n2P/R6K b - - 0 1 G', glow: -1, cap0: 'r2Cap0',
       steps: [{ uci: 'd8d5', cap: 'r2Cap1', wait: 2200 }, { sel: 'a7', wait: 1400 }, { uci: 'a7g2*', cap: 'r2Cap2', wait: 3200 }] }
   };
-  // the Play tab: a loop of short Joker Moves, each in a different role (positions checked with the engine)
+  // the Play tab: a loop of short Joker Moves that turn the game (every line checked with the engine, test/reel_check.js)
   var REEL = [
-    { fen: '5rk1/5ppp/1Q6/8/P7/1B6/R4PPP/4q1K1 w - - 0 1 G', glow: 0, cap0: 'reelMate0', steps: [{ sel: 'a2', wait: 1300 }, { uci: 'a2f1*', cap: 'reelMate', wait: 2600 }] },
-    { fen: '3q2k1/5p1p/2r3r1/8/8/8/5PPP/1N1Q2K1 w - - 0 1 G', glow: 0, cap0: 'reelFork0', steps: [{ sel: 'b1', wait: 1300 }, { uci: 'b1e5*', cap: 'reelFork', wait: 2600 }] },
-    { fen: '4k2r/pp2qppp/8/8/8/8/PP3PPP/R2Q2K1 w - - 0 1 G', glow: 0, cap0: 'reelPin0', steps: [{ sel: 'a1', wait: 1300 }, { uci: 'a1e1*', cap: 'reelPin', wait: 2200 }, { uci: 'e8f8', wait: 900 }, { uci: 'e1e7', cap: 'reelPin2', wait: 2400 }] },
-    { fen: '3q2k1/Q4ppp/8/8/8/6P1/PP2n2P/R6K b - - 0 1 G', glow: -1, cap0: 'reelBlock0', steps: [{ uci: 'd8d5', cap: 'reelBlock1', wait: 1800 }, { sel: 'a7', wait: 1200 }, { uci: 'a7g2*', cap: 'reelBlock', wait: 2600 }] },
-    { fen: '2r4k/5p2/7p/4q3/8/8/1P3PPP/5BK1 w - - 0 1 G', glow: 0, cap0: 'reelDiag0', steps: [{ sel: 'f1', wait: 1300 }, { uci: 'f1c3*', cap: 'reelDiag', wait: 2600 }] },
-    { fen: '4r1k1/3n1p1p/6p1/q7/2B5/8/3B1PPP/6K1 w - - 0 1 G', glow: 0, cap0: 'reelBishops0', steps: [{ sel: 'd2', wait: 1300 }, { uci: 'd2d3*', cap: 'reelBishops', wait: 2600 }] }
+    // 1. mate on the board, the rook teleports into the line
+    { fen: '5rk1/5ppp/1Q6/8/P7/1B6/R4PPP/4q1K1 w - - 0 1 G', glow: 0, cap0: 'reelMate0',
+      steps: [{ sel: 'a2', wait: 1300 }, { uci: 'a2f1*', cap: 'reelMate', wait: 2600 }] },
+    // 2. the knight drops in next to the king: Rxh7 mate cannot be stopped
+    { fen: '1r5k/pppR3p/6p1/8/8/8/q4PP1/1NB3KR w - - 0 1 G', glow: 0, cap0: 'reelNet0',
+      steps: [{ sel: 'b1', wait: 1300 }, { uci: 'b1f6*', cap: 'reelNet', wait: 2600 }, { uci: 'a2g8', cap: 'reelNet2', wait: 1500 }, { uci: 'd7h7', wait: 900 }, { uci: 'g8h7', wait: 900 }, { uci: 'h1h7', cap: 'reelNet3', wait: 2600 }] },
+    // 3. the rook teleports and pins the queen to the king
+    { fen: '4k2r/pp2qppp/8/8/8/8/PP3PPP/R2Q2K1 w - - 0 1 G', glow: 0, cap0: 'reelPin0',
+      steps: [{ sel: 'a1', wait: 1300 }, { uci: 'a1e1*', cap: 'reelPin', wait: 2200 }, { uci: 'e8f8', wait: 900 }, { uci: 'e1e7', cap: 'reelPin2', wait: 2400 }] },
+    // 4. the bishop appears on the diagonal: the queen goes for a bishop
+    { fen: '2r4k/1p3p1p/6p1/4q3/8/8/1P3PPP/R2R1BK1 w - - 0 1 G', glow: 0, cap0: 'reelDiag0',
+      steps: [{ sel: 'f1', wait: 1300 }, { uci: 'f1d4*', cap: 'reelDiag', wait: 2400 }, { uci: 'e5d4', wait: 900 }, { uci: 'd1d4', cap: 'reelDiag2', wait: 2400 }] },
+    // 5. a check that is mate in normal chess, blocked by a teleport
+    { fen: '3q2k1/Q4ppp/8/8/8/6P1/PP2n2P/R6K b - - 0 1 G', glow: -1, cap0: 'reelBlock0',
+      steps: [{ uci: 'd8d5', cap: 'reelBlock1', wait: 1800 }, { sel: 'a7', wait: 1200 }, { uci: 'a7g2*', cap: 'reelBlock', wait: 2600 }] },
+    // 6. both sides hold a Joker Move: White pins the queen, Black drops a rook into the line
+    { fen: '2n1k2r/pp2qppp/8/8/8/8/PP3PPP/R2Q2K1 w - - 0 1 Gg', glow: 0, cap0: 'reelBoth0',
+      steps: [{ sel: 'a1', wait: 1200 }, { uci: 'a1e1*', cap: 'reelBoth1', wait: 2400, refuted: true }, { sel: 'h8', wait: 1200 }, { uci: 'h8e4*', cap: 'reelBoth2', wait: 2400 }, { uci: 'e1e4', wait: 900 }, { uci: 'e7e4', cap: 'reelBoth3', wait: 2600 }] }
   ];
   REEL.forEach(function (d, i) { d.next = REEL[(i + 1) % REEL.length]; });
   // where a rook may teleport: gold dots; empty squares it may not use (they would give check): red crosses
@@ -104,7 +116,7 @@ var GCLearn = (function () {
       var marks = [{ sq: hints[0].from, cls: gold ? 'hl-gold' : 'hl-last' }, { sq: hints[0].to, cls: gold ? 'hl-gold' : 'hl-last' }];
       if (this.pos.inCheck()) marks.push({ sq: this.pos.kings[this.pos.side], cls: 'hl-check' });
       v.setMarks(marks); v.setDots([]);
-      if (gold) v.markGolden(-1);
+      v.markGolden(this.pos.goldenAvailable(this.pos.side) ? this.pos.side : -1);
     }
     if (this.cap && s.cap) this.cap.innerHTML = this.ctx.T(s.cap);
     this.timer = setTimeout(function () { self.step(); }, s.wait || 1500);
@@ -381,5 +393,5 @@ var GCLearn = (function () {
     }
     return { render: render, active: active, heroBoard: heroBoard, PUZZLES: PUZZLES };
   }
-  return { create: create, DEMOS: DEMOS, PUZZLES: PUZZLES };
+  return { create: create, DEMOS: DEMOS, PUZZLES: PUZZLES, REEL: REEL };
 })();
