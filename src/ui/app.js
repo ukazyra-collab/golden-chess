@@ -1827,7 +1827,7 @@
       sub.push(T('movesN', { n: Math.ceil(game.records.length / 2) }));
       card.appendChild(h('div', { class: 'over-head' }, '<div class="dlg-title over-title' + (o === 1 && !spectating() ? ' win' : '') + '">' + esc(resultTitle()) + '</div><div class="over-sub">' + esc(sub.join(' · ')) + '</div>'));
       var acts = h('div', { class: 'over-acts' });
-      var rv = h('button', { class: 'secondary', type: 'button', id: 'btn-over-review' }, esc(T('review')));
+      var rv = h('button', { class: 'second-btn', type: 'button', id: 'btn-over-review' }, esc(T('review')));
       rv.addEventListener('click', function () { closeDialog(); showReport(); renderSide(); });
       if (onlineGame()) {
         var st = online && online.s;
@@ -1843,7 +1843,7 @@
         // rematch is the one bright action; the review under it, a new opponent as a quiet line
         if (!spectating()) {
           var rm = rematchState();
-          var rb = h('button', { class: 'primary', type: 'button', id: 'btn-rematch' }, esc(rm.label)); rb.disabled = rm.disabled;
+          var rb = h('button', { class: 'start-btn primary', type: 'button', id: 'btn-rematch' }, esc(rm.label)); rb.disabled = rm.disabled;
           rb.addEventListener('click', rematch);
           acts.appendChild(rb);
         }
@@ -1862,7 +1862,7 @@
         if (bs && bs.w + bs.d + bs.l) card.appendChild(h('div', { class: 'over-match one' }, '<div class="om"><span>' + esc(T('vsBotScore', { name: botName() })) + '</span><b>' + pts(bs.w, bs.d) + ' : ' + pts(bs.l, bs.d) + '</b><em>' + esc(wdlText({ w: bs.w, d: bs.d, l: bs.l })) + '</em></div>'));
       }
       // a game against the bot or on one device: play again (colours swap with the bot), or look through the game
-      var again = h('button', { class: 'primary', type: 'button', id: 'btn-again' }, esc(T('againBot')));
+      var again = h('button', { class: 'start-btn primary', type: 'button', id: 'btn-again' }, esc(T('againBot')));
       again.addEventListener('click', function () {
         closeDialog();
         var s = { mode: game.cfg.mode, level: game.cfg.level, tc: game.cfg.tc ? game.cfg.tc.label : 'none', color: 'w' };

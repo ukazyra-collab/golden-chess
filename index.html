@@ -449,35 +449,36 @@ svg { display: block; }
   .veil { align-items: flex-end; padding-bottom: 0; }
   .sheetdlg { border-radius: 22px 22px 0 0; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); max-height: 92%; }
 }
-/* the result card: centred on every screen, the two players face to face */
+/* the result card: centred on every screen, the two players face to face, the same big buttons as the start screen */
 .veil.center { align-items: center; padding: 20px 16px; }
-.veil.center .sheetdlg { border-radius: 22px; padding-bottom: 20px; max-height: calc(100% - 40px); }
-.sheetdlg.over { text-align: center; gap: 18px; padding-top: 26px; }
-.over-title { font-size: 30px; line-height: 1.1; }
-.over-sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
-.faceoff { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 8px; }
+.veil.center .sheetdlg { border-radius: 24px; padding-bottom: 22px; max-height: calc(100% - 40px); }
+.sheetdlg.over { text-align: center; gap: 20px; padding: 28px 22px 22px; max-width: 420px; }
+.over-title { font-size: 32px; line-height: 1.1; }
+.over-sub { color: var(--muted); font-size: 14.5px; margin-top: 5px; }
+.faceoff { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 6px; padding: 2px 0; }
 .fo-side { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
-.fo-ava { width: 62px; height: 62px; border-radius: 50%; background: var(--raise); display: grid; place-items: center; font: 800 26px/1 var(--f-ui); color: var(--bone); margin-bottom: 5px; overflow: hidden; }
-.fo-ava.me { background: var(--gold); color: var(--gold-ink); }
+.fo-ava { width: 70px; height: 70px; border-radius: 50%; background: var(--raise); box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .06); display: grid; place-items: center; font: 800 28px/1 var(--f-ui); color: var(--bone); margin-bottom: 7px; overflow: hidden; }
+.fo-ava.me { background: var(--gold); color: var(--gold-ink); box-shadow: 0 4px 0 var(--gold-edge); }
 .fo-ava.bot svg { width: 100%; height: 100%; display: block; }
-.fo-ava .pc-ic { width: 40px; height: 40px; }
-.fo-name { font-weight: 800; font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fo-rating { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.fo-ava .pc-ic { width: 44px; height: 44px; }
+.fo-name { font-weight: 800; font-size: 16px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fo-rating { font-size: 14.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .fo-rating b { color: var(--bone); font-weight: 800; } .fo-rating .up { color: #8fd0a4; font-weight: 800; } .fo-rating .down { color: #ef7a6c; font-weight: 800; }
-.fo-gold { font-style: normal; font-size: 12.5px; color: var(--gold); font-weight: 700; margin-top: 2px; white-space: nowrap; }
+.fo-gold { font-style: normal; font-size: 12.5px; color: var(--gold); font-weight: 700; margin-top: 3px; white-space: nowrap; }
 .fo-gold span { color: var(--muted); font-weight: 600; } .fo-gold.off { color: var(--faint); }
-.fo-mid { display: flex; align-items: center; gap: 6px; padding-top: 16px; font: 800 38px/1 var(--f-ui); font-variant-numeric: tabular-nums; }
-.fo-mid i { font-style: normal; color: var(--muted); font-size: 28px; }
+.fo-mid { display: flex; align-items: center; gap: 7px; padding-top: 18px; font: 800 42px/1 var(--f-ui); font-variant-numeric: tabular-nums; }
+.fo-mid i { font-style: normal; color: var(--faint); font-size: 30px; padding-bottom: 4px; }
 .fo-mid.win b { color: var(--gold); }
-.over-match { width: 100%; background: var(--raise); border-radius: 14px; padding: 12px 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; color: inherit; font: inherit; }
+.over-match { width: 100%; background: var(--raise); border-radius: 16px; padding: 12px 8px 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; color: inherit; font: inherit; box-shadow: 0 3px 0 var(--edge); }
 .over-match.one { grid-template-columns: 1fr; }
-.over-match:active { transform: scale(.985); }
-.om { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
-.om span { font-size: 12px; font-weight: 700; color: var(--muted); }
-.om b { font: 800 24px/1.1 var(--f-ui); font-variant-numeric: tabular-nums; }
+.over-match:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--edge); }
+.om { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; }
+.om span { font-size: 11.5px; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+.om b { font: 800 26px/1.15 var(--f-ui); font-variant-numeric: tabular-nums; }
 .om em { font-style: normal; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.over-acts { display: flex; flex-direction: column; gap: 10px; }
-.over-acts .primary { height: 54px; font-size: 18px; }
+.over-acts { display: flex; flex-direction: column; gap: 12px; }
+.over-acts .start-btn, .over-acts .second-btn { flex: none; width: 100%; min-width: 0; }
+.sheetdlg.over .linkbtn.center { padding: 10px 14px; margin-top: -6px; font-size: 15px; }
 .sheetdlg.over .dlg-note { text-align: left; }
 .dlg-title { font-weight: 800; font-size: 21px; line-height: 1.2; text-wrap: balance; }
 .dlg-title.win { color: var(--gold); }
@@ -6684,7 +6685,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       sub.push(T('movesN', { n: Math.ceil(game.records.length / 2) }));
       card.appendChild(h('div', { class: 'over-head' }, '<div class="dlg-title over-title' + (o === 1 && !spectating() ? ' win' : '') + '">' + esc(resultTitle()) + '</div><div class="over-sub">' + esc(sub.join(' · ')) + '</div>'));
       var acts = h('div', { class: 'over-acts' });
-      var rv = h('button', { class: 'secondary', type: 'button', id: 'btn-over-review' }, esc(T('review')));
+      var rv = h('button', { class: 'second-btn', type: 'button', id: 'btn-over-review' }, esc(T('review')));
       rv.addEventListener('click', function () { closeDialog(); showReport(); renderSide(); });
       if (onlineGame()) {
         var st = online && online.s;
@@ -6700,7 +6701,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
         // rematch is the one bright action; the review under it, a new opponent as a quiet line
         if (!spectating()) {
           var rm = rematchState();
-          var rb = h('button', { class: 'primary', type: 'button', id: 'btn-rematch' }, esc(rm.label)); rb.disabled = rm.disabled;
+          var rb = h('button', { class: 'start-btn primary', type: 'button', id: 'btn-rematch' }, esc(rm.label)); rb.disabled = rm.disabled;
           rb.addEventListener('click', rematch);
           acts.appendChild(rb);
         }
@@ -6719,7 +6720,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
         if (bs && bs.w + bs.d + bs.l) card.appendChild(h('div', { class: 'over-match one' }, '<div class="om"><span>' + esc(T('vsBotScore', { name: botName() })) + '</span><b>' + pts(bs.w, bs.d) + ' : ' + pts(bs.l, bs.d) + '</b><em>' + esc(wdlText({ w: bs.w, d: bs.d, l: bs.l })) + '</em></div>'));
       }
       // a game against the bot or on one device: play again (colours swap with the bot), or look through the game
-      var again = h('button', { class: 'primary', type: 'button', id: 'btn-again' }, esc(T('againBot')));
+      var again = h('button', { class: 'start-btn primary', type: 'button', id: 'btn-again' }, esc(T('againBot')));
       again.addEventListener('click', function () {
         closeDialog();
         var s = { mode: game.cfg.mode, level: game.cfg.level, tc: game.cfg.tc ? game.cfg.tc.label : 'none', color: 'w' };
