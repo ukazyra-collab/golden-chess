@@ -9071,7 +9071,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     rc.innerHTML = ['bullet', 'blitz', 'rapid'].map(function (pool) {
       var r = (p.ratings || []).filter(function (x) { return x.pool === pool; })[0], on = r && r.games > 0;
       return '<div class="pl-pool' + (on ? '' : ' off') + '"><span class="pl-pool-n ic-' + pool + '">' + POOL_ICON[pool] + esc(T(pool)) + '</span><b>' + (on ? Math.round(r.rating) + (r.rd > 110 ? '?' : '') : '–') + '</b>' +
-        '<span class="muted">' + esc(on ? gamesText(r.games) + ' · ' + T('wdl', { w: r.wins, d: r.draws, l: r.losses }) : T('noGamesYet')) + '</span></div>';
+        '<span class="muted" title="' + esc(on ? T('wdl', { w: r.wins, d: r.draws, l: r.losses }) : '') + '">' + esc(on ? gamesText(r.games) : T('noGamesYet')) + '</span></div>';
     }).join('');
     inn.appendChild(rc);
     if (p.h2h && p.h2h.games) inn.appendChild(h('div', { class: 'gh-score', id: 'pl-score' }, scoreHtml({ name: name, w: p.h2h.wins, d: p.h2h.draws, l: p.h2h.losses, n: p.h2h.games })));
@@ -9079,7 +9079,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     gc.appendChild(h('h2', null, esc(T('recentGames'))));
     var items = (p.rows || []).map(function (g) { return histFromOnline(g, p.uid); });
     if (items.length) gc.appendChild(h('div', { class: 'gh-list' }, items.map(function (it) { return histRow(it, {}); }).join('')));
-    else gc.appendChild(h('div', { class: 'muted gh-empty' }, esc(T('noGames'))));
+    else gc.appendChild(h('div', { class: 'muted gh-empty' }, esc(T('noGamesYet'))));
     if (p.more) {
       var more = h('button', { type: 'button', class: 'secondary gh-more', id: 'btn-more-player' }, esc(T('showMore')));
       more.disabled = p.loading; more.addEventListener('click', loadPlayerMore); gc.appendChild(more);
