@@ -16,11 +16,14 @@ export const TCS = {
 };
 export const LAG_COMP = 150;        // ms credited back per move for network lag
 export const FIRST_MOVE_MS = 30000; // each side must make its first move within this time or the game is aborted
+// Leaving: a player's device says it is there (`seen`, every few seconds while the game is in front of them). Away during
+// the opponent's turn is fine, for as long as it takes; but the side to move whose device has been silent for GONE_MS
+// (and whose turn is that old) has left the game and loses (reason 'left'). Thinking with the game in front never counts.
+export const GONE_MS = 20000;
 // House players (accounts run by the developer; profiles.house): seated when no one else comes, played by the opponent's
 // device. Their clock doesn't run on the wall: the device says how long the move "took" (think, ms), so a player who
-// walks away during the house player's turn never wins on time. If the house side hasn't moved for this long, the
-// device driving it is gone: the human abandoned the game and loses on time.
-export const HOUSE_GONE_MS = 120000;
+// walks away during the house player's turn never wins on time; the game waits for them. A house player never "leaves"
+// by silence (its device is the human's): it leaves on its device's word (house_act leave).
 export const HOUSE_DRIFT = 0.25;    // after a rated game a house player's rating is pulled this far back towards its target
 export const HOUSE_RD_MIN = 60;     // and its rating stays this responsive
 
@@ -131,12 +134,22 @@ export function createLogic(opts) {
     if (g.house && side === g.house) return null; // the house side's time is counted by its moves (see move)
     return (side === 'w' ? g.clock_w : g.clock_b) - (t - since) + LAG_COMP <= 0 ? side : null;
   }
-  // the house side is to move but nobody drives it any more: the human left the game
-  function houseGone(g, t) {
-    if (!g.house || g.status !== 'playing' || sideToMove(g) !== g.house) return false;
-    const since = g.moves.length >= 2 && g.turn_started_at ? Date.parse(g.turn_started_at) : Date.parse(g.moves.length === 0 ? g.created_at : g.updated_at);
-    return t - since > HOUSE_GONE_MS;
+  // the turn is old enough for the side to move to have left (worth reading `seen` for)
+  function goneDue(g, t) {
+    if (g.status !== 'playing') return false;
+    const since = runningSince(g);
+    if (since == null || t - since < GONE_MS) return false;
+    return !(g.house && sideToMove(g) === g.house);
   }
+  // the side to move whose device has been silent for GONE_MS (seen: [{ user_id, at }] of the game), else null
+  function goneSide(g, seen, t) {
+    if (!goneDue(g, t)) return null;
+    const side = sideToMove(g), uid = side === 'w' ? g.white_id : g.black_id;
+    const row = (seen || []).find((r) => r.user_id === uid);
+    if (!row) return null; // a device that never said it was there (an older client): judged by its clock alone
+    return t - Date.parse(row.at) >= GONE_MS ? side : null;
+  }
+  const leftPatch = (g, t, side) => overPatch(g, t, { result: side === 'w' ? '0-1' : '1-0', reason: 'left' });
   function overPatch(g, t, end, extra) {
     return Object.assign(clocksAt(g, t), { status: 'over', result: end.result, reason: end.reason, draw_offer: null }, extra || {});
   }
@@ -175,23 +188,27 @@ export function createLogic(opts) {
     return (await repo.setGameFields(g.id, diffs)) || Object.assign({}, g, diffs);
   }
 
-  // Settle a game whose clock ran out or whose first move never came; otherwise return it unchanged.
-  async function settle(g) {
+  // Settle a game whose clock ran out, whose first move never came or whose side to move has left; otherwise return it
+  // unchanged. `seen` (the game's rows) saves a read when the caller has them.
+  async function settle(g, seen) {
     if (g.status !== 'playing') return view(g);
     const t = now();
     if (g.moves.length < 2) {
       const since = Date.parse(g.moves.length === 0 ? g.created_at : g.updated_at);
       return t - since > FIRST_MOVE_MS ? commit(g, abortPatch(g, t)) : view(g);
     }
-    if (houseGone(g, t)) {
-      const { pos } = replay(g), human = other(g.house);
-      return commit(g, overPatch(g, t, timeoutEnd(pos, human), human === 'w' ? { clock_w: 0 } : { clock_b: 0 }));
-    }
     const f = flagged(g, t);
-    if (!f) return view(g);
-    const { pos } = replay(g);
-    return commit(g, overPatch(g, t, timeoutEnd(pos, f), f === 'w' ? { clock_w: 0 } : { clock_b: 0 }));
+    if (f) {
+      const { pos } = replay(g);
+      return commit(g, overPatch(g, t, timeoutEnd(pos, f), f === 'w' ? { clock_w: 0 } : { clock_b: 0 }));
+    }
+    if (goneDue(g, t)) {
+      const gs = goneSide(g, seen || (await repo.seenAt(g.id)), t);
+      if (gs) return commit(g, leftPatch(g, t, gs));
+    }
+    return view(g);
   }
+  const settled = async (g, seen) => { try { return { game: await settle(g, seen) }; } catch (e) { if (e.code === 'conflict') return { game: e.extra }; throw e; } };
 
   // ---- actions ----
   const A = {};
@@ -325,6 +342,8 @@ export function createLogic(opts) {
       rem = Math.round(rem + g.tc_inc);
       if (color === 'w') cw = rem; else cb = rem;
     }
+    // a move after being away for the whole of a long turn comes too late: the player had left
+    if (!b.house && goneDue(g, t)) { const gs = goneSide(g, await repo.seenAt(g.id), t); if (gs) return { game: await commit(g, leftPatch(g, t, gs)) }; }
     const san = pos.san(m);
     pos.makeMove(m);
     const k = pos.hashKey(); counts[k] = (counts[k] || 0) + 1;
@@ -337,9 +356,22 @@ export function createLogic(opts) {
     return { game: await commit(g, patch) };
   };
 
-  A.claim = async (uid, b) => {
+  A.claim = async (uid, b) => settled(await game(b.game));
+
+  // the player's device says they have the game in front of them (every few seconds; not while the app is in the
+  // background). A side to move that was silent for GONE_MS has left: settled here, whichever player's device asks
+  // (the one still there claims the win this way; one coming back too late learns of the loss).
+  A.seen = async (uid, b) => {
     const g = await game(b.game);
-    try { return { game: await settle(g) }; } catch (e) { if (e.code === 'conflict') return { game: e.extra }; throw e; }
+    if (!colorOf(g, uid)) throw new Fail('not_player', view(g));
+    if (g.status !== 'playing') return { game: view(g) };
+    const t = now();
+    if (goneDue(g, t) || flagged(g, t)) {
+      const seen = await repo.seenAt(g.id);
+      if (flagged(g, t) || goneSide(g, seen, t)) return settled(g, seen);
+    }
+    await repo.touch(g.id, uid, iso(t));
+    return { ok: true, now: t };
   };
 
   async function resignAs(g, color) {
@@ -391,6 +423,14 @@ export function createLogic(opts) {
     const out = await commit(g, { rematch_game: ng.id, rematch_offer: null });
     return { game: out, next: ng.id };
   }
+  // the house player walks away (its device's word): the game is lost like any abandoned game, or aborted before move two
+  async function leaveAs(g, color) {
+    if (g.status !== 'playing') return { game: view(g) };
+    const t = now();
+    if (flagged(g, t)) return settled(g);
+    if (g.moves.length < 2) return { game: await commit(g, abortPatch(g, t)) };
+    return { game: await commit(g, leftPatch(g, t, color)) };
+  }
   A.rematch = async (uid, b) => {
     const g = await game(b.game);
     if (g.status !== 'over' && g.status !== 'aborted') throw new Fail('not_over', view(g));
@@ -406,6 +446,7 @@ export function createLogic(opts) {
     if (b.op === 'rematch') return rematchAs(g, color);
     if (b.op === 'draw' || b.op === 'accept') return drawAs(g, color, b.op === 'draw' ? 'offer' : 'accept');
     if (b.op === 'decline') return drawAs(g, color, 'decline');
+    if (b.op === 'leave') return leaveAs(g, color);
     throw new Fail('bad_op');
   };
 
@@ -440,5 +481,5 @@ export function createLogic(opts) {
     }
   }
 
-  return { handle, Fail, settle, _test: { replay, clocksAt, flagged, houseGone } };
+  return { handle, Fail, settle, _test: { replay, clocksAt, flagged, goneSide } };
 }

@@ -327,6 +327,41 @@ async def main():
             ok('stats: a month of bars', await D.evaluate('document.querySelectorAll("#stats-card .st-chart .bar").length') == 31)
             await D.screenshot(path=os.path.join(ROOT, 'test/shots/profile-stats.png'))
 
+            # ---- 16. leaving: away during the opponent's turn is fine (the game waits); on one's own turn 20 s away loses,
+            #          with a countdown on the other screen; coming back in time just goes on
+            for pg in (A, B): await pg.evaluate('window.__gcSeekMs = 60000; __gc.startSeek("3+2", true)')
+            ok('left: A and B paired again', await wait_for(A, '__gc.online && __gc.game.status === "playing" && __gc.online.s.moves.length === 0', 9000) and await wait_for(B, '__gc.online && __gc.game.status === "playing"', 9000))
+            W, Bl = (A, B) if await A.evaluate('__gc.online.color') == 0 else (B, A)
+            ok('left: both devices are heard from (seen rows)', await wait_for(W, '__gc.online.seenTimer > 0', 3000) and await wait_for(Bl, '__gc.online.seenTimer > 0', 3000))
+            await click_move(W, 'e2', 'e4'); ok('left: move 1', await synced(1))
+            await click_move(Bl, 'e7', 'e5'); ok('left: move 2', await synced(2))
+            await Bl.evaluate('__gc.away(true)')  # black puts the app in the background during white's turn
+            ok('left: white sees black away (the dot)', await wait_for(W, '__gc.online.oppHere === false && !!document.querySelector(".conn.off")', 5000))
+            ok('left: black stops saying it is there', await Bl.evaluate('__gc.online.seenTimer') == 0)
+            await W.wait_for_timeout(1500)
+            ok("left: no countdown while it is white's turn", await W.evaluate('__gc.online.awaySec') == -1)
+            await click_move(W, 'g1', 'f3'); ok('left: white moves', await wait_for(W, '__gc.game.records.length === 3 && !__gc.online.pending', 5000))
+            ok("left: the countdown starts on black's turn", await wait_for(W, '__gc.online.awaySec >= 0 && __gc.online.awaySec <= 20', 3000))
+            ok('left: "Opponent left · you win in N s" shown', await W.evaluate('/opponent left .* win in \\d+ s/i.test(document.getElementById("ana").textContent + document.getElementById("ana-side").textContent)'))
+            await W.wait_for_timeout(2200)
+            s1 = await W.evaluate('__gc.online.awaySec'); ok('left: it counts down', 13 <= s1 <= 18, s1)
+            await W.screenshot(path=os.path.join(ROOT, 'test/shots/left-countdown.png'))
+            await Bl.evaluate('__gc.away(false)')  # back in time
+            ok('left: back: white sees black here, the countdown is gone', await wait_for(W, '__gc.online.oppHere === true && __gc.online.awaySec === -1', 5000))
+            ok('left: black is heard from again', await wait_for(Bl, '__gc.online.seenTimer > 0', 3000))
+            await click_move(Bl, 'b8', 'c6'); ok('left: black moves on, nothing lost', await synced(4) and await W.evaluate('__gc.game.status') == 'playing')
+            await Bl.evaluate('__gc.away(true)')  # away again, and this time for good
+            await wait_for(W, '__gc.online.oppHere === false', 5000)
+            await click_move(W, 'f1', 'c4'); ok('left: white moves again', await wait_for(W, '__gc.game.records.length === 5 && !__gc.online.pending', 5000))
+            await W.wait_for_timeout(1200)
+            ok('left: a second into the turn: still playing', await W.evaluate('__gc.game.status') == 'playing')
+            admin('shift', ms=21000)  # the server's clock moves on 21 s: black has been quiet for the whole turn
+            ok("left: white wins by abandonment (white's own heartbeat claimed it)", await wait_for(W, '__gc.game.status === "over" && __gc.game.reason === "left" && __gc.game.result === "1-0"', 9000))
+            ok('left: the result names it', await wait_for(W, '/abandon|уход/i.test(document.body.textContent)', 3000))
+            await Bl.evaluate('__gc.away(false)')
+            ok('left: black, back too late, learns of the loss', await wait_for(Bl, '__gc.game.status === "over" && __gc.game.reason === "left"', 6000))
+            admin('shift', ms=-21000)
+
             for nm in errs:
                 bad = [e for e in errs[nm] if 'favicon' not in e]
                 ok(f'no console errors ({nm})', not bad, bad[:3])

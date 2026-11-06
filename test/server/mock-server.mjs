@@ -37,7 +37,7 @@ async function broadcast(topic, event, payload) {
 function presence(topic) {
   const set = subs.get(topic);
   if (!set) return;
-  const uids = [...new Set([...set].map((c) => c.uid))];
+  const uids = [...new Set([...set].filter((c) => !c.away).map((c) => c.uid))]; // away: the app is in the background (untracked)
   for (const c of set) send(c.res, 'presence', uids);
 }
 
@@ -181,6 +181,13 @@ const server = http.createServer(async (req, res) => {
     const { status, body } = authOp(await readBody(req));
     res.writeHead(status, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(body));
+    return;
+  }
+  // presence track / untrack (the app went to the background or came back)
+  if (req.method === 'POST' && u.pathname === '/presence') {
+    const b = await readBody(req), set = subs.get(b.topic);
+    if (set) { for (const c of set) if (c.uid === b.token) c.away = !!b.away; presence(b.topic); }
+    res.writeHead(202); res.end();
     return;
   }
   // peer-to-peer broadcast (Realtime "m:<game>" topic): only players of that game may send, never to themselves

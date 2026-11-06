@@ -322,16 +322,24 @@ check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.erro
   else { T += 20000; r = await mv(false, seq[4]); g = await inspect.game(g.id); T += 20000; r = await mv(true, seq[5], { think: 5000 }); }
   g = await inspect.game(g.id);
   check('house: its clock went down by the think time, not the 20 s on the wall', before - g[hc()] === 5000 - 2000, [before, g[hc()]]);
-  // the human walks away during the house player's turn: after two minutes the human loses on time
+  // the human walks away during the house player's turn: the game waits for them, however long
   const hum = g.moves.length % 2 === 0 ? 'w' : 'b';
   if (hum !== g.house) { r = await mv(false, seq[g.moves.length]); g = await inspect.game(g.id); }
   check('house: the house side is to move', (g.moves.length % 2 === 0 ? 'w' : 'b') === g.house);
-  T += 60000;
+  T += 600000;
   r = await ok(D, { action: 'claim', game: g.id });
-  check('house: a minute without the house move changes nothing (its clock does not run on the wall)', r.game.status === 'playing', r.game.status);
-  T += 70000;
+  check('house: ten minutes without the house move change nothing: its clock does not run on the wall, the game waits', r.game.status === 'playing', r.game.status);
+  // back: the house move is taken; then the human's device goes quiet on their own turn: 20 s of that and they have left
+  r = await mv(true, seq[g.moves.length], { think: 1200 });
+  check('house: on the human\'s return the house move is taken', r.status === 200 && !r.body.error && r.body.game.status === 'playing', r.body);
+  r = await ok(D, { action: 'seen', game: g.id });
+  check('house: the human\'s device says it is there', r.ok === true, r);
+  T += 15000;
   r = await ok(D, { action: 'claim', game: g.id });
-  check('house: after two minutes the human has gone: loses on time', r.game.status === 'over' && r.game.reason === 'timeout' && r.game.result === (hw ? '1-0' : '0-1'), [r.game.status, r.game.reason, r.game.result]);
+  check('house: 15 s of silence on their own turn: still playing', r.game.status === 'playing', r.game.status);
+  T += 6000;
+  r = await ok(D, { action: 'seen', game: g.id });
+  check('house: 21 s of silence on their own turn: the human has left and loses', r.game && r.game.status === 'over' && r.game.reason === 'left' && r.game.result === (hw ? '1-0' : '0-1'), r.game && [r.game.status, r.game.reason, r.game.result]);
   const rh = Object.assign({}, (await inspect.ratings()).find((x) => x.user_id === H && x.pool === 'blitz')), rd = (await inspect.ratings()).find((x) => x.user_id === D && x.pool === 'blitz');
   check('house: both rated; the house player won a little and stays near its target', rh && rh.rating > 1300 && rh.rating < 1340 && rh.games === 121 && rd && rd.rating < 1500 && rd.games === 1, [rh, rd]);
   // next game: the house player resigns; its rating drifts back towards the target; a rematch keeps it, colours swapped
@@ -365,7 +373,63 @@ check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.erro
   r = await ok(C, { action: 'seek', tc: '1+0' });
   r = await ok(C, { action: 'house', tc: '1+0' });
   check('house: a free house player is seated for anyone', r.game && r.game.house, r);
-  await ok(C, { action: 'resign', game: r.game.id });
+  // the house player walks away (its device's word): before move two the game is aborted, later it is a loss
+  g = r.game;
+  r = await call(C, { action: 'house_act', game: g.id, op: 'leave' });
+  check('house: leaving before move two aborts the game', r.body.game && r.body.game.status === 'aborted', r.body);
+  r = await ok(C, { action: 'house', tc: '1+0' });
+  g = r.game;
+  const w2 = g.house === 'w';
+  await call(C, Object.assign({ action: 'move', game: g.id, uci: 'e2e4', ply: 0 }, w2 ? { house: true, think: 500 } : {}));
+  await call(C, Object.assign({ action: 'move', game: g.id, uci: 'e7e5', ply: 1 }, w2 ? {} : { house: true, think: 500 }));
+  r = await call(C, { action: 'house_act', game: g.id, op: 'leave' });
+  check('house: leaving later loses the game', r.body.game && r.body.game.status === 'over' && r.body.game.reason === 'left' && r.body.game.result === (w2 ? '0-1' : '1-0'), r.body.game && [r.body.game.status, r.body.game.reason, r.body.game.result]);
+}
+
+// ---- leaving: the side to move whose device has been quiet for 20 s loses; away during the opponent's turn is fine
+{
+  await ok(C, { action: 'seek', tc: '3+2' });
+  r = await ok(D, { action: 'seek', tc: '3+2' });
+  let g = r.game;
+  check('left: C and D paired', g && g.status === 'playing' && [g.white_id, g.black_id].includes(C) && [g.white_id, g.black_id].includes(D), r);
+  const W = g.white_id, Bk = g.black_id;
+  const mv2 = async (uid, uci) => { const gg = await inspect.game(g.id); return call(uid, { action: 'move', game: g.id, uci, ply: gg.moves.length }); };
+  r = await call(A, { action: 'seen', game: g.id });
+  check('left: only a player of the game is seen', r.body.error === 'not_player', r.body);
+  for (const u of [W, Bk]) { r = await ok(u, { action: 'seen', game: g.id }); check('left: seen answers ok while playing', r.ok === true && r.now === T, r); }
+  await mv2(W, 'e2e4'); await mv2(Bk, 'e7e5');
+  // Black's device goes quiet during White's turn: White thinks for a minute (seen all along); the game waits for Black
+  for (let i = 0; i < 12; i++) { T += 5000; r = await ok(W, { action: 'seen', game: g.id }); }
+  check('left: a minute away during the opponent\'s turn changes nothing', r.ok === true && (await inspect.game(g.id)).status === 'playing', r);
+  r = await mv2(W, 'g1f3');
+  check('left: the long think is a normal move (white has the game in front)', r.status === 200 && !r.body.error && r.body.game.moves.length === 3, r.body);
+  // now it is Black's turn and Black has been quiet for over a minute: 20 s into the turn White's own heartbeat settles it
+  T += 19000; r = await ok(W, { action: 'seen', game: g.id });
+  check('left: 19 s into the turn: still waiting for black', r.ok === true && (await inspect.game(g.id)).status === 'playing', r);
+  T += 1000; r = await ok(W, { action: 'seen', game: g.id });
+  check('left: 20 s into the turn: black has left, white wins', r.game && r.game.status === 'over' && r.game.reason === 'left' && r.game.result === '1-0', r.game && [r.game.status, r.game.reason, r.game.result]);
+  const rW = (await inspect.ratings()).find((x) => x.user_id === W && x.pool === 'blitz'), rB = (await inspect.ratings()).find((x) => x.user_id === Bk && x.pool === 'blitz');
+  check('left: rated as a win and a loss', rW && rB && rW.rating > rB.rating && rW.wins >= 1 && rB.losses >= 1, [rW, rB]);
+  // the other way round: the one who went away comes back too late and learns of the loss from their own move
+  await ok(C, { action: 'seek', tc: '3+2' }); r = await ok(D, { action: 'seek', tc: '3+2' });
+  g = r.game; const W2 = g.white_id, B2 = g.black_id;
+  for (const u of [W2, B2]) await ok(u, { action: 'seen', game: g.id });
+  await mv2(W2, 'e2e4'); await mv2(B2, 'e7e5'); await mv2(W2, 'g1f3');
+  T += 12000; await ok(W2, { action: 'seen', game: g.id });
+  r = await mv2(B2, 'b8c6');
+  check('left: a move 12 s into the turn is fine, quiet or not', r.status === 200 && !r.body.error && r.body.game.moves.length === 4, r.body);
+  await mv2(W2, 'f1c4');
+  T += 25000;
+  r = await mv2(B2, 'f8c5');
+  check('left: 25 s of silence on one\'s own turn: the move comes too late, the game is lost', r.status === 200 && r.body.game && r.body.game.status === 'over' && r.body.game.reason === 'left' && r.body.game.result === '1-0', r.body);
+  // before move two the first-move rule decides (an abort, no loss), and a player whose device never said hello is judged by the clock alone
+  await ok(C, { action: 'seek', tc: '3+2' }); r = await ok(D, { action: 'seek', tc: '3+2' });
+  g = r.game;
+  await mv2(g.white_id, 'e2e4'); await mv2(g.black_id, 'e7e5'); await mv2(g.white_id, 'g1f3');
+  T += 60000; r = await ok(g.white_id, { action: 'claim', game: g.id });
+  check('left: no seen row for the side to move (older client): not judged as gone', r.game.status === 'playing', r.game.status);
+  T += 130000; r = await ok(g.white_id, { action: 'claim', game: g.id });
+  check('left: ... its clock still runs out', r.game.status === 'over' && r.game.reason === 'timeout', [r.game.status, r.game.reason]);
 }
 
 // ---- the owner's statistics (admin_stats(): only for accounts in admins; house players left out)

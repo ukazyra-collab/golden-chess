@@ -85,6 +85,14 @@ export function createPgRepo(sql) {
       if (!UUID.test(String(uid))) return null;
       return first(await sql`select to_jsonb(h) as j from public.house h where h.user_id = ${uid}`);
     },
+    // who of the game's players was last seen when (the play function's `seen`)
+    async seenAt(gameId) {
+      if (!UUID.test(String(gameId))) return [];
+      return (await sql`select to_jsonb(s) as j from public.seen s where s.game_id = ${gameId}`).map((r) => r.j);
+    },
+    async touch(gameId, uid, at) {
+      await sql`insert into public.seen (game_id, user_id, at) values (${gameId}, ${uid}, ${at}) on conflict (game_id, user_id) do update set at = excluded.at`;
+    },
     async abortWaiting(uid) {
       await sql`update public.games set status = 'aborted', result = '*', reason = 'abort' where host_id = ${uid} and status = 'waiting'`;
     },

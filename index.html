@@ -4792,6 +4792,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       youWon: 'You won', youLost: 'You lost', draw: 'Draw', whiteWon: 'White won', blackWon: 'Black won',
       r_checkmate: 'by checkmate', r_resign: 'by resignation', r_timeout: 'on time', r_stalemate: 'Stalemate', r_repetition: 'Threefold repetition',
       r_fifty: '50-move rule', r_insufficient: 'Insufficient material', 'r_timeout-insufficient': 'Time ran out, but the opponent has too little material to mate', r_abort: 'Game aborted',
+      r_left: 'by abandonment', oppLeft: 'Opponent left \u00b7 you win in {s} s',
       premoveCancelled: 'Premove cancelled', pgnCopied: 'PGN copied', pgnManual: 'Copy the PGN below',
       movesEmpty: 'Moves appear here. Golden moves are marked with a star.', movesEmptyShort: 'Moves appear here', yourMove: 'Your move', botThinking: 'Golden Bot is thinking', whiteMove: 'White to move', blackMove: 'Black to move',
       best: 'Best', depth: 'depth {n}', mateIn: 'mate in {n}', mated: 'checkmate', noMoves: 'No legal moves', analysisStarting: 'Engine is thinking',
@@ -4822,7 +4823,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       ratedLine: 'Rated {pool}', casualLine: 'Casual {pool}', yourRating: 'Your {pool} rating: {r}', firstMove: '{side}: first move within {s} s',
       r_agreement: 'by agreement', gameTaken: 'This game has already started, you are watching it', noGame: 'Game not found',
       stillPlaying: 'Your online game is still running. Starting another game leaves it, and your clock keeps ticking.',
-      reconnecting: 'Reconnecting\u2026', connected: 'Online', disconnected: 'Left the game', leaderboard: 'Top players', lbEmpty: 'No rated games yet. Be the first.',
+      reconnecting: 'Reconnecting\u2026', connected: 'Online', disconnected: 'Away', leaderboard: 'Top players', lbEmpty: 'No rated games yet. Be the first.',
       gamesN: '{n} games', casualNote: 'Casual game: ratings don\u2019t change.', onlineElsewhere: 'Online games and ratings:', appOffline: 'No internet. Bots and two players on one phone work without it.', reconnect: 'Try again', privacy: 'Privacy policy',
       account: 'Account', signIn: 'Sign in', emailLabel: 'Email', sendCode: 'Send code', sending: 'Sending', manage: 'Manage',
       signInSub: 'Enter your email to keep your name, rating and games, or to sign in to your account on this device. We\u2019ll send you a code.',
@@ -4935,6 +4936,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       youWon: 'Вы победили', youLost: 'Вы проиграли', draw: 'Ничья', whiteWon: 'Белые победили', blackWon: 'Чёрные победили',
       r_checkmate: 'мат', r_resign: 'сдача', r_timeout: 'время вышло', r_stalemate: 'Пат', r_repetition: 'Троекратное повторение',
       r_fifty: 'Правило 50 ходов', r_insufficient: 'Недостаточно материала', 'r_timeout-insufficient': 'Время вышло, но у соперника не хватает материала для мата', r_abort: 'Партия прервана',
+      r_left: 'уход из партии', oppLeft: 'Соперник вышел \u00b7 победа через {s} с',
       premoveCancelled: 'Премув отменён', pgnCopied: 'PGN скопирован', pgnManual: 'Скопируйте PGN ниже',
       movesEmpty: 'Здесь будут ходы. Золотые ходы отмечены звездой.', movesEmptyShort: 'Здесь будут ходы', yourMove: 'Ваш ход', botThinking: 'Golden Bot думает', whiteMove: 'Ход белых', blackMove: 'Ход чёрных',
       best: 'Лучший', depth: 'глубина {n}', mateIn: 'мат в {n}', mated: 'мат', noMoves: 'Нет ходов', analysisStarting: 'Движок думает',
@@ -4965,7 +4967,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       ratedLine: '{pool} на рейтинг', casualLine: '{pool} без рейтинга', yourRating: 'Ваш рейтинг ({pool}): {r}', firstMove: '{side}: первый ход — {s} с',
       r_agreement: 'по соглашению', gameTaken: 'Партия уже началась, вы смотрите её как зритель', noGame: 'Партия не найдена',
       stillPlaying: 'Ваша онлайн-партия ещё идёт. Если начать другую, часы в ней продолжат идти.',
-      reconnecting: 'Переподключение…', connected: 'В игре', disconnected: 'Вышел из игры', leaderboard: 'Лучшие игроки', lbEmpty: 'Рейтинговых партий ещё нет. Будьте первым.',
+      reconnecting: 'Переподключение…', connected: 'В игре', disconnected: 'Отошёл', leaderboard: 'Лучшие игроки', lbEmpty: 'Рейтинговых партий ещё нет. Будьте первым.',
       gamesN: 'партий: {n}', casualNote: 'Партия без рейтинга: рейтинг не меняется.', onlineElsewhere: 'Онлайн-партии и рейтинг:', appOffline: 'Нет интернета. Боты и игра вдвоём на одном телефоне работают и без него.', reconnect: 'Повторить', privacy: 'Политика конфиденциальности',
       account: 'Аккаунт', signIn: 'Войти', emailLabel: 'Почта', sendCode: 'Получить код', sending: 'Отправляем', manage: 'Управление',
       signInSub: 'Введите почту, чтобы сохранить имя, рейтинг и партии или войти в свой аккаунт на этом устройстве. Мы пришлём код.',
@@ -6899,6 +6901,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   var NETCFG = window.GC_ONLINE || null;
   var ONLINE_TCS = ['1+0', '2+1', '3+0', '3+2', '5+0', '5+3', '10+0', '10+5', '15+10'];
   var FIRST_MOVE_MS = 30000, CLAIM_GRACE = 300, PEER_TTL = 4000;
+  // Leaving: the device tells the server it has the game in front of it every SEEN_MS (not while the app is in the
+  // background); the side to move that was quiet for GONE_MS has left and loses. Away during the opponent's turn is fine.
+  var GONE_MS = 20000, SEEN_MS = 5000, appActive = true;
   var net = null, netReady = null, me = null, userSub = null;
   var online = null;   // the open online game: { id, s, color, pending, sub, connected, lastEvent, oppHere, ... }
   var lobby = null;    // seeking or inviting: { kind, tc, rated, t0, timer, tick, gameId, sub }
@@ -7050,11 +7055,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     ['state', 'paired', 'move'].forEach(function (ev) { ch.on('broadcast', { event: ev }, function (m) { if (h.event) h.event(ev, m.payload); }); });
     if (h.presence) ch.on('presence', { event: 'sync' }, function () { h.presence(Object.keys(ch.presenceState())); });
     ch.subscribe(function (status) {
-      if (status === 'SUBSCRIBED' && h.presence) { try { ch.track({ at: Date.now() }); } catch (e) { /* ignore */ } }
+      if (status === 'SUBSCRIBED' && h.presence && !(h.hidden && h.hidden())) { try { ch.track({ at: Date.now() }); } catch (e) { /* ignore */ } }
       if (h.status) h.status(status);
     });
     return {
       close: function () { try { sb.removeChannel(ch); } catch (e) { /* ignore */ } },
+      // the app went to the background (away) or came back: the others see it in the presence
+      away: function (flag) { try { var p = flag ? ch.untrack() : ch.track({ at: Date.now() }); if (p && p.catch) p.catch(function () { /* ignore */ }); } catch (e) { /* ignore */ } },
       // fire-and-forget; only players of the game may send on its "m:" topic (database policy)
       send: function (ev, payload) { try { var p = ch.send({ type: 'broadcast', event: ev, payload: payload }); if (p && p.catch) p.catch(function () { /* ignore */ }); } catch (e) { /* ignore */ } }
     };
@@ -7110,11 +7117,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   MockNet.prototype.sub = function (topic, h) {
     var base = this.base, uid = this.uid;
     var es = new EventSource(base + '/events?topic=' + encodeURIComponent(topic) + '&uid=' + encodeURIComponent(uid));
-    es.onopen = function () { if (h.status) h.status('SUBSCRIBED'); };
+    function away(flag) {
+      fetch(base + '/presence', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ topic: topic, token: uid, away: !!flag }) }).catch(function () { /* ignore */ });
+    }
+    es.onopen = function () { if (h.hidden && h.hidden()) away(true); if (h.status) h.status('SUBSCRIBED'); };
     es.onerror = function () { if (h.status) h.status('CHANNEL_ERROR'); };
     es.onmessage = function (e) { var d = JSON.parse(e.data); if (d.event === 'presence') { if (h.presence) h.presence(d.payload); } else if (h.event) h.event(d.event, d.payload); };
     return {
       close: function () { es.close(); },
+      away: away,
       send: function (ev, payload) {
         fetch(base + '/peer', { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify({ topic: topic, event: ev, payload: payload, token: uid }) }).catch(function () { /* ignore */ });
       }
@@ -7308,10 +7319,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   function houseTurn(o, ply) {
     var st = houseStyle(), lvl = Math.max(1, Math.min(8, st.level || 5)), hc = houseColor(), fast = !!window.__gcFastBot;
     var rnd = Math.random;
-    // the rare human things: not showing up for the first move (the game is aborted), walking away mid-game (loses on time)
+    // the rare human things: not showing up for the first move (the game is aborted), walking away mid-game (loses)
     if (!fast && ply <= 1 && rnd() < (st.abort != null ? st.abort : 0.015)) return;
     if (!fast && ply >= 12 && !o.houseLeft && rnd() < (st.leave != null ? st.leave : 0.006)) { o.houseLeft = true; }
-    if (o.houseLeft) { houseFlag(o, ply); return; }
+    if (o.houseLeft) { houseLeave(o, ply); return; }
     var budget = Engine.LEVELS[lvl - 1].time, t0 = perf();
     if (game.clock) {
       var left = game.timeLeft(hc, t0), inc = game.cfg.tc.inc;
@@ -7345,11 +7356,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     });
   }
   function houseLater(o, ms, fn) { var t = setTimeout(function () { if (online === o) fn(); }, ms); (o.houseTimers = o.houseTimers || []).push(t); }
+  // the house player walks away: seen to go (the "away" countdown runs like for anyone), then gone on its device's word
+  function houseLeave(o, ply) {
+    if (!o.houseAway) { o.houseAway = true; setOppHere(o, false); }
+    houseLater(o, GONE_MS + 400, function () { if (houseValid(o, ply)) houseAct(o, 'leave'); });
+  }
   // the clock runs out on the house side: shown running down here, then told to the server as a move that took too long
   function houseFlag(o, ply) {
     var hc = houseColor(), left = game.clock ? game.timeLeft(hc, perf()) : 1000;
-    // the clock is seen running down (at most a minute and a half: the server gives the human the game after two
-    // minutes without a move from the house side, taking the human for gone)
     houseLater(o, Math.min(Math.max(0, left) + 350, 90000), function () {
       if (!houseValid(o, ply)) return;
       var m = game.legal[0]; if (!m) return;
@@ -7949,6 +7963,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     NATIVE.listen('App', 'appUrlOpen', function (e) { nativeUrl(e && e.url); });
     NATIVE.call('App', 'getLaunchUrl').then(function (r) { if (r && r.url) nativeUrl(r.url, true); }, function () { /* ignore */ });
     if (NATIVE.platform === 'android') NATIVE.listen('App', 'backButton', nativeBack);
+    NATIVE.listen('App', 'appStateChange', function (st) { appActive = !st || st.isActive !== false; onVisibility(); });
     NATIVE.call('SplashScreen', 'hide', { fadeOutDuration: 200 }).catch(function () { /* ignore */ });
   }
 
@@ -7958,6 +7973,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     if (online.sub) online.sub.close();
     if (online.peer) online.peer.close();
     clearTimeout(online.peerCheck);
+    clearTimeout(online.seenTimer);
     (online.houseTimers || []).forEach(clearTimeout);
     online.houseReq = -1;
     online = null;
@@ -8011,7 +8027,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     closeDialog();
     var color = s.white_id === me.uid ? 0 : s.black_id === me.uid ? 1 : -1;
     var o = online = { id: s.id, s: null, color: color, pending: null, sub: null, connected: false, lastEvent: perf(), oppHere: s.house ? true : null,
-      claimBusy: false, claimNext: 0, reading: false, firstSec: -1, peer: null, peerMoves: [], houseAt: -1, houseReq: 0, houseTimers: [] };
+      claimBusy: false, claimNext: 0, reading: false, firstSec: -1, peer: null, peerMoves: [], houseAt: -1, houseReq: 0, houseTimers: [],
+      seenTimer: 0, awayAt: 0, awaySec: -1, houseAway: false };
     game = buildOnlineGame(s, color);
     view = game.records.length;
     setGoldenArmed(false);
@@ -8023,12 +8040,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     o.sub = net.sub('g:' + s.id, {
       event: function (ev, p) { if (ev === 'state' && online === o) { o.lastEvent = perf(); onServerState(p); } },
       status: function (st) { if (online !== o) return; var was = o.connected; o.connected = st === 'SUBSCRIBED'; if (o.connected && !was) resyncOnline(); },
-      presence: function (keys) { if (online !== o || color < 0) return; o.oppHere = keys.indexOf(opp) >= 0 || !!(o.s && o.s.house); renderBars(); }
+      presence: function (keys) { if (online !== o || color < 0) return; setOppHere(o, keys.indexOf(opp) >= 0 || (!!(o.s && o.s.house) && !o.houseAway)); },
+      hidden: hiddenNow
     });
     // moves straight from the other player (shown at once; the server's state on g: stays the authority)
     o.peer = net.sub('m:' + s.id, { event: function (ev, p) { if (ev === 'move' && online === o) onPeerMove(p); } });
     onServerState(s, { force: true, initial: true });
     if (game.status === 'playing') Sound.play('start');
+    seenLoop(o);
     save('online', { id: s.id });
     setUrl('game', s.id);
     go('game');
@@ -8208,6 +8227,50 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   }
   function rematch() { onlineAction('rematch').then(function () { renderSide(); }); }
   function firstMoveSince(s) { return s.moves.length === 0 ? Date.parse(s.created_at) : Date.parse(s.updated_at); }
+  // the app is not in front of the player: a hidden tab, a backgrounded app, a locked screen (tests: window.__gcAway)
+  function hiddenNow() { return !!(document.hidden || window.__gcAway) || !appActive; }
+  // "I have the game in front of me", every SEEN_MS while it is on; the answer may be the game's end (a side that was
+  // quiet for GONE_MS on its own turn has left: the opponent's heartbeat claims the win, a late return learns of the loss)
+  function seenLoop(o, last) {
+    clearTimeout(o.seenTimer); o.seenTimer = 0;
+    if (online !== o || o.color < 0 || !o.s || o.s.status !== 'playing' || !net || (hiddenNow() && !last)) return;
+    net.call('seen', { game: o.id }).then(function (r) {
+      if (online !== o) return;
+      if (r && r.game) onServerState(r.game, { force: true });
+      if (!last && !hiddenNow()) o.seenTimer = setTimeout(function () { seenLoop(o); }, SEEN_MS);
+    }, function (e) {
+      if (online !== o) return;
+      var d = e && e.data;
+      if (d && d.game) { onServerState(d.game, { force: true }); if (d.error === 'not_player') return; }
+      if (e && e.status === 401) netReady = null;
+      if (!last && !hiddenNow()) o.seenTimer = setTimeout(function () { seenLoop(o); }, 2000);
+    });
+  }
+  function onVisibility() {
+    var o = online;
+    if (!o) return;
+    var hidden = hiddenNow();
+    if (o.sub && o.sub.away) o.sub.away(hidden);
+    if (hidden) { seenLoop(o, true); return; } // one last "seen now": the moment of leaving, for the countdown the other side sees
+    seenLoop(o); resyncOnline();
+  }
+  function setOppHere(o, here) {
+    if (o.oppHere === here) return;
+    o.oppHere = here;
+    o.awayAt = here ? 0 : perf();
+    if (here && o.awaySec >= 0) { o.awaySec = -1; renderAna(); }
+    renderBars();
+  }
+  // the opponent is away on their own turn: the countdown to their loss (the server's rule, shown; claimed at its end)
+  function awayTick(o) {
+    var s = o.s, sec = -1;
+    if (o.color >= 0 && o.oppHere === false && o.awayAt && game.records.length >= 2 && game.pos.side !== o.color && s.turn_started_at) {
+      var left = GONE_MS - Math.min(serverNow() - Date.parse(s.turn_started_at), perf() - o.awayAt);
+      sec = Math.max(0, Math.ceil(left / 1000));
+      if (left <= -500) claim();
+    }
+    if (sec !== o.awaySec) { o.awaySec = sec; renderAna(); }
+  }
   function claim() {
     var o = online;
     if (!o || o.claimBusy || perf() < o.claimNext) return;
@@ -8218,6 +8281,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   function onlineTick(now) {
     var o = online;
     if (!o || !o.s || o.s.status !== 'playing' || o.pending) return;
+    awayTick(o);
     if (game.running()) { if (game.timeLeft(game.pos.side, now) < -CLAIM_GRACE) claim(); return; }
     if (game.records.length < 2) {
       var left = FIRST_MOVE_MS - (serverNow() - firstMoveSince(o.s)), sec = Math.max(0, Math.ceil(left / 1000));
@@ -8238,6 +8302,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
         var side = game.pos.side, who = mine && (side === 0 ? 'w' : 'b') === mine ? T('you') : sideLabel(side);
         out += '<span>' + esc(T('firstMove', { side: who, s: o.firstSec })) + '</span>';
       }
+      if (o.awaySec >= 0) out += '<span class="notice"><b>' + esc(T('oppLeft', { s: o.awaySec })) + '</b></span>';
       if (!o.connected && perf() - o.lastEvent > 4000) out += '<span class="muted">' + esc(T('reconnecting')) + '</span>';
     } else if (mine && s.rematch_offer && s.rematch_offer !== mine && !s.rematch_game) {
       out += '<span class="notice"><b>' + esc(T('oppWantsRematch', { name: sideLabel(o.color ^ 1) })) + '</b><span class="notice-btns"><button class="sbtn" data-act="rematch">' + esc(T('acceptRematch')) + '</button></span></span>';
@@ -8250,7 +8315,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     var idle = perf() - o.lastEvent, playing = o.s.status === 'playing';
     if (playing ? idle > (o.connected ? 12000 : 2500) : idle > 15000) resyncOnline();
   }, 1000);
-  document.addEventListener('visibilitychange', function () { if (!document.hidden && online) resyncOnline(); });
+  document.addEventListener('visibilitychange', onVisibility);
   // ------------------------------------------------------------------ app shell: tabs and pages
   // Play (start screen), Learn, Ratings, Profile, the sign-in page and the game itself are views of one page;
   // the address keeps the view (#play, #learn, ...) so the back button and reloads work.
@@ -8979,7 +9044,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     showAccount: showAccount, showSettings: showSettings, showOver: showOver, showReport: showReport,
     go: go, get curView() { return curView; }, showBotSetup: showBotSetup, showLocalSetup: showLocalSetup, botThinkMs: botThinkMs,
     historyStale: function () { hist.at = 0; },
-    pts: pts, rematch: rematch, oppCard: oppCard
+    pts: pts, rematch: rematch, oppCard: oppCard,
+    away: function (flag) { window.__gcAway = !!flag; onVisibility(); }, GONE_MS: GONE_MS, SEEN_MS: SEEN_MS
   };
 })();
 

@@ -1,7 +1,7 @@
 # The house players (accounts run by the developer): 60 profiles across the rating range, each with an engine level,
 # the rating it drifts back to, a manner (tempo, when it resigns, draws, flags, leaves) and the hours it is around.
-# Writes house_players.sql (idempotent: on conflict do nothing) — the ids are fixed here so a rerun changes nothing.
-# Run: python3 supabase/seed/make_house_players.py   (then apply house_players.sql to the project)
+# Writes supabase/migrations/20261106140000_house_seed.sql (idempotent: on conflict do nothing; the ids are fixed here, so a rerun
+# changes nothing). Run: python3 supabase/seed/make_house_players.py
 import json, random, uuid, os, datetime
 
 random.seed(20261106)
@@ -49,24 +49,34 @@ for name, level, target in P:
         wins = int(games * random.uniform(0.38, 0.55)); draws = int(games * random.uniform(0.03, 0.12)); losses = games - wins - draws
         rows_r.append(f"({q(uid)}, {q(pool)}, {r:.1f}, {random.uniform(55, 85):.1f}, 0.06, {games}, {wins}, {draws}, {losses})")
 
-sql = f"""-- House players: {len(P)} accounts run by the developer (see supabase/migrations/*_house_players.sql). Made by make_house_players.py.
-insert into auth.users (id, instance_id, aud, role, is_anonymous, raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
-  confirmation_token, email_change, email_change_token_new, recovery_token, phone_change, phone_change_token, email_change_token_current, reauthentication_token)
-values
-{',\n'.join(rows_u)}
-on conflict (id) do nothing;
+# a migration (the GitHub integration applies it on push); it only runs where auth.users is Supabase's real table
+# (the test database's stand-in has no is_anonymous column, so the tests see no seeded house players)
+sql = f"""-- House players: {len(P)} accounts run by the developer (see 20261106120000_house_players.sql). Made by supabase/seed/make_house_players.py; do not edit.
+do $seed$
+begin
+  if not exists (select 1 from information_schema.columns where table_schema = 'auth' and table_name = 'users' and column_name = 'is_anonymous') then
+    return;
+  end if;
+  insert into auth.users (id, instance_id, aud, role, is_anonymous, raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+    confirmation_token, email_change, email_change_token_new, recovery_token, phone_change, phone_change_token, email_change_token_current, reauthentication_token)
+  values
+{',\n'.join('  ' + r for r in rows_u)}
+  on conflict (id) do nothing;
 
-insert into public.profiles (id, username, is_guest, house, name_chosen, created_at) values
-{',\n'.join(rows_p)}
-on conflict (id) do nothing;
+  insert into public.profiles (id, username, is_guest, house, name_chosen, created_at) values
+{',\n'.join('  ' + r for r in rows_p)}
+  on conflict (id) do nothing;
 
-insert into public.house (user_id, level, target, style, online_from, online_hours) values
-{',\n'.join(rows_h)}
-on conflict (user_id) do nothing;
+  insert into public.house (user_id, level, target, style, online_from, online_hours) values
+{',\n'.join('  ' + r for r in rows_h)}
+  on conflict (user_id) do nothing;
 
-insert into public.ratings (user_id, pool, rating, rd, vol, games, wins, draws, losses) values
-{',\n'.join(rows_r)}
-on conflict (user_id, pool) do nothing;
+  insert into public.ratings (user_id, pool, rating, rd, vol, games, wins, draws, losses) values
+{',\n'.join('  ' + r for r in rows_r)}
+  on conflict (user_id, pool) do nothing;
+end
+$seed$;
 """
-open(os.path.join(HERE, 'house_players.sql'), 'w', encoding='utf-8').write(sql)
-print('house_players.sql:', len(P), 'players')
+out = os.path.join(os.path.dirname(HERE), 'migrations', '20261106140000_house_seed.sql')
+open(out, 'w', encoding='utf-8').write(sql)
+print(os.path.relpath(out), len(P), 'players')
