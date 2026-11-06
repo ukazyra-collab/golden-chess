@@ -256,6 +256,14 @@ var GCLearn = (function () {
       var ht = el('div');
       ht.appendChild(el('h1', null, esc(T('learnTitle'))));
       ht.appendChild(el('p', 'lead', esc(T('learnLead'))));
+      // the way in, right under the pitch: play, or try the puzzles below
+      var heroActs = el('div', 'hero-acts');
+      var play1 = el('button', 'start-btn learn-cta', esc(T('learnCta'))); play1.type = 'button'; play1.id = 'learn-play-top';
+      play1.addEventListener('click', function () { ctx.go('bots'); });
+      var tryBtn = el('button', 'sbtn hero-try', esc(T('tryH'))); tryBtn.type = 'button'; tryBtn.id = 'learn-try';
+      tryBtn.addEventListener('click', function () { var t = document.getElementById('try'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      heroActs.appendChild(play1); heroActs.appendChild(tryBtn);
+      ht.appendChild(heroActs);
       hero.appendChild(ht);
       var hb = el('div', 'demo-box'), cap = el('div', 'demo-cap');
       var hd = new Demo(hb, DEMOS.hero, ctx, cap); hb.appendChild(cap);

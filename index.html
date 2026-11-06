@@ -795,11 +795,46 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 .learn .lead { font-size: 16px; color: #e2dccf; max-width: 60ch; }
 .learn section { display: flex; flex-direction: column; gap: 14px; }
 .learn-hero { display: grid; gap: 16px; align-items: center; }
+.learn-hero > div:first-child { display: flex; flex-direction: column; gap: 14px; }
+.hero-acts { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+.hero-try { height: 48px; padding: 0 20px; font-size: 15px; }
 .demo-box { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .demo-box .mini-board { max-width: 420px; }
 .demo-cap { min-height: 3.1em; font-size: 14px; line-height: 1.55; color: var(--muted); }
 .demo-cap b { color: var(--gold); font-weight: 800; }
-@media (min-width: 900px) { .learn-hero { grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; } }
+@media (min-width: 900px) { .learn-hero { grid-template-columns: minmax(0, 1fr) 360px; gap: 32px; } }
+/* wide screens: the page opens up — a two-column hero with a big board, four figures in a row, two columns of rules */
+@media (min-width: 1100px) {
+  .learn { max-width: 1120px; gap: 48px; padding-block: 36px 56px; }
+  .learn h1 { font-size: clamp(40px, 3.6vw, 56px); line-height: 1.06; letter-spacing: -.02em; }
+  .learn h2 { font-size: 26px; }
+  .learn .lead { font-size: 18px; max-width: 46ch; }
+  .learn section { gap: 18px; }
+  .learn-hero { grid-template-columns: minmax(0, 1fr) 480px; gap: 56px; }
+  .learn-hero > div:first-child { gap: 18px; }
+  .learn-hero .demo-box .mini-board { max-width: 480px; }
+  .hero-acts { margin-top: 10px; gap: 14px; }
+  .stars-art { gap: 26px; padding: 0 26px; }
+  .stars-art .row { font-size: 18px; gap: 16px; }
+  .stars-art .row svg { width: 44px; height: 44px; }
+  .stars-art .row small { font-size: 13.5px; }
+  .try-side { background: var(--panel); border-radius: 16px; padding: 22px; gap: 16px; }
+  .demo-cap { font-size: 15px; }
+  .rule-grid { gap: 20px; }
+  .rule-card { padding: 18px; gap: 14px; }
+  .rule-card h3 { font-size: 18px; }
+  .rule-card p { font-size: 14.5px; }
+  .usp-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .usp { padding: 20px; gap: 10px; }
+  .usp b { font-size: 38px; }
+  .usp span { font-size: 13.5px; }
+  .vs960 { font-size: 16px; }
+  .try-body { grid-template-columns: minmax(0, 520px) minmax(0, 1fr); gap: 32px; }
+  .try-prompt { font-size: 17px; }
+  .rules-full .rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 28px; }
+  .rules-full .rules li { font-size: 15px; }
+  .learn-credits { max-width: 60ch; }
+}
 .rule-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
 @media (min-width: 620px) { .rule-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .rule-card { gap: 12px; padding: 14px; }
@@ -4448,6 +4483,14 @@ var GCLearn = (function () {
       var ht = el('div');
       ht.appendChild(el('h1', null, esc(T('learnTitle'))));
       ht.appendChild(el('p', 'lead', esc(T('learnLead'))));
+      // the way in, right under the pitch: play, or try the puzzles below
+      var heroActs = el('div', 'hero-acts');
+      var play1 = el('button', 'start-btn learn-cta', esc(T('learnCta'))); play1.type = 'button'; play1.id = 'learn-play-top';
+      play1.addEventListener('click', function () { ctx.go('bots'); });
+      var tryBtn = el('button', 'sbtn hero-try', esc(T('tryH'))); tryBtn.type = 'button'; tryBtn.id = 'learn-try';
+      tryBtn.addEventListener('click', function () { var t = document.getElementById('try'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      heroActs.appendChild(play1); heroActs.appendChild(tryBtn);
+      ht.appendChild(heroActs);
       hero.appendChild(ht);
       var hb = el('div', 'demo-box'), cap = el('div', 'demo-cap');
       var hd = new Demo(hb, DEMOS.hero, ctx, cap); hb.appendChild(cap);
