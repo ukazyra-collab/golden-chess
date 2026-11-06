@@ -10,7 +10,7 @@ ROOT = os.path.dirname(APP)
 RES = os.path.join(APP, 'android/app/src/main/res')
 IOS = os.path.join(APP, 'ios/App/App/Assets.xcassets')
 
-GROUND, DARK, LIGHT = '#232826', '#232826', '#2c3230'
+GROUND, DARK, LIGHT = '#232826', '#5d7a74', '#64827c'
 
 
 def star(cx, cy, r):

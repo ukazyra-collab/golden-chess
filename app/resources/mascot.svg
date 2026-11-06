@@ -35,7 +35,7 @@
   <path d="M54 41.5 C56.5 39.5 61.5 39.5 64.5 42.5" fill="none" stroke="#2f6fd6" stroke-width="2.3" stroke-linecap="round"/>
   <!-- jester hat -->
   <path d="M34 30 C26 24 14 20 6 24 C14 26 20 30 26 36 Z" fill="url(#red)"/>
-  <path d="M50 24 C50 14 50 7 50 2 C54 7 56 14 58 24 Z" fill="url(#green)"/>
+  <path d="M47 36 C48 24 50 12 50 2 C53 12 56 24 60 36 Z" fill="url(#green)"/>
   <path d="M66 30 C74 24 86 20 94 24 C86 26 80 30 74 36 Z" fill="url(#purple)"/>
   <path d="M29 35 C40 26 60 26 71 35 L71 39 C60 31 40 31 29 39 Z" fill="#ffd166"/>
   <circle cx="6" cy="24" r="3.2" fill="#ffd166" stroke="#b57617" stroke-width=".8"/>

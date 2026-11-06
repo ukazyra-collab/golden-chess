@@ -236,7 +236,7 @@ var GCLearn = (function () {
     }
     function starsArt() {
       var star = function (lit) {
-        return '<svg viewBox="0 0 24 24" aria-hidden="true"><g ' + (lit ? 'fill="#e7b44a"' : 'fill="none" stroke="#93a39f" stroke-width="1.3"') + '>' +
+        return '<svg viewBox="0 0 24 24" aria-hidden="true"><g ' + (lit ? 'fill="var(--gold)"' : 'fill="none" stroke="#93a39f" stroke-width="1.3"') + '>' +
           '<path d="M3 18.5 L5.2 6.5 L12 12 L18.8 6.5 L21 18.5 Z"/><circle cx="5.2" cy="5.8" r="1.7"/><circle cx="18.8" cy="5.8" r="1.7"/><rect x="2.4" y="18.5" width="19.2" height="3" rx="1.2"/></g></svg>';
       };
       return el('div', 'stars-art', '<div class="row">' + star(true) + '<span>' + esc(T('white')) + '<small>' + esc(T('inHand')) + '</small></span></div>' +
