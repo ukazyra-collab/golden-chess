@@ -3783,7 +3783,8 @@
   function tcLabel(t) { return String(t); } // plain text: 3+2
   // buttons show 3 | 2 with a drawn divider (the | glyph reads as an I in some fonts); screen readers get 3+2
   function tcHtml(t) { var p = String(t).split('+'); return esc(p[0]) + '<i class="tc-sep"><b>+</b></i>' + esc(p[1] || '0'); }
-  function ratingText(pool) { var r = me && me.ratings[pool]; return r ? Math.round(r.rating) + (r.rd > 110 ? '?' : '') : '1500?'; }
+  // no lichess-style "1489?" for provisional ratings: the number alone, like chess.com (the profile cards say "provisional")
+  function ratingText(pool) { var r = me && me.ratings[pool]; return r ? String(Math.round(r.rating)) : '1500'; }
   function viewEl(v) { return v === 'game' ? app : $('view-' + v); }
   function viewFromUrl() { var hh = (location.hash || '').replace(/^#/, ''); return VIEWS.indexOf(hh) >= 0 ? hh : null; }
   function allowed(v) {
@@ -4082,7 +4083,7 @@
       noteAvatars(rows.map(function (x) { return { id: x.uid, avatar_v: x.avatar_v }; }));
       list.innerHTML = rows.map(function (x, i) {
         var mine = me && (x.uid ? x.uid === me.uid : me.profile && x.name === me.profile.username);
-        return '<button type="button" class="lb-row' + (mine ? ' me' : '') + '" data-uid="' + esc(x.uid || '') + '" data-name="' + esc(x.name) + '"><span class="lb-n">' + (i + 1) + '</span>' + avatarHtml(x.uid, x.name, 'lb-ava') + '<span class="lb-name">' + esc(x.name) + '</span><span class="lb-r">' + x.rating + (x.rd > 110 ? '?' : '') + '</span><span class="lb-g">' + esc(T('gamesN', { n: x.games })) + '</span></button>';
+        return '<button type="button" class="lb-row' + (mine ? ' me' : '') + '" data-uid="' + esc(x.uid || '') + '" data-name="' + esc(x.name) + '"><span class="lb-n">' + (i + 1) + '</span>' + avatarHtml(x.uid, x.name, 'lb-ava') + '<span class="lb-name">' + esc(x.name) + '</span><span class="lb-r">' + x.rating + '</span><span class="lb-g">' + esc(T('gamesN', { n: x.games })) + '</span></button>';
       }).join('');
     }, function () { if (list.isConnected) list.innerHTML = '<div class="muted" style="padding:10px 4px">' + esc(T('netError')) + '</div>'; });
     list.addEventListener('click', function (e) { var row = e.target.closest('.lb-row'); if (row && row.dataset.uid) openPlayer(row.dataset.uid, row.dataset.name); });
@@ -4467,7 +4468,7 @@
     var rc = h('div', { class: 'card pl-ratings', id: 'pl-ratings' });
     rc.innerHTML = ['bullet', 'blitz', 'rapid'].map(function (pool) {
       var r = (p.ratings || []).filter(function (x) { return x.pool === pool; })[0], on = r && r.games > 0;
-      return '<div class="pl-pool' + (on ? '' : ' off') + '"><span class="pl-pool-n ic-' + pool + '">' + POOL_ICON[pool] + esc(T(pool)) + '</span><b>' + (on ? Math.round(r.rating) + (r.rd > 110 ? '?' : '') : '–') + '</b>' +
+      return '<div class="pl-pool' + (on ? '' : ' off') + '"><span class="pl-pool-n ic-' + pool + '">' + POOL_ICON[pool] + esc(T(pool)) + '</span><b>' + (on ? Math.round(r.rating) : '–') + '</b>' +
         '<span class="muted" title="' + esc(on ? T('wdl', { w: r.wins, d: r.draws, l: r.losses }) : '') + '">' + esc(on ? gamesText(r.games) : T('noGamesYet')) + '</span></div>';
     }).join('');
     inn.appendChild(rc);
