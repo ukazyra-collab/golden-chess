@@ -97,7 +97,12 @@ export function createMemoryRepo(now) {
     async deleteSeek(uid) { db.seeks.delete(uid); },
     async top(pool, n) {
       return [...db.ratings.values()].filter((r) => r.pool === pool && r.games > 0).sort((a, b) => b.rating - a.rating).slice(0, n)
-        .map((r) => ({ name: db.profiles.get(r.user_id)?.username || '?', rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses }));
+        .map((r) => ({ uid: r.user_id, name: db.profiles.get(r.user_id)?.username || '?', rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses }));
+    },
+    async rankOf(uid, pool) {
+      const r = db.ratings.get(uid + '|' + pool);
+      if (!r || !r.games) return null;
+      return [...db.ratings.values()].filter((x) => x.pool === pool && x.games > 0 && x.rating > r.rating).length + 1;
     },
   };
 

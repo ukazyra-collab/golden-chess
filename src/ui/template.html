@@ -540,6 +540,20 @@ svg { display: block; }
 .st-chart .dot { fill: var(--bone); opacity: .8; }
 .st-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 2px; }
 .house-note { font-size: 12.5px; color: var(--muted); padding: 8px 10px; border-radius: 10px; background: var(--raise); }
+.pl-head { display: flex; align-items: center; gap: 14px; margin: 4px 0 14px; }
+.pl-head .page-h { margin: 0; }
+.pl-avatar { flex: none; width: 56px; height: 56px; border-radius: 50%; background: var(--raise); color: var(--gold); display: grid; place-items: center; font: 800 24px/1 var(--f-ui); }
+.pl-who { min-width: 0; }
+.card.pl-ratings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 14px 12px; }
+.pl-pool { display: flex; flex-direction: column; gap: 4px; padding: 6px 4px; min-width: 0; }
+.pl-pool b { font: 800 24px/1.1 var(--f-ui); font-variant-numeric: tabular-nums; }
+.pl-pool.off b { color: var(--muted); }
+.pl-pool-n { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; }
+.pl-pool-n svg { width: 14px; height: 14px; }
+.pl-pool .muted { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-note { margin-top: 12px; text-align: center; }
+.gh-score .sbtn { margin-top: 2px; }
+.lb-row { width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid rgba(71, 79, 75, .5); color: inherit; font: inherit; font-size: 14px; padding: 0; cursor: pointer; }
 .opp-lines b { color: var(--bone); }
 @keyframes seek { 0% { left: -30% } 100% { left: 100% } }
 .ana .notice { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -828,6 +842,7 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 <section class="view page" id="view-profile" hidden></section>
 <section class="view page" id="view-signin" hidden></section>
 <section class="view page" id="view-games" hidden></section>
+<section class="view page" id="view-player" hidden></section>
 <div class="view app" id="app" hidden>
   <header class="top">
     <div class="brand">

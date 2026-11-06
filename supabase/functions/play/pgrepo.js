@@ -100,8 +100,15 @@ export function createPgRepo(sql) {
       await sql`delete from public.seeks where user_id = ${uid}`;
     },
     async top(pool, n) {
-      return plain(await sql`select p.username as name, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses
+      return plain(await sql`select r.user_id as uid, p.username as name, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses
         from public.ratings r join public.profiles p on p.id = r.user_id where r.pool = ${pool} and r.games > 0 order by r.rating desc limit ${n}`);
+    },
+    // the player's place in the pool (null when unrated there)
+    async rankOf(uid, pool) {
+      if (!UUID.test(String(uid))) return null;
+      const r = await sql`select (select count(*) from public.ratings x where x.pool = ${pool} and x.games > 0 and x.rating > r.rating) + 1 as rank
+        from public.ratings r where r.user_id = ${uid} and r.pool = ${pool} and r.games > 0`;
+      return r.length ? Number(r[0].rank) : null;
     },
   };
 }

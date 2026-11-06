@@ -183,6 +183,15 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify(body));
     return;
   }
+  // a player's page (profiles and ratings are public on Supabase)
+  if (req.method === 'POST' && u.pathname === '/player') {
+    const b = await readBody(req), p = db.profiles.get(b.uid) || null;
+    const profile = p ? { id: p.id, username: p.username, created_at: p.created_at, house: !!p.house } : null;
+    const ratings = [...db.ratings.values()].filter((r) => r.user_id === b.uid).map(({ pool, rating, rd, games, wins, draws, losses }) => ({ pool, rating, rd, games, wins, draws, losses }));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ profile, ratings }));
+    return;
+  }
   // presence track / untrack (the app went to the background or came back)
   if (req.method === 'POST' && u.pathname === '/presence') {
     const b = await readBody(req), set = subs.get(b.topic);

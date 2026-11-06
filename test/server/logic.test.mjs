@@ -453,6 +453,9 @@ if (PG) {
 // leaderboard
 r = await ok(A, { action: 'top', pool: 'bullet' });
 check('leaderboard (the house player among them)', r.rows.length === 3 && r.rows[0].rating >= r.rows[1].rating && r.rows.some((x) => x.name === 'abc256'), r.rows);
+check('leaderboard rows carry the player id, and the caller their rank', r.rows.every((x) => x.uid) && (r.rows.some((x) => x.uid === A) ? r.rank === r.rows.findIndex((x) => x.uid === A) + 1 : r.rank === null), [r.rank, r.rows.map((x) => x.uid)]);
+r = await ok(C, { action: 'top', pool: 'bullet' });
+check('a player rated in the pool gets their place', r.rank >= 1 && r.rank <= r.rows.length + 10 && r.rows.some((x) => x.uid === C) === (r.rank <= r.rows.length), [r.rank, r.rows.length]);
 
 // glicko sanity
 const gw = glicko2(1500, 350, 0.06, 1500, 350, 1);

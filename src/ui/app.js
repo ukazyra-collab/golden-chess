@@ -28,6 +28,7 @@
       r_checkmate: 'by checkmate', r_resign: 'by resignation', r_timeout: 'on time', r_stalemate: 'Stalemate', r_repetition: 'Threefold repetition',
       r_fifty: '50-move rule', r_insufficient: 'Insufficient material', 'r_timeout-insufficient': 'Time ran out, but the opponent has too little material to mate', r_abort: 'Game aborted',
       r_left: 'by abandonment', oppLeft: 'Opponent left \u00b7 you win in {s} s',
+      memberSince: 'Playing since {d}', recentGames: 'Recent games', yourRank: 'Your rank: #{n}', viewProfile: 'Profile',
       premoveCancelled: 'Premove cancelled', pgnCopied: 'PGN copied', pgnManual: 'Copy the PGN below',
       movesEmpty: 'Moves appear here. Golden moves are marked with a star.', movesEmptyShort: 'Moves appear here', yourMove: 'Your move', botThinking: 'Golden Bot is thinking', whiteMove: 'White to move', blackMove: 'Black to move',
       best: 'Best', depth: 'depth {n}', mateIn: 'mate in {n}', mated: 'checkmate', noMoves: 'No legal moves', analysisStarting: 'Engine is thinking',
@@ -172,6 +173,7 @@
       r_checkmate: 'мат', r_resign: 'сдача', r_timeout: 'время вышло', r_stalemate: 'Пат', r_repetition: 'Троекратное повторение',
       r_fifty: 'Правило 50 ходов', r_insufficient: 'Недостаточно материала', 'r_timeout-insufficient': 'Время вышло, но у соперника не хватает материала для мата', r_abort: 'Партия прервана',
       r_left: 'уход из партии', oppLeft: 'Соперник вышел \u00b7 победа через {s} с',
+      memberSince: 'Играет с {d}', recentGames: 'Последние партии', yourRank: 'Ваше место: #{n}', viewProfile: 'Профиль',
       premoveCancelled: 'Премув отменён', pgnCopied: 'PGN скопирован', pgnManual: 'Скопируйте PGN ниже',
       movesEmpty: 'Здесь будут ходы. Золотые ходы отмечены звездой.', movesEmptyShort: 'Здесь будут ходы', yourMove: 'Ваш ход', botThinking: 'Golden Bot думает', whiteMove: 'Ход белых', blackMove: 'Ход чёрных',
       best: 'Лучший', depth: 'глубина {n}', mateIn: 'мат в {n}', mated: 'мат', noMoves: 'Нет ходов', analysisStarting: 'Движок думает',
@@ -2063,25 +2065,15 @@
   $('btn-menu').addEventListener('click', showMenu);
   // back from a game goes to the tab where that kind of game starts
   function playHome() { return game && botGame() ? 'bots' : 'play'; }
-  function gameHome() { return game && game.fromHistory ? 'games' : playHome(); }
+  function gameHome() { return game && game.fromPlayer && player ? 'player' : game && game.fromHistory ? 'games' : playHome(); }
   $('btn-new').addEventListener('click', function () { go(playHome()); });
   ['bar-top', 'bar-bot'].forEach(function (id) { $(id).addEventListener('click', function (e) { if (e.target.closest('.clock')) return; oppCard(+this.dataset.color); }); });
   // who the opponent is: name, rating, the score with you; a house player (an account run by the developer) says so
+  // a tap on the opponent's bar: their page (ratings, recent games, the score against you)
   function oppCard(color) {
     if (!game || !onlineGame() || spectating() || color === game.cfg.human || !online || !online.s) return;
-    var s = online.s, name = game.cfg.names[color] || '', rt = game.cfg.ratings[color], house = s.house && (s.house === 'w' ? 0 : 1) === color;
-    var m = online.match && online.match.data;
-    openDialog(function (card) {
-      currentDialog.dataset.kind = 'opp';
-      card.appendChild(h('div', { class: 'dlg-title' }, esc(name)));
-      var lines = [];
-      if (rt != null) lines.push('<b>' + esc(String(rt)) + '</b> ' + esc(T(game.cfg.pool)));
-      if (m && m.n) lines.push(esc(T('gamesWithYou')) + ': ' + esc(wdlText({ w: m.l, d: m.d, l: m.w })) + ' (' + esc(T('you')) + ' ' + pts(m.w, m.d) + ' : ' + pts(m.l, m.d) + ')');
-      card.appendChild(h('div', { class: 'dlg-sub opp-lines' }, lines.join('<br>')));
-      if (house) card.appendChild(h('div', { class: 'house-note', id: 'house-note' }, esc(T('houseNote'))));
-      var ok = h('button', { class: 'secondary', type: 'button' }, esc(T('done'))); ok.addEventListener('click', closeDialog);
-      var row = h('div', { class: 'row-btns' }); row.appendChild(ok); card.appendChild(row);
-    });
+    var s = online.s, uid = color === 0 ? s.white_id : s.black_id;
+    if (uid) openPlayer(uid, game.cfg.names[color] || '');
   }
   $('btn-back').addEventListener('click', function () { go(gameHome()); });
   $('btn-settings').addEventListener('click', showSettings);
@@ -2268,6 +2260,16 @@
     if (before) q = q.lt('updated_at', before);
     return q.then(function (r) { if (r.error) throw r.error; return r.data || []; });
   };
+  // a player's page: the profile and ratings are public
+  SupaNet.prototype.player = function (uid) {
+    var sb = this.sb;
+    return Promise.all([sb.from('profiles').select('id, username, created_at, house').eq('id', uid).maybeSingle(),
+      sb.from('ratings').select('pool, rating, rd, games, wins, draws, losses').eq('user_id', uid)]).then(function (r) {
+      if (r[0].error) throw r[0].error;
+      if (r[1].error) throw r[1].error;
+      return { profile: r[0].data, ratings: r[1].data || [] };
+    });
+  };
   // the score against each opponent over all finished games (the database adds them up)
   SupaNet.prototype.h2h = function (uid) {
     return this.sb.rpc('head_to_head', { p_uid: uid }).then(function (r) { if (r.error) throw r.error; return r.data || []; });
@@ -2281,6 +2283,13 @@
           return { uid: x.user_id, name: (x.profiles && x.profiles.username) || '?', rating: Math.round(x.rating), rd: Math.round(x.rd), games: x.games, wins: x.wins, draws: x.draws, losses: x.losses };
         });
       });
+  };
+  // the player's place in the pool: one more than the rated players above them
+  SupaNet.prototype.rank = function (pool, rating) {
+    return this.sb.from('ratings').select('user_id', { count: 'exact', head: true }).eq('pool', pool).gt('games', 0).gt('rating', rating).then(function (r) {
+      if (r.error) throw r.error;
+      return (r.count || 0) + 1;
+    });
   };
   SupaNet.prototype.read = function (id) {
     return this.sb.from('games').select('*').eq('id', id).maybeSingle().then(function (r) { if (r.error) throw r.error; return r.data; });
@@ -2349,6 +2358,8 @@
   MockNet.prototype.history = function (uid, before, opp) { return postJson(this.base + '/history', { token: uid, before: before || null, opp: opp || null, limit: HIST_PAGE }).then(function (r) { return r.games || []; }); };
   MockNet.prototype.h2h = function (uid) { return postJson(this.base + '/h2h', { token: uid }).then(function (r) { return r.rows || []; }); };
   MockNet.prototype.top = function (pool) { return this.call('top', { pool: pool }).then(function (r) { return r.rows || []; }); };
+  MockNet.prototype.rank = function (pool) { return this.call('top', { pool: pool }).then(function (r) { return r.rank || null; }); };
+  MockNet.prototype.player = function (uid) { return postJson(this.base + '/player', { uid: uid }); };
   MockNet.prototype.sub = function (topic, h) {
     var base = this.base, uid = this.uid;
     var es = new EventSource(base + '/events?topic=' + encodeURIComponent(topic) + '&uid=' + encodeURIComponent(uid));
@@ -2631,6 +2642,16 @@
   }
   // the think time of a house player: the bot's model (quick in the opening and in recaptures, longer when there is
   // more to think about, in a hurry when short of time), scaled by its tempo
+  // the pace of a house player in this game: what a move takes on average, set once per game so that it uses a good part
+  // of its clock like anyone (55–95 % of the base time over some forty moves, plus most of the increment); some play
+  // faster than others (tempo), stronger ones a little slower
+  function housePace(o, lvl, st) {
+    if (!o.housePace) {
+      var base = game.clock ? game.cfg.tc.base : 180000, inc = game.clock ? game.cfg.tc.inc : 0;
+      o.housePace = (base * (0.55 + Math.random() * 0.4)) / 40 + inc * (0.7 + Math.random() * 0.25);
+    }
+    return o.housePace * (st.tempo || 1) * Math.sqrt(THINK_BASE[lvl - 1] / THINK_BASE[3]);
+  }
   function houseThinkMs(lvl, uci, hc, st) {
     var pos = game.pos, n = game.records.length, moveNo = Math.floor(n / 2) + 1, normal = 0;
     game.legal.forEach(function (x) { if (!(x & F_GOLDEN)) normal++; });
@@ -2639,19 +2660,20 @@
     var ms;
     if (normal <= 1 && !golden) ms = 380 + Math.random() * 420;
     else {
-      ms = THINK_BASE[lvl - 1] * (st.tempo || 1);
-      ms *= moveNo <= 2 ? 0.35 : moveNo <= 5 ? 0.55 : moveNo <= 10 ? 0.85 : 1;
+      ms = housePace(online, lvl, st);
+      ms *= moveNo <= 2 ? 0.3 : moveNo <= 5 ? 0.5 : moveNo <= 10 ? 0.8 : 1.1;
       ms *= Math.max(0.7, Math.min(1.35, 0.72 + normal / 70));
       if (pos.inCheck()) ms *= 0.85;
-      ms *= Math.exp(gauss() * 0.4);
-      if (moveNo > 8 && Math.random() < 0.12) ms *= 2.2;
+      ms *= Math.exp(gauss() * 0.45);
+      if (moveNo > 8 && Math.random() < 0.12) ms *= 2.4; // the long think now and then
       if (recapture) ms = Math.min(ms, 350 + Math.random() * 500);
       if (golden) ms = ms * 1.3 + 900;
-      ms = Math.max(400, Math.min(lvl >= 6 ? 14000 : 9000, ms));
+      ms = Math.max(400, Math.min(lvl >= 6 ? 25000 : 18000, ms));
     }
     if (game.clock) {
+      // in a hurry when short of time: never more than a share of what is left
       var left = game.timeLeft(hc, perf()), inc = game.cfg.tc.inc;
-      ms = Math.min(ms, Math.max(150, left / 26 + inc * 0.6));
+      ms = Math.min(ms, Math.max(150, left / 12 + inc * 0.6));
       if (left < 10000) ms = Math.min(ms, 150 + Math.random() * 300);
     }
     return ms;
@@ -3556,7 +3578,7 @@
   // the address keeps the view (#play, #learn, ...) so the back button and reloads work.
   var shellEl = $('shell'), curView = null, learnKit = null, signinFlow = null, ratingsPool = null;
   var botsUi = { sel: Math.max(0, Math.min(7, (lastSetup.level || 3) - 1)), color: lastSetup.color || 'w' };
-  var VIEWS = ['play', 'bots', 'learn', 'ratings', 'profile', 'signin', 'games', 'game'], NAV = ['play', 'bots', 'learn', 'ratings', 'profile'];
+  var VIEWS = ['play', 'bots', 'learn', 'ratings', 'profile', 'signin', 'games', 'player', 'game'], NAV = ['play', 'bots', 'learn', 'ratings', 'profile'];
   var NAV_KEY = { play: 'navPlay', bots: 'navBots', learn: 'navLearn', ratings: 'navRatings', profile: 'navProfile' };
   var COLOR_RANDOM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6" fill="#1f2422"/><path d="M12 3.4a8.6 8.6 0 0 0 0 17.2z" fill="#f4efe4"/><circle cx="12" cy="12" r="8.6" fill="none" stroke="#8d9691" stroke-width="1.2"/></svg>';
   // Google's "G" for the sign-in button (their branding asks for it on "Continue with Google")
@@ -3597,6 +3619,7 @@
   function allowed(v) {
     if (VIEWS.indexOf(v) < 0) return false;
     if (v === 'game') return !!game;
+    if (v === 'player') return !!player;
     return !!NETCFG || (v !== 'ratings' && v !== 'signin');
   }
   function go(v, replace) {
@@ -3627,10 +3650,12 @@
   }
   function refreshView() {
     if (curView === 'play') renderPlay(); else if (curView === 'bots') renderBots(); else if (curView === 'learn') renderLearn(); else if (curView === 'ratings') renderRatings();
-    else if (curView === 'profile') renderProfile(); else if (curView === 'signin') renderSignin(); else if (curView === 'games') renderGames();
+    else if (curView === 'profile') renderProfile(); else if (curView === 'signin') renderSignin(); else if (curView === 'games') renderGames(); else if (curView === 'player') renderPlayer();
   }
   function renderNav() {
-    var cur = curView === 'game' ? gameHome() : curView, active = cur === 'signin' ? 'play' : cur === 'games' ? 'profile' : cur;
+    var cur = curView === 'game' ? gameHome() : curView;
+    if (cur === 'player') cur = (player && player.back) || 'ratings';
+    var active = cur === 'signin' ? 'play' : cur === 'games' ? 'profile' : cur === 'game' ? playHome() : cur;
     var items = NAV.filter(allowed);
     [$('rail-items'), $('tabbar')].forEach(function (host) {
       if (host.dataset.built !== lang + items.join()) {
@@ -3884,9 +3909,18 @@
       if (!rows.length) { list.innerHTML = '<div class="muted" style="padding:10px 4px">' + esc(T('lbEmpty')) + '</div>'; return; }
       list.innerHTML = rows.map(function (x, i) {
         var mine = me && (x.uid ? x.uid === me.uid : me.profile && x.name === me.profile.username);
-        return '<div class="lb-row' + (mine ? ' me' : '') + '"><span class="lb-n">' + (i + 1) + '</span><span class="lb-name">' + esc(x.name) + '</span><span class="lb-r">' + x.rating + (x.rd > 110 ? '?' : '') + '</span><span class="lb-g">' + esc(T('gamesN', { n: x.games })) + '</span></div>';
+        return '<button type="button" class="lb-row' + (mine ? ' me' : '') + '" data-uid="' + esc(x.uid || '') + '" data-name="' + esc(x.name) + '"><span class="lb-n">' + (i + 1) + '</span><span class="lb-name">' + esc(x.name) + '</span><span class="lb-r">' + x.rating + (x.rd > 110 ? '?' : '') + '</span><span class="lb-g">' + esc(T('gamesN', { n: x.games })) + '</span></button>';
       }).join('');
     }, function () { if (list.isConnected) list.innerHTML = '<div class="muted" style="padding:10px 4px">' + esc(T('netError')) + '</div>'; });
+    list.addEventListener('click', function (e) { var row = e.target.closest('.lb-row'); if (row && row.dataset.uid) openPlayer(row.dataset.uid, row.dataset.name); });
+    // the player's own place in the pool (rated players only)
+    var rr = signedIn() && me.ratings[pool];
+    if (rr && rr.games && c) {
+      (NETCFG.mock != null ? c.rank(pool) : c.rank(pool, rr.rating)).then(function (n) {
+        if (!my.isConnected || !n) return;
+        var sp = my.querySelector('.meta span'); if (sp) sp.textContent += ' · ' + T('yourRank', { n: n });
+      }, function () { /* no rank */ });
+    }
     if (!me && hasNetSession()) ensureNet().then(function () { if (curView === 'ratings' && signedIn() && !my.querySelector('.big')) renderRatings(); }, function () { /* offline */ });
   }
 
@@ -4129,7 +4163,11 @@
         items.sort(function (a, b) { return b.at - a.at; });
         oppMore = hist.opp.more;
       }
-      if (o) inn.appendChild(h('div', { class: 'gh-score', id: 'gh-score' }, scoreHtml(o)));
+      if (o) {
+        var sc = h('div', { class: 'gh-score', id: 'gh-score' }, scoreHtml(o));
+        if (o.id && o.id !== 'gone' && o.id.indexOf(':') < 0) { var pb = h('button', { type: 'button', class: 'sbtn', id: 'btn-opp-profile' }, esc(T('viewProfile'))); pb.addEventListener('click', function () { openPlayer(o.id, o.name); }); sc.appendChild(pb); }
+        inn.appendChild(sc);
+      }
     }
     var list = h('div', { class: 'gh-list', id: 'gh-list' }, items.map(function (it) { return histRow(it, sums); }).join(''));
     inn.appendChild(list);
@@ -4200,6 +4238,81 @@
     game = g; view = g.idle ? 0 : g.records.length;
     orient = botGame() ? game.cfg.human : 0; board.setOrientation(orient); board.sync(game.pos.board, [], { instantAll: true });
   }
+
+  // ---- a player's page: ratings by pool, recent games (opened for review), the score against you; public data,
+  // so it opens for anyone. An account run by the developer says so at the bottom.
+  var player = null; // { uid, name, back, prof, ratings, rows, more, loading, err, h2h }
+  function openPlayer(uid, name) {
+    if (!uid || uid === 'gone' || uid.indexOf(':') >= 0 || !NETCFG) return;
+    if (player && player.uid === uid && curView === 'player') return;
+    var p = player = { uid: uid, name: name || '', back: curView === 'player' ? player.back : curView, prof: null, ratings: null, rows: null, more: false, loading: true, err: false, h2h: null };
+    go('player');
+    var c = getClient();
+    Promise.all([c.player(uid), c.history(uid), me && me.uid !== uid && net ? net.h2h(me.uid).catch(function () { return []; }) : []]).then(function (r) {
+      if (player !== p) return;
+      p.prof = r[0].profile; p.ratings = r[0].ratings || []; p.rows = r[1] || []; p.more = p.rows.length === HIST_PAGE;
+      p.h2h = (r[2] || []).filter(function (x) { return x.opp_id === uid; })[0] || null;
+      p.loading = false;
+      if (curView === 'player') renderPlayer();
+    }, function () { if (player !== p) return; p.loading = false; p.err = true; if (curView === 'player') renderPlayer(); });
+  }
+  function loadPlayerMore() {
+    var p = player;
+    if (!p || p.loading || !p.rows || !p.rows.length) return;
+    p.loading = true; renderPlayer();
+    getClient().history(p.uid, p.rows[p.rows.length - 1].updated_at).then(function (rows) {
+      if (player !== p) return;
+      p.rows = p.rows.concat(rows); p.more = rows.length === HIST_PAGE; p.loading = false;
+      if (curView === 'player') renderPlayer();
+    }, function () { if (player === p) { p.loading = false; if (curView === 'player') renderPlayer(); } });
+  }
+  function playerBack() {
+    var b = player && player.back;
+    if (b === 'game' && game && (game.online || !game.idle)) { go('game'); return; }
+    go(b && (NAV.indexOf(b) >= 0 || b === 'games') ? b : 'ratings');
+  }
+  function monthYear(iso) { try { return new Date(iso).toLocaleDateString(lang, { month: 'long', year: 'numeric' }); } catch (e) { return ''; } }
+  function renderPlayer() {
+    var host = $('view-player'), p = player;
+    host.innerHTML = '';
+    if (!p) return;
+    var inn = h('div', { class: 'page-in' }); host.appendChild(inn);
+    var back = h('button', { type: 'button', class: 'signin-back gh-back', id: 'player-back' }, BACK_SVG + '<span>' + esc(T('back')) + '</span>');
+    back.addEventListener('click', playerBack);
+    inn.appendChild(back);
+    var name = (p.prof && p.prof.username) || p.name || '?';
+    var head = h('div', { class: 'pl-head' });
+    head.innerHTML = '<div class="pl-avatar">' + esc(name.charAt(0).toUpperCase()) + '</div><div class="pl-who"><h1 class="page-h">' + esc(name) + '</h1>' +
+      (p.prof && p.prof.created_at ? '<div class="muted">' + esc(T('memberSince', { d: monthYear(p.prof.created_at) })) + '</div>' : '') + '</div>';
+    inn.appendChild(head);
+    if (p.loading && !p.prof) { inn.appendChild(h('div', { class: 'muted' }, esc(T('connecting')) + '…')); return; }
+    if (p.err) { inn.appendChild(h('div', { class: 'err' }, esc(T('netError')))); return; }
+    var rc = h('div', { class: 'card pl-ratings', id: 'pl-ratings' });
+    rc.innerHTML = ['bullet', 'blitz', 'rapid'].map(function (pool) {
+      var r = (p.ratings || []).filter(function (x) { return x.pool === pool; })[0], on = r && r.games > 0;
+      return '<div class="pl-pool' + (on ? '' : ' off') + '"><span class="pl-pool-n ic-' + pool + '">' + POOL_ICON[pool] + esc(T(pool)) + '</span><b>' + (on ? Math.round(r.rating) + (r.rd > 110 ? '?' : '') : '–') + '</b>' +
+        '<span class="muted" title="' + esc(on ? T('wdl', { w: r.wins, d: r.draws, l: r.losses }) : '') + '">' + esc(on ? gamesText(r.games) : T('noGamesYet')) + '</span></div>';
+    }).join('');
+    inn.appendChild(rc);
+    if (p.h2h && p.h2h.games) inn.appendChild(h('div', { class: 'gh-score', id: 'pl-score' }, scoreHtml({ name: name, w: p.h2h.wins, d: p.h2h.draws, l: p.h2h.losses, n: p.h2h.games })));
+    var gc = h('div', { class: 'card gh-card', id: 'pl-games' });
+    gc.appendChild(h('h2', null, esc(T('recentGames'))));
+    var items = (p.rows || []).map(function (g) { return histFromOnline(g, p.uid); });
+    if (items.length) gc.appendChild(h('div', { class: 'gh-list' }, items.map(function (it) { return histRow(it, {}); }).join('')));
+    else gc.appendChild(h('div', { class: 'muted gh-empty' }, esc(T('noGamesYet'))));
+    if (p.more) {
+      var more = h('button', { type: 'button', class: 'secondary gh-more', id: 'btn-more-player' }, esc(T('showMore')));
+      more.disabled = p.loading; more.addEventListener('click', loadPlayerMore); gc.appendChild(more);
+    }
+    inn.appendChild(gc);
+    if (p.prof && p.prof.house) inn.appendChild(h('div', { class: 'house-note pl-note', id: 'house-note' }, esc(T('houseNote'))));
+  }
+  // a game on a player's page opens on the board with its review; back leads to the page
+  $('view-player').addEventListener('click', function (e) {
+    var row = e.target.closest('.gh-row'); if (!row || !row.dataset.key || row.dataset.key.indexOf('o:') !== 0) return;
+    if (liveOnlineGame()) { toast(T('finishFirst')); return; }
+    openOnlineGame(row.dataset.key.slice(2), function () { if (game) { game.fromHistory = true; game.fromPlayer = true; } renderNav(); renderSide(); showReport(); });
+  });
 
   // ---- Learn
   function renderLearn() {

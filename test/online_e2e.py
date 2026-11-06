@@ -297,11 +297,15 @@ async def main():
             hclock = sv['cw'] if hc == 0 else sv['cb']
             ok('house: its clock moved by its (instant) think time plus the increment, never by the wall', 180000 - 2000 <= hclock <= 180000 + 2000 * sv['n'], sv)
             ok('house: the opponent is shown as connected', await D.evaluate('__gc.online.oppHere === true'))
-            # the opponent's card: the note that this is an account run by the developer
+            # the opponent's page: ratings, recent games, and at the bottom the note that the account is run by the developer
             bar = '#bar-top' if hc != await D.evaluate('__gc.board.orient') else '#bar-bot'
             await D.click(bar + ' .pname')
-            ok('house: the opponent card says the account is run by the developer', await wait_for(D, '__gc.dialogKind === "opp" && !!document.getElementById("house-note")', 3000), await D.evaluate('document.querySelector(".sheetdlg") && document.querySelector(".sheetdlg").textContent'))
-            await D.evaluate('__gc.closeDialog()')
+            ok('house: a tap on the opponent opens their page', await wait_for(D, '__gc.curView === "player" && !!document.getElementById("pl-ratings")', 4000))
+            ok('house: the page names them, with their blitz rating', await D.evaluate('/abc256/.test(document.querySelector("#view-player .page-h").textContent) && /1340/.test(document.getElementById("pl-ratings").textContent)'), await D.evaluate('document.getElementById("view-player").textContent'))
+            ok('house: ... and says at the bottom that the account is run by the developer', await D.evaluate('!!document.getElementById("house-note") && !!(document.getElementById("pl-games").compareDocumentPosition(document.getElementById("house-note")) & Node.DOCUMENT_POSITION_FOLLOWING)'))
+            await D.screenshot(path=os.path.join(ROOT, 'test/shots/player-house.png'))
+            await D.click('#player-back')
+            ok('house: back to the game', await wait_for(D, '__gc.curView === "game" && !!__gc.online', 3000))
             # the human resigns; the house player wants a rematch (style.rematch 1 means it takes one; here it asks itself with p=.25, so we ask)
             await D.click('#btn-menu'); await D.click('.menu-list button.danger'); await D.click('.sheetdlg .secondary.danger')
             ok('house: the human resigned', await wait_for(D, '__gc.online.s.status === "over" && __gc.online.s.reason === "resign"', 6000))
@@ -361,6 +365,25 @@ async def main():
             await Bl.evaluate('__gc.away(false)')
             ok('left: black, back too late, learns of the loss', await wait_for(Bl, '__gc.game.status === "over" && __gc.game.reason === "left"', 6000))
             admin('shift', ms=-21000)
+
+            # ---- 17. a player's page from the leaderboard: ratings by pool, the score against you, recent games that open for review
+            nmA = await A.evaluate('__gc.me.profile.username')
+            await B.evaluate('__gc.go("ratings")')
+            ok('player: the leaderboard lists Alice', await wait_for(B, '!!document.querySelector(".lb-row[data-name=\'%s\']")' % nmA, 6000))
+            ok('player: the leaderboard shows my own place', await wait_for(B, '/#\\d+/.test(document.getElementById("my-rating").textContent)', 4000), await B.evaluate('document.getElementById("my-rating").textContent'))
+            await B.click('.lb-row[data-name="%s"]' % nmA)
+            ok("player: Alice's page opens", await wait_for(B, '__gc.curView === "player" && !!document.getElementById("pl-games") && document.querySelectorAll("#pl-games .gh-row").length >= 3', 6000))
+            txt = await B.evaluate('document.getElementById("view-player").textContent')
+            ok('player: her name, a blitz rating and the score against me', nmA in txt and 'Blitz' in txt and await B.evaluate('!!document.getElementById("pl-score")'), txt[:300])
+            ok('player: no developer note for a real player', not await B.evaluate('!!document.getElementById("house-note")'))
+            await B.screenshot(path=os.path.join(ROOT, 'test/shots/player.png'))
+            await B.click('#pl-games .gh-row')
+            ok('player: a game opens on the board for review', await wait_for(B, '__gc.curView === "game" && __gc.game.fromHistory && __gc.game.status === "over"', 8000))
+            await B.evaluate('__gc.closeDialog()')
+            await B.click('#btn-back')
+            ok("player: back leads to Alice's page", await wait_for(B, '__gc.curView === "player"', 4000))
+            await B.click('#player-back')
+            ok('player: and back again to the ratings', await wait_for(B, '__gc.curView === "ratings"', 4000))
 
             for nm in errs:
                 bad = [e for e in errs[nm] if 'favicon' not in e]

@@ -31,27 +31,38 @@ def style(level):
     else: s.update({'resignAt': random.choice([500, 650, 800, 900]), 'resignP': round(random.uniform(0.2, 0.5), 2)})
     return s
 
-rows_u, rows_p, rows_h, rows_r = [], [], [], []
-q = lambda x: "'" + str(x).replace("'", "''") + "'"
-for name, level, target in P:
-    uid = uuid.uuid5(NS, name)
-    created = T0 + datetime.timedelta(hours=random.uniform(0, 18 * 24))
-    # around for 5–12 hours a day; the evening hours of Europe, Russia and the Americas are the busiest
-    start = random.choice([6, 8, 10, 12, 13, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22, 23, 1, 3])
-    hours = random.randint(5, 12)
-    st = style(level)
-    rows_u.append(f"({q(uid)}, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', true, '{{}}', '{{}}', {q(created.isoformat())}, {q(created.isoformat())}, '', '', '', '', '', '', '', '')")
-    rows_p.append(f"({q(uid)}, {q(name)}, false, true, true, {q(created.isoformat())})")
-    rows_h.append(f"({q(uid)}, {level}, {target}, {q(json.dumps(st, ensure_ascii=False))}::jsonb, {start}, {hours})")
-    for pool in ('bullet', 'blitz', 'rapid'):
-        r = target + random.gauss(0, 35)
-        games = int(random.lognormvariate(4.3, 0.8)) + 8          # a few dozen to a few hundred
-        wins = int(games * random.uniform(0.38, 0.55)); draws = int(games * random.uniform(0.03, 0.12)); losses = games - wins - draws
-        rows_r.append(f"({q(uid)}, {q(pool)}, {r:.1f}, {random.uniform(55, 85):.1f}, 0.06, {games}, {wins}, {draws}, {losses})")
+random.seed(20261107)
+# the second batch (a later migration): 163 more, mostly in the middle of the range
+P2_NAMES = ['qqq', 'zxc', 'asdfgh', 'user123', 'test1', 'noob', 'player2', 'player77', '777', '1111', '123123', '9999', 'bbb', 'kkk', 'ppp', 'qwe', 'qwerty123', 'wasd', 'hello', 'guest1', 'guest99', 'anon', 'xxx777', 'zzz', 'blabla', 'ggg', 'sss', 'max', 'alex', 'dima', 'sasha', 'vlad', 'tom', 'bob', 'nik', 'kolya', 'misha', 'jack', 'john123', 'mike_', 'sergey', 'andrey', 'pasha', 'lena', 'kate', 'anna', 'masha', 'egor', 'nikita', 'timur', 'Liam_Carter', 'Noah B', 'Emma S', 'Lucas Moreau', 'Hugo Martin', 'Léa Dubois', 'Mia Rossi', 'Luca Ferrari', 'Giulia', 'Lena Fischer', 'Felix Bauer', 'Paul Schmidt', 'Jan Kowalski', 'Anna Nowak', 'Piotr Z', 'Jakub', 'Mateo García', 'Pablo R', 'Lucía', 'Carlos Mendes', 'João Pedro', 'Rafael S', 'Daniela', 'Ana Souza', 'Yusuf', 'Emre K', 'Zeynep', 'Ali Hassan', 'Omar F', 'Sara M', 'Arjun', 'Rohan Mehta', 'Aditya S', 'Wei Chen', 'Hiroshi', 'Yuki T', 'Minh', 'Ji-ho Kim', 'Oliver J', 'Ethan W', 'James Lee', 'Daniel Kim', 'Chris P', 'Steve R', 'Алексей Иванов', 'Максим', 'Андрей П', 'Сергей Н', 'Елена', 'Мария К', 'Виктор', 'Павел', 'Ольга', 'Денис 95', 'Roman S', 'Vlad K', 'Арсен', 'Георгий', 'Oleh', 'Dmytro', 'Yana', 'Katya', 'Nastya', 'Rook Rider', 'Pawn Pusher', 'Bishop Pair', 'Castle Crasher', 'Fork Lift', 'Pin Point', 'Skewer', 'Zugzwang', 'Zwischenzug', 'Tempo Thief', 'Backrank', 'Scholar', 'Fried Liver', 'London Boy', 'Catalan', 'Najdorf', 'Benoni', 'Dutchman', 'Scandi', 'Petroff', 'Berlin Wall', 'Blitzkrieg', 'Bullet Time', 'Flag Hunter', 'Premover', 'Mouse Slip', 'Hanging Piece', 'Blunder Bus', 'Sac the Rook', 'Queenless', 'Underpromotion', 'Perpetual', 'Fifty Moves', 'Golden Knight', 'Ход конём', 'Вилка', 'Цугцванг', 'Проходная', 'Слон на диете', 'Ладья', 'Король на h8', 'Мат в 1', 'Блиц-ган', 'Дебютный монстр', 'Эндшпиль', 'Шахматный кот', 'Тихий ход', 'Контргамбит', 'Knight Rider', 'Stalemate King']
+def draw():
+    lvl = random.choices([1, 2, 3, 4, 5, 6, 7, 8], weights=[6, 12, 18, 20, 18, 13, 8, 5])[0]
+    lo = [700, 900, 1150, 1350, 1520, 1720, 1950, 2200][lvl - 1]; hi = [950, 1150, 1350, 1520, 1720, 1950, 2200, 2450][lvl - 1]
+    return lvl, int(random.uniform(lo, hi))
+P2 = [(n,) + draw() for n in P2_NAMES]
+assert not ({n.lower() for n, _, _ in P} & {n.lower() for n, _, _ in P2})
 
-# a migration (the GitHub integration applies it on push); it only runs where auth.users is Supabase's real table
-# (the test database's stand-in has no is_anonymous column, so the tests see no seeded house players)
-sql = f"""-- House players: {len(P)} accounts run by the developer (see 20261106120000_house_players.sql). Made by supabase/seed/make_house_players.py; do not edit.
+def emit(players, out_name, note):
+    rows_u, rows_p, rows_h, rows_r = [], [], [], []
+    q = lambda x: "'" + str(x).replace("'", "''") + "'"
+    for name, level, target in players:
+        uid = uuid.uuid5(NS, name)
+        created = T0 + datetime.timedelta(hours=random.uniform(0, 18 * 24))
+        # around for 5–12 hours a day; the evening hours of Europe, Russia and the Americas are the busiest
+        start = random.choice([6, 8, 10, 12, 13, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22, 23, 1, 3])
+        hours = random.randint(5, 12)
+        st = style(level)
+        rows_u.append(f"({q(uid)}, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', true, '{{}}', '{{}}', {q(created.isoformat())}, {q(created.isoformat())}, '', '', '', '', '', '', '', '')")
+        rows_p.append(f"({q(uid)}, {q(name)}, false, true, true, {q(created.isoformat())})")
+        rows_h.append(f"({q(uid)}, {level}, {target}, {q(json.dumps(st, ensure_ascii=False))}::jsonb, {start}, {hours})")
+        for pool in ('bullet', 'blitz', 'rapid'):
+            r = target + random.gauss(0, 35)
+            games = int(random.lognormvariate(4.3, 0.8)) + 8          # a few dozen to a few hundred
+            wins = int(games * random.uniform(0.38, 0.55)); draws = int(games * random.uniform(0.03, 0.12)); losses = games - wins - draws
+            rows_r.append(f"({q(uid)}, {q(pool)}, {r:.1f}, {random.uniform(55, 85):.1f}, 0.06, {games}, {wins}, {draws}, {losses})")
+
+    # a migration (the GitHub integration applies it on push); it only runs where auth.users is Supabase's real table
+    # (the test database's stand-in has no is_anonymous column, so the tests see no seeded house players)
+    sql = f"""-- House players: {len(players)} accounts run by the developer{note} (see 20261106120000_house_players.sql). Made by supabase/seed/make_house_players.py; do not edit.
 do $seed$
 begin
   if not exists (select 1 from information_schema.columns where table_schema = 'auth' and table_name = 'users' and column_name = 'is_anonymous') then
@@ -77,6 +88,12 @@ begin
 end
 $seed$;
 """
-out = os.path.join(os.path.dirname(HERE), 'migrations', '20261106140000_house_seed.sql')
-open(out, 'w', encoding='utf-8').write(sql)
-print(os.path.relpath(out), len(P), 'players')
+    out = os.path.join(os.path.dirname(HERE), 'migrations', out_name)
+    open(out, 'w', encoding='utf-8').write(sql)
+    print(os.path.relpath(out), len(players), 'players')
+
+# the first batch exactly as applied (its random draws come first, from the first seed), then the second
+random.seed(20261106)
+emit(P, '20261106140000_house_seed.sql', '')
+random.seed(20261107)
+emit(P2, '20261106170000_house_seed_2.sql', ', the second batch')

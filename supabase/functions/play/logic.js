@@ -452,7 +452,8 @@ export function createLogic(opts) {
 
   A.top = async (uid, b) => {
     const pool = ['bullet', 'blitz', 'rapid'].includes(b.pool) ? b.pool : 'blitz';
-    return { pool, rows: (await repo.top(pool, 30)) || [] };
+    const [rows, rank] = await Promise.all([repo.top(pool, 50), repo.rankOf ? repo.rankOf(uid, pool) : null]);
+    return { pool, rows: rows || [], rank: rank || null };
   };
 
   // auth: a promise of the caller, either a user id or { sub, guest } (resolved lazily so `move` can overlap
