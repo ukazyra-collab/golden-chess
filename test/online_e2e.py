@@ -88,7 +88,7 @@ async def main():
             for pg, email, name in ((A, 'alice@example.com', 'Alice'), (B, 'bob@example.com', 'Bob')):
                 await wait_for(pg, '!!document.getElementById("btn-start")')
                 ok('Play tab offers 3+2', '3+2' in (await pg.text_content('#play-tc')))
-                ok(f'{name}: the start screen says no sign-up is needed', 'no sign-up' in (await pg.text_content('#play-meta')).lower())
+                ok(f'{name}: a guest\'s start screen has no sign-up note', not await pg.evaluate('!!document.getElementById("play-meta")'))
                 await pg.click('#acct-chip')
                 await sign_in(pg, email, name)
                 ok(f'{name}: back on Play after signing in', await wait_for(pg, '__gc.curView === "play" && !__gc.dialogOpen', 5000))

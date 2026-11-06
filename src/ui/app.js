@@ -3935,7 +3935,8 @@
       row.appendChild(bigBtn('second-btn', T('playFriendShort'), 'btn-friend', friendSheet));
       row.appendChild(bigBtn('second-btn', T('playBotShort'), 'btn-bot', function () { go('bots'); }));
       acts.appendChild(row);
-      acts.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(signedIn() ? T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase() : T('playFreeNote'))));
+      // signed in: the rating line under the buttons; a guest gets no note — Play just works, sign-in is in the corner
+      if (signedIn()) acts.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase())));
     } else {
       acts.appendChild(bigBtn('start-btn', T('playBot'), 'btn-start', function () { go('bots'); }));
       acts.appendChild(bigBtn('second-btn', T('passPlayLong'), 'btn-pass', showLocalSetup));

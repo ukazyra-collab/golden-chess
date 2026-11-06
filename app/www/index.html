@@ -677,7 +677,7 @@ svg { display: block; }
 .play-reel-cap { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 22px; font-weight: 700; font-size: 14.5px; line-height: 1.3; color: var(--bone); text-align: center; text-wrap: balance; }
 .play-board .play-reel-cap { margin-top: 12px; font-size: 16px; }
 .play-col { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 22px; }
-.play-main { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 3vh 0 6px; }
+.play-main { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px; padding: 7vh 0 16px; }
 @media (max-width: 767px) { .play-wrap { align-items: stretch; } }
 .play-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; }
 .play-head .brand svg { width: 28px; height: 28px; }
@@ -9047,7 +9047,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       row.appendChild(bigBtn('second-btn', T('playFriendShort'), 'btn-friend', friendSheet));
       row.appendChild(bigBtn('second-btn', T('playBotShort'), 'btn-bot', function () { go('bots'); }));
       acts.appendChild(row);
-      acts.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(signedIn() ? T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase() : T('playFreeNote'))));
+      // signed in: the rating line under the buttons; a guest gets no note — Play just works, sign-in is in the corner
+      if (signedIn()) acts.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase())));
     } else {
       acts.appendChild(bigBtn('start-btn', T('playBot'), 'btn-start', function () { go('bots'); }));
       acts.appendChild(bigBtn('second-btn', T('passPlayLong'), 'btn-pass', showLocalSetup));
