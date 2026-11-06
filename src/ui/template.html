@@ -31,6 +31,7 @@
   --hl-last: rgba(158, 219, 238, .42);
   --hl-sel: rgba(158, 219, 238, .66);
   --hl-pre: rgba(226, 104, 90, .55);
+  --hl-pre-to: rgba(226, 104, 90, .34);
   --hl-gold: rgba(231, 180, 74, .66);
   --dot: rgba(10, 20, 18, .26);
   --f-display: "Bodoni Moda", "Bodoni 72", Didot, "Times New Roman", serif;
@@ -103,8 +104,9 @@ svg { display: block; }
 .top { height: var(--top-h); flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand svg { width: 26px; height: 26px; flex: none; }
-.wordmark { font-family: var(--f-display); font-style: italic; font-weight: 700; font-size: 22px; letter-spacing: .2px; white-space: nowrap; }
-.wordmark b { color: var(--gold); font-weight: 700; }
+.wordmark { font-family: var(--f-ui); font-weight: 800; font-size: 20px; letter-spacing: -.3px; white-space: nowrap; }
+.wordmark b { color: var(--gold); font-weight: 800; }
+.brand .logo { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .3)); }
 .top-actions { display: flex; align-items: center; gap: 6px; }
 .icon-btn { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; color: var(--muted); }
 .icon-btn:hover { background: var(--raise); color: var(--bone); }
@@ -185,7 +187,9 @@ svg { display: block; }
 .sqx { position: absolute; left: 0; top: 0; width: 12.5%; height: 12.5%; }
 .hl-last { background: var(--hl-last); }
 .hl-sel { background: var(--hl-sel); }
-.hl-pre { background: var(--hl-pre); }
+.hl-pre, .hl-pre-from { background: var(--hl-pre); } /* the piece that will move */
+.hl-pre-to { background: var(--hl-pre-to); box-shadow: inset 0 0 0 3px var(--hl-pre); } /* the square it goes to */
+.hl-pre-gold { background: var(--hl-gold); box-shadow: inset 0 0 0 3px var(--hl-pre); }
 .hl-gold { background: var(--hl-gold); box-shadow: inset 0 0 0 2px rgba(255, 226, 150, .55); }
 .hl-check { background: radial-gradient(circle, rgba(255, 70, 50, .95) 0%, rgba(230, 50, 40, .55) 32%, rgba(200, 30, 30, 0) 70%); }
 .hl-hover { box-shadow: inset 0 0 0 4px rgba(255, 255, 255, .6); }
@@ -458,6 +462,9 @@ svg { display: block; }
 .secondary { flex: 1; min-width: 100px; height: 52px; border-radius: 14px; background: var(--raise); font-weight: 700; font-size: 15.5px; box-shadow: 0 3px 0 var(--edge); }
 .g-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
 .g-btn svg { width: 19px; height: 19px; flex: none; }
+.a-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #fff; color: #000; }
+.a-btn:hover { background: #f1ede4; }
+.a-btn svg { width: 20px; height: 20px; flex: none; margin-top: -2px; }
 .secondary:hover { background: var(--raise-hi); }
 .secondary:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--edge); }
 .secondary.danger { color: #f6a89c; }
@@ -587,11 +594,8 @@ svg { display: block; }
 .acct-chip .av { width: 28px; height: 28px; border-radius: 50%; background: var(--bone); color: #1f2422; display: grid; place-items: center; font-weight: 800; font-size: 13px; flex: none; }
 .acct-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acct-chip.out { padding: 0 16px; }
-.play-mark { align-self: center; position: relative; width: 120px; height: 120px; margin: 6px 0 2px; }
-.play-mark .ring { position: absolute; inset: 8px; border-radius: 50%; background: radial-gradient(circle, #3d4542 0%, #2f3533 70%); box-shadow: 0 0 0 2px rgba(240, 185, 65, .75), 0 0 40px rgba(240, 185, 65, .22); }
-.play-mark .pc-ic { position: absolute; inset: 22px; background-size: 100%; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .35)); }
-.play-mark .sp { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--gold-hi); box-shadow: 0 0 8px 2px rgba(255, 216, 138, .7); }
-.play-mark .st { position: absolute; right: 8px; top: 6px; width: 26px; height: 26px; }
+.play-mark { align-self: center; width: 116px; height: 116px; margin: 6px 0 2px; }
+.play-mark .logo-big { width: 100%; height: 100%; filter: drop-shadow(0 10px 22px rgba(0, 0, 0, .45)) drop-shadow(0 0 28px rgba(240, 185, 65, .18)); }
 .play-actions { display: flex; flex-direction: column; gap: 16px; }
 .tc-field { width: 100%; height: 58px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); display: flex; align-items: center; gap: 12px; padding: 0 16px; box-sizing: border-box; text-align: left; }
 .tc-field:hover { background: #3a413e; }
@@ -621,6 +625,9 @@ svg { display: block; }
 .second-btn { width: 100%; height: 56px; border-radius: 16px; background: var(--raise); color: var(--bone); font-weight: 800; font-size: 17px; box-shadow: 0 4px 0 var(--edge); }
 .second-btn:hover { background: var(--raise-hi); }
 .second-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--edge); }
+.play-row { display: flex; gap: 12px; }
+.play-row .second-btn { flex: 1; min-width: 0; padding: 0 10px; font-size: 16px; }
+@media (max-width: 360px) { .play-row .second-btn { font-size: 15px; } }
 .play-meta { text-align: center; font-size: 13.5px; color: var(--muted); line-height: 1.45; }
 .home-foot { align-self: center; margin-top: auto; padding: 6px 4px; font-size: 12.5px; color: var(--muted); opacity: .8; text-decoration: none; }
 .home-foot:hover { color: var(--bone); text-decoration: underline; text-underline-offset: 3px; }
@@ -793,7 +800,7 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 <div class="shell" id="shell" data-board="slate" data-view="play">
 <nav class="rail" id="rail" aria-label="Main">
   <a class="rail-brand" href="#play" aria-label="Golden Chess">
-    <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="#3a423f"/><path d="M2 9a7 7 0 0 1 7-7h7v14H2z" fill="#4a5350"/><path d="M16 16h14v7a7 7 0 0 1-7 7h-7z" fill="#4a5350"/><path d="M16 5.5c.9 5.4 3.6 8.1 9 9-5.4.9-8.1 3.6-9 9-.9-5.4-3.6-8.1-9-9 5.4-.9 8.1-3.6 9-9z" fill="#e7b44a"/></svg>
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg-rail" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe6a3"/><stop offset=".5" stop-color="#f0b941"/><stop offset="1" stop-color="#b98321"/></linearGradient><clipPath id="lg-rail-c"><rect width="32" height="32" rx="7.2"/></clipPath></defs><g clip-path="url(#lg-rail-c)"><rect width="32" height="32" fill="#3a423f"/><rect width="16" height="16" fill="#4a5350"/><rect x="16" y="16" width="16" height="16" fill="#4a5350"/><g transform="scale(0.03125)"><g transform="translate(63 80) scale(19)" fill="none" fill-rule="evenodd" stroke="#2a1d05" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21" fill="url(#lg-rail)"/><path d="M24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.042-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4.003 1-4-4 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-.994-.5-2-.5-3 1-1 3 2.5 3 2.5h2s.78-1.992 2.5-3c1 0 1 3 1 3" fill="url(#lg-rail)"/><path d="M9.5 25.5a.5.5 0 1 1-1 0 .5.5 0 1 1 1 0zm5.433-9.75a.5 1.5 30 1 1-.866-.5.5 1.5 30 1 1 .866.5z" fill="#2a1d05" stroke="#2a1d05"/></g><path d="M765.00,166.00 C774.20,221.20 801.80,248.80 857.00,258.00 C801.80,267.20 774.20,294.80 765.00,350.00 C755.80,294.80 728.20,267.20 673.00,258.00 C728.20,248.80 755.80,221.20 765.00,166.00 Z" fill="#fff4d6"/></g></g></svg>
     <span class="wordmark"><b>Golden</b> Chess</span>
   </a>
   <div class="nav-items" id="rail-items"></div>
@@ -810,7 +817,7 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
   <header class="top">
     <div class="brand">
       <button class="icon-btn back-btn" id="btn-back" data-i18n-aria="back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="#3a423f"/><path d="M2 9a7 7 0 0 1 7-7h7v14H2z" fill="#4a5350"/><path d="M16 16h14v7a7 7 0 0 1-7 7h-7z" fill="#4a5350"/><path d="M16 5.5c.9 5.4 3.6 8.1 9 9-5.4.9-8.1 3.6-9 9-.9-5.4-3.6-8.1-9-9 5.4-.9 8.1-3.6 9-9z" fill="#e7b44a"/></svg>
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg-top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe6a3"/><stop offset=".5" stop-color="#f0b941"/><stop offset="1" stop-color="#b98321"/></linearGradient><clipPath id="lg-top-c"><rect width="32" height="32" rx="7.2"/></clipPath></defs><g clip-path="url(#lg-top-c)"><rect width="32" height="32" fill="#3a423f"/><rect width="16" height="16" fill="#4a5350"/><rect x="16" y="16" width="16" height="16" fill="#4a5350"/><g transform="scale(0.03125)"><g transform="translate(63 80) scale(19)" fill="none" fill-rule="evenodd" stroke="#2a1d05" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21" fill="url(#lg-top)"/><path d="M24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.042-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4.003 1-4-4 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-.994-.5-2-.5-3 1-1 3 2.5 3 2.5h2s.78-1.992 2.5-3c1 0 1 3 1 3" fill="url(#lg-top)"/><path d="M9.5 25.5a.5.5 0 1 1-1 0 .5.5 0 1 1 1 0zm5.433-9.75a.5 1.5 30 1 1-.866-.5.5 1.5 30 1 1 .866.5z" fill="#2a1d05" stroke="#2a1d05"/></g><path d="M765.00,166.00 C774.20,221.20 801.80,248.80 857.00,258.00 C801.80,267.20 774.20,294.80 765.00,350.00 C755.80,294.80 728.20,267.20 673.00,258.00 C728.20,248.80 755.80,221.20 765.00,166.00 Z" fill="#fff4d6"/></g></g></svg>
       <span class="wordmark"><b>Golden</b> Chess</span>
     </div>
     <div class="top-actions">

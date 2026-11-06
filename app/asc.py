@@ -6,17 +6,18 @@ altool looks too) or from ASC_KEY_PATH.
   export ASC_KEY_ID=XXXXXXXXXX ASC_ISSUER_ID=xxxxxxxx-xxxx-...        # from App Store Connect → Users and Access → Integrations → API
   python3 asc.py whoami                      the team's apps and whether the key works
   python3 asc.py bundle                      registers com.kozyramedia.goldenchess (with Push Notifications) if it is not there yet; prints the Team ID (seedId)
-  python3 asc.py metadata                    app info, age rating, version 1.4, the English texts, the review details (listing.json)
-  python3 asc.py screenshots DIR             uploads DIR/iphone67/*.png (1290x2796) and DIR/ipad129/*.png (2048x2732) to version 1.4
+  python3 asc.py capability                  turns Sign in with Apple on for the bundle id (the App ID capability; the app's entitlements ask for it)
+  python3 asc.py metadata                    app info, age rating, version 1.1, the English texts, the review details (listing.json)
+  python3 asc.py screenshots DIR             uploads DIR/iphone67/*.png (1290x2796) and DIR/ipad129/*.png (2048x2732) to version 1.1
   python3 asc.py build [--wait]              the newest build of 1.4: its state; --wait until Apple has processed it; attaches it to the version
-  python3 asc.py submit                      sends version 1.4 to App Review
+  python3 asc.py submit                      sends version 1.1 to App Review
   python3 asc.py status                      where the version stands
 
 The app record itself (My Apps → + → New App) cannot be made through the API: Apple keeps that in the website. Everything after it can."""
 import base64, hashlib, json, os, subprocess, sys, tempfile, time, urllib.request, urllib.error, urllib.parse
 
 API = 'https://api.appstoreconnect.apple.com'
-BUNDLE = 'com.kozyramedia.goldenchess'; VERSION = os.environ.get('GC_VERSION', '1.0'); LOCALE = 'en-US'
+BUNDLE = 'com.kozyramedia.goldenchess'; VERSION = os.environ.get('GC_VERSION', '1.1'); LOCALE = 'en-US'
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # ---- the token: ES256 JWT, signed by openssl (DER → raw r||s)
@@ -81,6 +82,16 @@ def cmd_bundle():
     else:
         b = api('POST', '/v1/bundleIds', {'data': {'type': 'bundleIds', 'attributes': {'identifier': BUNDLE, 'name': 'Golden Chess', 'platform': 'IOS'}}})['data']; print('bundle id registered now:', BUNDLE, 'team (seedId):', b['attributes'].get('seedId'))
     print('TEAM_ID=' + str(b['attributes'].get('seedId')))
+
+def cmd_capability():
+    d = api('GET', f'/v1/bundleIds?filter[identifier]={BUNDLE}&limit=1').get('data') or sys.exit('run bundle first')
+    bid = d[0]['id']
+    caps = api('GET', f'/v1/bundleIds/{bid}/bundleIdCapabilities').get('data') or []
+    if any(c['attributes'].get('capabilityType') == 'APPLE_ID_AUTH' for c in caps): print('Sign in with Apple is on already for', BUNDLE); return
+    api('POST', '/v1/bundleIdCapabilities', {'data': {'type': 'bundleIdCapabilities', 'attributes': {'capabilityType': 'APPLE_ID_AUTH',
+        'settings': [{'key': 'APPLE_ID_AUTH_APP_CONSENT', 'options': [{'key': 'PRIMARY_APP_CONSENT'}]}]},
+        'relationships': {'bundleId': rel('bundleIds', bid)}}})
+    print('Sign in with Apple turned on for', BUNDLE, '(primary App ID)')
 
 def cmd_metadata():
     L = json.load(open(os.path.join(HERE, 'listing.json'), encoding='utf-8'))
@@ -184,6 +195,7 @@ if __name__ == '__main__':
     c = sys.argv[1] if len(sys.argv) > 1 else 'help'
     if c == 'whoami': cmd_whoami()
     elif c == 'bundle': cmd_bundle()
+    elif c == 'capability': cmd_capability()
     elif c == 'metadata': cmd_metadata()
     elif c == 'screenshots': cmd_screenshots(sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, 'store', 'appstore'))
     elif c == 'build': cmd_build('--wait' in sys.argv)

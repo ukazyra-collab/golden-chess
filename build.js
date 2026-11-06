@@ -20,6 +20,7 @@ const ONLINE = {
   // the stores' reviewers can't receive our emails: this one account signs in with a password (a Supabase user created
   // with a password in the dashboard); everyone else signs in with an email code
   reviewEmail: 'review@kozyramedia.com',
+  appleAuth: true, // "Continue with Apple" in the iPhone app (Supabase provider Apple on, client id com.kozyramedia.goldenchess)
   googleAuth: true, // "Continue with Google" (Google Cloud project golden-chess-512108, client "Golden Chess web"; Supabase provider on)
   // the Google client (public id): Google's own button on the website (authorised JavaScript origin https://golden-chess.com)
   googleClientId: '977363935890-q5rnfd17nih6agv3ha00af926ev6j275.apps.googleusercontent.com',

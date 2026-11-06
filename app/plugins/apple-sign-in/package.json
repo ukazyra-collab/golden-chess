@@ -1,0 +1,43 @@
+{
+  "name": "@capacitor-community/apple-sign-in",
+  "version": "7.1.0-capacitor8",
+  "description": "Capacitor Sign in with Apple (Golden Chess copy: Package.swift points at Capacitor 8; the published 7.1.0 pins capacitor-swift-pm 7.x and cannot resolve next to Capacitor 8)",
+  "main": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "author": "Max Lynch <max@ionic.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@types/scriptjs": "0.0.2",
+    "scriptjs": "^2.5.9"
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=7.0.0"
+  },
+  "files": [
+    "dist/",
+    "ios/",
+    "android/",
+    "Package.swift",
+    "CapacitorCommunityAppleSignIn.podspec"
+  ],
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "native"
+  ],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    },
+    "android": {
+      "src": "android"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/capacitor-community/apple-sign-in"
+  },
+  "bugs": {
+    "url": "https://github.com/capacitor-community/apple-sign-in/issues"
+  }
+}

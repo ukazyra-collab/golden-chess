@@ -14,9 +14,14 @@ window.__capCalls = []; window.__capListeners = {};
 window.Capacitor = {
   isNativePlatform: function () { return true; },
   getPlatform: function () { return window.__capPlatform || localStorage.getItem('test.platform') || 'android'; },
+  isPluginAvailable: function (p) { return (localStorage.getItem('test.plugins') || '').split(',').indexOf(p) >= 0; },
   nativePromise: function (plugin, method, opts) {
     window.__capCalls.push([plugin, method, opts || {}]);
     if (plugin === 'App' && method === 'getLaunchUrl') { var u = localStorage.getItem('test.launchUrl'); return Promise.resolve(u ? { url: u } : {}); }
+    if (plugin === 'SignInWithApple') {  // the Apple sheet: cancelled, or an ID token with the first-time name
+      if (localStorage.getItem('test.appleCancel')) return Promise.reject({ code: '1001', message: 'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1001.)' });
+      return Promise.resolve({ response: { user: '000123.abc', email: 'ann@privaterelay.appleid.com', givenName: 'Ann', familyName: 'Apple', identityToken: 'fake.apple.jwt', authorizationCode: 'c0de' } });
+    }
     return Promise.resolve({});
   },
   addListener: function (plugin, ev, cb) { var k = plugin + '.' + ev; (window.__capListeners[k] = window.__capListeners[k] || []).push(cb); return { remove: function () {} }; }
@@ -81,7 +86,7 @@ window.supabase = { createClient: function (url, key, opts) {
         setU(u); lis.forEach(function (cb) { cb('SIGNED_IN', sess()); });
         return ok({ user: u, session: sess() });
       },
-      updateUser: function () { return ok({}); }, signInWithOtp: function () { return ok({}); }, verifyOtp: function () { return ok({}); },
+      updateUser: function (o) { calls.push(['updateUser', o]); return ok({}); }, signInWithOtp: function () { return ok({}); }, verifyOtp: function () { return ok({}); },
       signOut: function () { localStorage.removeItem('test.user'); localStorage.removeItem(SK); return ok({}); }
     },
     realtime: { setAuth: function () { return Promise.resolve(); } },
@@ -324,6 +329,43 @@ async def main():
         loads = await pg.evaluate('localStorage.getItem("test.loads")')
         check('iphone: the launch link reloads once, not in a loop', loads == '2', loads)  # our reload + the account switch
         check('iphone: no console errors', not [e for e in errs if 'Failed to load resource' not in e], errs[:5])
+        await ctx.close()
+
+        # ---- iPhone with Sign in with Apple in the shell (the store build from 1.1 on): Apple first, Google beside it
+        ctx = await br.new_context(**phone)
+        pg, errs = await setup(ctx, html)
+        await pg.add_init_script('localStorage.setItem("test.platform", "ios"); localStorage.setItem("test.plugins", "SignInWithApple")')
+        await pg.goto(SITE + '#signin'); await pg.wait_for_timeout(600)
+        ok = await wait_for(pg, '!!document.getElementById("btn-apple")')
+        order = await pg.evaluate('[...document.querySelectorAll("#btn-apple, #btn-google")].map(b => b.id)')
+        check('iphone+apple: Apple and Google buttons, Apple first', ok and order == ['btn-apple', 'btn-google'], order)
+        ah, gh = await pg.evaluate('[document.getElementById("btn-apple").offsetHeight, document.getElementById("btn-google").offsetHeight]')
+        check('iphone+apple: the Apple button is no smaller than Google\'s', ah >= gh, [ah, gh])
+        await pg.evaluate('__gc.go("play")')
+        ok = await wait_for(pg, '!!document.getElementById("play-meta")')
+        meta = await pg.evaluate('document.getElementById("play-meta").textContent')
+        check('iphone+apple: the Play tab names Apple and Google', ok and 'Apple' in meta and 'Google' in meta, meta)
+        await pg.goto(SITE + '#signin'); await pg.wait_for_timeout(500)
+        await pg.screenshot(path=os.path.join(ROOT, 'test/shots/ios-signin-apple.png'))
+        await pg.click('#btn-apple')
+        ok = await wait_for(pg, '__sbCalls.some(function (c) { return c[0] === "linkIdentity" && c[1].provider === "apple"; })')
+        call = await pg.evaluate('__capCalls.filter(function (c) { return c[0] === "SignInWithApple"; })[0]')
+        li = await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "linkIdentity"; }).map(function (c) { return c[1]; })')
+        check('iphone+apple: the sheet is asked for email and name with a hashed nonce', call and call[1] == 'authorize' and 'email' in call[2]['scopes'] and 'name' in call[2]['scopes'] and re.fullmatch(r'[0-9a-f]{64}', call[2]['nonce'] or ''), call)
+        check('iphone+apple: a guest links Apple with the ID token; Supabase gets the raw nonce', ok and li and li[0]['token'] == 'fake.apple.jwt' and hashlib.sha256(li[0]['nonce'].encode()).hexdigest() == call[2]['nonce'], li)
+        ok = await wait_for(pg, '__sbCalls.some(function (c) { return c[0] === "updateUser" && c[1].data && c[1].data.full_name === "Ann Apple"; })')
+        check('iphone+apple: the name Apple gives once is kept on the account', ok, await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "updateUser"; })'))
+        await ctx.close()
+        # cancelled sheet (a fresh guest): nothing to say, the form stays
+        ctx = await br.new_context(**phone)
+        pg, errs = await setup(ctx, html)
+        await pg.add_init_script('localStorage.setItem("test.platform", "ios"); localStorage.setItem("test.plugins", "SignInWithApple"); localStorage.setItem("test.appleCancel", "1")')
+        await pg.goto(SITE + '#signin'); await pg.wait_for_timeout(500)
+        await wait_for(pg, '!!document.getElementById("btn-apple")')
+        await pg.click('#btn-apple'); await pg.wait_for_timeout(500)
+        st = await pg.evaluate('({ err: (document.querySelector("#view-signin .err") || {}).textContent || "", form: !!document.getElementById("acct-email"), busy: document.getElementById("btn-apple") ? document.getElementById("btn-apple").disabled : null })')
+        check('iphone+apple: a cancelled sheet shows no error and the form is back', st['err'] == '' and st['form'] and st['busy'] is False, st)
+        check('iphone+apple: no console errors', not [e for e in errs if 'Failed to load resource' not in e], errs[:5])
         await ctx.close()
 
         # ---- the website: Google's own button signs in right on the site (Google shows golden-chess.com, not Supabase)

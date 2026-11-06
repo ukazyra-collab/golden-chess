@@ -1,0 +1,25 @@
+// Golden Chess: the published plugin pins capacitor-swift-pm 7.x; this copy builds against Capacitor 8 (see app/README.md)
+// swift-tools-version: 5.9
+import PackageDescription
+
+let package = Package(
+    name: "CapacitorCommunityAppleSignIn",
+    platforms: [.iOS(.v14)],
+    products: [
+        .library(
+            name: "CapacitorCommunityAppleSignIn",
+            targets: ["SignInWithApple"])
+    ],
+    dependencies: [
+        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "8.0.0")
+    ],
+    targets: [
+        .target(
+            name: "SignInWithApple",
+            dependencies: [
+                .product(name: "Capacitor", package: "capacitor-swift-pm"),
+                .product(name: "Cordova", package: "capacitor-swift-pm")
+            ],
+            path: "ios/Sources/SignInWithApple")
+    ]
+)

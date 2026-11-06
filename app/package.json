@@ -10,6 +10,7 @@
     "android": "cap open android"
   },
   "dependencies": {
+    "@capacitor-community/apple-sign-in": "file:plugins/apple-sign-in",
     "@capacitor/android": "8.5.3",
     "@capacitor/app": "8.1.2",
     "@capacitor/browser": "8.0.5",
