@@ -97,7 +97,7 @@ async def main():
 
         # the Play feature graphic (1024 x 500) and the icon at 512
         icon64 = base64.b64encode(open(ROOT + '/app/resources/icon.png', 'rb').read()).decode()
-        tag = 'Chess with one golden move' if LANG == 'en' else 'Шахматы с одним золотым ходом'
+        tag = 'Chess with one Joker Move' if LANG == 'en' else 'Шахматы с одним джокером'
         html = f"""<html><head><style>{css}
           html,body{{margin:0;width:1024px;height:500px;overflow:hidden;background:#2a2f2d}}
           .g{{position:absolute;inset:0;background:radial-gradient(ellipse at 28% 50%,rgba(231,180,74,.22),rgba(42,47,45,0) 60%),#2a2f2d}}
@@ -108,7 +108,7 @@ async def main():
           h1{{margin:0;font:700 italic 88px/1 'Bodoni Moda',serif;letter-spacing:.5px}} h1 b{{color:#f0b941;font-weight:700}}
           p{{margin:26px 0 0;font:700 32px/1.25 Manrope,sans-serif;color:#d8d3c8;max-width:580px}}
         </style></head><body><div class="g"></div><div class="sq"></div><img src="data:image/png;base64,{icon64}">
-        <div class="t"><h1><b>Golden</b> Chess</h1><p>{tag}</p></div></body></html>"""
+        <div class="t"><h1><b>Joker</b> Chess</h1><p>{tag}</p></div></body></html>"""
         pg = await (await br.new_context(viewport={'width': 1024, 'height': 500}, device_scale_factor=1)).new_page()
         await pg.set_content(html); await pg.evaluate('document.fonts.ready'); await pg.wait_for_timeout(300)
         await pg.screenshot(path=f'{OUT}/feature-graphic.png')

@@ -1,6 +1,6 @@
-/* Golden Chess — the Learn tab: what the golden move is, autoplay boards that show it, and one-move puzzles.
+/* Joker Chess — the Learn tab: what the Joker Move is, autoplay boards that show it, and one-move puzzles.
  * Positions and answers were checked with the engine (see README): every accepted answer wins or saves the game,
- * every other golden move falls short.
+ * every other Joker Move falls short.
  */
 var GCLearn = (function () {
   'use strict';
@@ -13,7 +13,7 @@ var GCLearn = (function () {
     // the golden rook pins the queen to the king
     hero: { fen: '4k2r/pp2qppp/8/8/8/8/PP3PPP/R2Q2K1 w - - 0 1 G', glow: 0, cap0: 'heroCap1',
       steps: [{ sel: 'a1', wait: 1500 }, { uci: 'a1e1*', cap: 'heroCap2', wait: 2400 }, { uci: 'e8f8', cap: 'heroCap3', wait: 1000 }, { uci: 'e1e7', wait: 2800 }] },
-    // a check that only the golden move can stop (the rook block on g2 only draws: ...Qd1+ Rg1 Qd5+)
+    // a check that only the Joker Move can stop (the rook block on g2 only draws: ...Qd1+ Rg1 Qd5+)
     block: { fen: '3q2k1/Q4ppp/8/8/8/6P1/PP2n2P/R6K b - - 0 1 G', glow: -1, cap0: 'r2Cap0',
       steps: [{ uci: 'd8d5', cap: 'r2Cap1', wait: 2200 }, { sel: 'a7', wait: 1400 }, { uci: 'a7g2*', cap: 'r2Cap2', wait: 3200 }] }
   };
@@ -105,7 +105,7 @@ var GCLearn = (function () {
     if (on && !this.running) { this.reset(); this.run(); } else if (!on && this.running) this.stop();
   };
 
-  // ---- a one-move puzzle: only golden moves, the side to move's pieces glow
+  // ---- a one-move puzzle: only Joker Moves, the side to move's pieces glow
   function Puzzle(boardHost, p, ctx, ui) {
     this.p = p; this.ctx = ctx; this.ui = ui;
     this.selected = -1; this.locked = false; this.solved = false; this.timers = [];
@@ -236,8 +236,8 @@ var GCLearn = (function () {
     }
     function starsArt() {
       var star = function (lit) {
-        return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c1 6.1 3.4 8.5 9.5 9.5-6.1 1-8.5 3.4-9.5 9.5-1-6.1-3.4-8.5-9.5-9.5 6.1-1 8.5-3.4 9.5-9.5z" ' +
-          (lit ? 'fill="#e7b44a"' : 'fill="none" stroke="#93a39f" stroke-width="1.3"') + '/></svg>';
+        return '<svg viewBox="0 0 24 24" aria-hidden="true"><g ' + (lit ? 'fill="#e7b44a"' : 'fill="none" stroke="#93a39f" stroke-width="1.3"') + '>' +
+          '<path d="M3 18.5 L5.2 6.5 L12 12 L18.8 6.5 L21 18.5 Z"/><circle cx="5.2" cy="5.8" r="1.7"/><circle cx="18.8" cy="5.8" r="1.7"/><rect x="2.4" y="18.5" width="19.2" height="3" rx="1.2"/></g></svg>';
       };
       return el('div', 'stars-art', '<div class="row">' + star(true) + '<span>' + esc(T('white')) + '<small>' + esc(T('inHand')) + '</small></span></div>' +
         '<div class="row">' + star(false) + '<span>' + esc(T('black')) + '<small>' + esc(T('usedUp')) + '</small></span></div>');
@@ -356,7 +356,7 @@ var GCLearn = (function () {
 
       demos.forEach(function (d) { d.wanted = view === 'learn'; watch(d); d.update(); });
     }
-    // the Play tab on wide screens: the same golden move on a bigger board
+    // the Play tab on wide screens: the same Joker Move on a bigger board
     function heroBoard(host) {
       if (playDemo) { host.appendChild(playDemo.mb.wrap); playDemo.mb.fit(); }
       else { playDemo = new Demo(host, DEMOS.hero, ctx, null); watch(playDemo); }

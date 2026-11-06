@@ -1,12 +1,12 @@
-/* Golden Chess — the bots: eight characters for the eight engine levels, each with a drawn portrait.
+/* Joker Chess — the bots: eight characters for the eight engine levels, each with a drawn portrait.
  * Portraits are inline SVG (120 x 120), drawn here so the page stays one self-contained file.
  */
 var GCBots = (function () {
   'use strict';
   var BOTS = [
     { key: 'pip', with: 'Пипом', name: { en: 'Pip', ru: 'Пип' },
-      bio: { en: 'Pip learned how the pieces move last week. He still forgets he has a golden move.',
-        ru: 'Пип выучил ходы на прошлой неделе и всё время забывает, что у него есть золотой ход.' } },
+      bio: { en: 'Pip learned how the pieces move last week. He still forgets he has a Joker Move.',
+        ru: 'Пип выучил ходы на прошлой неделе и всё время забывает, что у него есть джокер.' } },
     { key: 'mila', with: 'Милой', name: { en: 'Mila', ru: 'Мила' },
       bio: { en: 'Mila plays with friends on weekends. Leave a piece hanging and she takes it.',
         ru: 'Мила играет с друзьями по выходным. Оставите фигуру без защиты — заберёт.' } },
@@ -14,20 +14,20 @@ var GCBots = (function () {
       bio: { en: 'Oskar has played in the park for thirty years. He knows every opening trap and loves a quick attack.',
         ru: 'Оскар тридцать лет играет в парке. Знает все дебютные ловушки и любит быструю атаку.' } },
     { key: 'zara', with: 'Зарой', name: { en: 'Zara', ru: 'Зара' },
-      bio: { en: 'Zara checks every capture and check before she moves, and keeps her golden move for the right moment.',
-        ru: 'Зара проверяет все шахи и взятия и бережёт золотой ход до нужного момента.' } },
+      bio: { en: 'Zara checks every capture and check before she moves, and keeps her Joker Move for the right moment.',
+        ru: 'Зара проверяет все шахи и взятия и бережёт джокер до нужного момента.' } },
     { key: 'viktor', with: 'Виктором', name: { en: 'Viktor', ru: 'Виктор' },
       bio: { en: 'Viktor is in no hurry. He builds a solid position and waits for you to slip.',
         ru: 'Виктор не торопится: строит крепкую позицию и ждёт, когда соперник ошибётся.' } },
     { key: 'nadia', with: 'Надей', name: { en: 'Nadia', ru: 'Надя' },
-      bio: { en: 'Nadia attacks from the first move. Her golden move lands exactly where it hurts.',
-        ru: 'Надя атакует с первого хода. Её золотой ход прилетает туда, где больнее всего.' } },
+      bio: { en: 'Nadia attacks from the first move. Her Joker Move lands exactly where it hurts.',
+        ru: 'Надя атакует с первого хода. Её джокер прилетает туда, где больнее всего.' } },
     { key: 'leo', with: 'Лео', name: { en: 'Leo', ru: 'Лео' },
       bio: { en: 'Leo is a grandmaster. He has seen your position before, in three variations.',
         ru: 'Лео — гроссмейстер. Эту позицию он уже видел, причём в трёх вариантах.' } },
-    { key: 'golden', with: 'Голденом', name: { en: 'Golden', ru: 'Голден' },
-      bio: { en: 'Golden is the engine at full strength. It never gets tired, and it never misses.',
-        ru: 'Голден — движок на полной силе. Не устаёт и не промахивается.' } }
+    { key: 'golden', with: 'Джокером', name: { en: 'Joker', ru: 'Джокер' },
+      bio: { en: 'Joker is the engine at full strength. It never gets tired, and it never misses.',
+        ru: 'Джокер — движок на полной силе. Не устаёт и не промахивается.' } }
   ];
 
   var uid = 0;

@@ -1,7 +1,7 @@
-/* Golden Chess — game review. From the engine's verdict on every position of a game (best move, its score, the start
+/* Joker Chess — game review. From the engine's verdict on every position of a game (best move, its score, the start
  * of the best line, and for a golden best move also the best normal move) to: a class for every move (chess.com's
- * scale: brilliant, great, best, excellent, good, inaccuracy, mistake, miss, blunder, plus missed golden move), accuracy
- * and a rough game rating per side, accuracy by phase, the golden moves each side missed, and the coach's reason for a
+ * scale: brilliant, great, best, excellent, good, inaccuracy, mistake, miss, blunder, plus missed Joker Move), accuracy
+ * and a rough game rating per side, accuracy by phase, the Joker Moves each side missed, and the coach's reason for a
  * move. Pure functions: the UI turns the keys into words. Shared by the page and the tests (Node).
  */
 var GCReview = (function (GC) {
@@ -181,7 +181,7 @@ var GCReview = (function (GC) {
       var cls;
       if (isBest || drop < EXCELLENT) {
         if (m && moved >= 2 && moved <= 5 && hangs(posAfter, to, c) && VAL[moved] - took >= 2 && after >= 45 && before < 92) cls = 'brilliant'; // a sound sacrifice
-        // great: the golden move that was clearly the best, or a quiet move that punishes a blunder (taking what hangs is just best)
+        // great: the Joker Move that was clearly the best, or a quiet move that punishes a blunder (taking what hangs is just best)
         else if (isBest && rec.golden && e.alt && before - winPct(cpOf(e.alt)) >= INACCURACY) cls = 'great';
         else if (isBest && prev && prev.drop >= MISTAKE && !took && after >= 65) cls = 'great';
         else cls = isBest ? 'best' : 'excellent';
@@ -197,7 +197,7 @@ var GCReview = (function (GC) {
         if (gain >= INACCURACY && drop >= INACCURACY) {
           gm = { ply: i, color: c, uci: e.uci, san: sanOf(fens[i], e.uci), before: before, normal: normal, after: after, gain: gain };
           missed.push(gm);
-          if (after >= normal - 3) cls = 'goldmiss'; // the rest of the move was fine: only the golden move was missing
+          if (after >= normal - 3) cls = 'goldmiss'; // the rest of the move was fine: only the Joker Move was missing
         }
       }
       var a = moveAccuracy(drop), ph = phaseOf(pos, i);
@@ -211,7 +211,7 @@ var GCReview = (function (GC) {
         golden: !!rec.golden, phase: ph, missedGolden: gm, follow: follow, line: line,
         reason: isBest && cls !== 'brilliant' ? null : reason(i, cls, follow, line, before, after) };
     }
-    // the coach's reason for a move, worst news first. reply: what the opponent's best answer does (takes, a golden move,
+    // the coach's reason for a move, worst news first. reply: what the opponent's best answer does (takes, a Joker Move,
     // hits pieces); lose: what the line after the move costs; win: what the best line would have won
     // before/after: the mover's winning chances before the move and after it. Material counted at the end of a line can
     // be in the middle of a trade, so it is only said when the engine's score agrees with it.

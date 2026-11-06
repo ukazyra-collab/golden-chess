@@ -1,4 +1,4 @@
-/* Synthesized sounds (no samples): wooden knocks for moves, a gilded chime for the golden move. */
+/* Synthesized sounds (no samples): wooden knocks for moves, a gilded chime for the Joker Move. */
 var Sound = (function () {
   'use strict';
   var ctx = null, master = null, buffers = {}, enabled = true, ready = false;

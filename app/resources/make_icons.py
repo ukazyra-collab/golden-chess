@@ -1,7 +1,7 @@
-# Draws the app icons and launch screens for iOS, Android and the website from one design: a golden knight
-# (the site's own piece set) with the golden-move star, on a 2x2 corner of a chessboard in the site's charcoal tones.
+# Draws the app icons and launch screens for iOS, Android and the website from one design: the Joker Chess mascot
+# (app/resources/mascot.svg) on a 2x2 corner of a chessboard in the site's charcoal tones.
 # Run from anywhere: python3 app/resources/make_icons.py   (needs Playwright with Chromium, and Pillow)
-import asyncio, io, os
+import asyncio, io, os, re
 from PIL import Image
 from playwright.async_api import async_playwright
 
@@ -50,17 +50,28 @@ ART_DEFS = ('<defs><linearGradient id="kgold" x1="0" y1="0" x2="1" y2="1"><stop 
             'flood-color="#000" flood-opacity=".4"/></filter></defs>')
 
 
-def art(mono=False):
-    # the knight and the star in 1024 design units, centred for the round masks of Android icons too
+MASCOT_FILE = os.path.join(APP, 'resources/mascot.svg')
+
+
+def mascot(mono=False):
+    # the Joker Chess mascot (app/resources/mascot.svg, 100x100 design units): a clown head with a jester hat on a chess plinth
+    svg = open(MASCOT_FILE, encoding='utf-8').read()
+    inner = re.search(r'<defs>.*</svg>', svg, re.S).group(0)[:-6]
+    inner = re.sub(r'<!--.*?-->', '', inner, flags=re.S)
     if mono:
-        k = KNIGHT.format(f='#fff', s='#fff')
-        return (f'<g transform="translate(63 80) scale(19)" fill="none" stroke="#fff" stroke-width="1.5" stroke-linejoin="round">{k}</g>'
-                f'<path d="{star(765, 258, 92)}" fill="#fff"/>')
-    k = KNIGHT.format(f='url(#kgold)', s='#2a1d05')
-    return (f'<circle cx="512" cy="540" r="430" fill="url(#glow)"/>'
-            f'<g transform="translate(63 80) scale(19)" fill="none" fill-rule="evenodd" stroke="#2a1d05" stroke-width="1.5" '
-            f'stroke-linecap="round" stroke-linejoin="round" filter="url(#ksh)">{k}</g>'
-            f'<path d="{star(765, 258, 92)}" fill="#fff4d6" filter="url(#sh)"/>')
+        inner = re.sub(r'<defs>.*?</defs>', '', inner, flags=re.S)
+        inner = re.sub(r'(fill|stroke)="[^"]*"', lambda m: m.group(1) + '="#fff"', inner)
+        inner = re.sub(r'opacity="[^"]*"', '', inner)
+    return inner
+
+
+def art(mono=False, scale=0.84):
+    # the mascot in 1024 design units, centred for the round masks of Android icons too
+    k = 1024 * scale / 100
+    body = f'<g transform="translate({512 - 50 * k:.2f} {512 - 50 * k + 10:.2f}) scale({k:.4f})">{mascot(mono)}</g>'
+    if mono:
+        return body
+    return f'<circle cx="512" cy="540" r="430" fill="url(#glow)"/><g filter="url(#ksh)">{body}</g>'
 
 
 def icon_svg(px, shape='square'):
@@ -70,7 +81,7 @@ def icon_svg(px, shape='square'):
         clip = '<clipPath id="c"><circle cx="512" cy="512" r="512"/></clipPath>'
     elif shape == 'rounded':
         clip = '<clipPath id="c"><rect width="1024" height="1024" rx="225"/></clipPath>'
-    body = board(1024) + art()
+    body = board(1024) + art(scale=0.72 if shape == 'round' else 0.84)
     if clip:
         body = f'<g clip-path="url(#c)">{body}</g>'
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="{px}" height="{px}">{defs(92)}{ART_DEFS}{clip and "<defs>" + clip + "</defs>"}{body}</svg>'
