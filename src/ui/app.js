@@ -72,7 +72,7 @@
       emailInvalid: 'Enter a valid email address', codeWrong: 'That code is wrong or has expired', tooMany: 'Too many tries. Wait a minute and try again.',
       sendFailed: 'Couldn\u2019t send the email. Try again later.', finishFirst: 'Finish your online game first',
       linkExpired: 'That sign-in link has expired. Ask for a new code.', signInFailed: 'Couldn\u2019t sign in. Try again.',
-      continueGoogle: 'Continue with Google', continueApple: 'Continue with Apple', or: 'or',
+      continueGoogle: 'Continue with Google', continueApple: 'Continue with Apple', or: 'or', houseNote: 'Account run by the developer', oppCard: 'Opponent', gamesWithYou: 'Games with you',
       guestNote: 'Guest: your rating is kept on this device only.', saveProgress: 'Save progress',
       guestRatingNote: 'Your rating is kept on this device only. Add your email to keep it.',
       back: 'Back', navPlay: 'Play', navLearn: 'Learn', navRatings: 'Ratings', navProfile: 'Profile',
@@ -113,7 +113,7 @@
       badMove: 'Not this one. Look again.', showAnswer: 'Show answer', nextPuzzle: 'Next', tryAgain: 'Try again', puzzleHint: 'Hint',
       allSolved: 'All solved. Now try it in a real game.', rulesH: 'All the rules', premoveRule: 'You can queue the golden move as a premove too.', playNow: 'Play now',
       navBots: 'Bots', easier: 'Easier', stronger: 'Stronger', yourColor: 'Your pieces', botOpp: 'vs {name}', unfinished: 'Game in progress',
-      thinkingName: '{name} is thinking', playMain: 'Play', playFriendShort: 'Play a friend', friendT: 'Play a friend',
+      thinkingName: '{name} is thinking', playMain: 'Play', playFriendShort: 'Play a friend', playBotShort: 'Play a bot', friendT: 'Play a friend',
       friendLink: 'Send a link', friendLinkSub: 'Online. The game starts when your friend opens it',
       friendHere: 'On this device', friendHereSub: 'Take turns on one screen', signInFree: 'Online play needs a free sign-in: email or Google', signInFreeApple: 'Online play needs a free sign-in: email, Apple or Google', signInFreeEmail: 'Online play needs a free sign-in by email',
       passPlayLong: 'Two players on one device', learnCta: 'Play a bot', botScore: 'Your score: {w} won, {d} drawn, {l} lost', botNoGames: 'You haven’t played {name} yet',
@@ -211,7 +211,7 @@
       emailInvalid: 'Введите корректную почту', codeWrong: 'Код неверный или устарел', tooMany: 'Слишком много попыток. Подождите минуту и попробуйте снова.',
       sendFailed: 'Не удалось отправить письмо. Попробуйте позже.', finishFirst: 'Сначала доиграйте онлайн-партию',
       linkExpired: 'Ссылка для входа устарела. Запросите новый код.', signInFailed: 'Не удалось войти. Попробуйте ещё раз.',
-      continueGoogle: 'Войти через Google', continueApple: 'Войти через Apple', or: 'или',
+      continueGoogle: 'Войти через Google', continueApple: 'Войти через Apple', or: 'или', houseNote: 'Аккаунт, управляемый разработчиком', oppCard: 'Соперник', gamesWithYou: 'Партий с вами',
       guestNote: 'Гость: рейтинг хранится только на этом устройстве.', saveProgress: 'Сохранить прогресс',
       guestRatingNote: 'Рейтинг хранится только на этом устройстве. Добавьте почту, чтобы не потерять его.',
       back: 'Назад', navPlay: 'Играть', navLearn: 'Обучение', navRatings: 'Рейтинг', navProfile: 'Профиль',
@@ -252,7 +252,7 @@
       badMove: 'Не то. Посмотрите ещё раз.', showAnswer: 'Показать ответ', nextPuzzle: 'Дальше', tryAgain: 'Ещё раз', puzzleHint: 'Подсказка',
       allSolved: 'Все решены. Теперь попробуйте в настоящей партии.', rulesH: 'Все правила', premoveRule: 'Золотой ход можно поставить и премувом.', playNow: 'Играть',
       navBots: 'Боты', easier: 'Полегче', stronger: 'Посильнее', yourColor: 'Ваш цвет', botOpp: 'соперник: {name}', unfinished: 'Партия идёт',
-      thinkingName: '{name} думает', playMain: 'Играть', playFriendShort: 'Играть с другом', friendT: 'Игра с другом',
+      thinkingName: '{name} думает', playMain: 'Играть', playFriendShort: 'Играть с другом', playBotShort: 'Играть с ботом', friendT: 'Игра с другом',
       friendLink: 'Отправить ссылку', friendLinkSub: 'Онлайн. Партия начнётся, когда друг откроет ссылку',
       friendHere: 'На одном устройстве', friendHereSub: 'Ходите по очереди на одном экране', signInFree: 'Для игры онлайн нужен вход по почте или через Google, это бесплатно', signInFreeApple: 'Для игры онлайн нужен вход по почте, через Apple или Google, это бесплатно', signInFreeEmail: 'Для игры онлайн нужен вход по почте, это бесплатно',
       passPlayLong: 'Вдвоём на одном устройстве', learnCta: 'Сыграть с ботом', botScore: 'Ваш счёт: побед {w}, ничьих {d}, поражений {l}', botNoGames: 'Вы ещё не играли с этим ботом',
@@ -1553,6 +1553,8 @@
     for (t = 1; t <= 5; t++) diff += (c[color][t] - c[opp][t]) * VALUE[t];
     var thinking = botReq && botGame() && color !== game.cfg.human && game.status === 'playing';
     var gAvail = posV.goldenAvailable(color);
+    el.dataset.color = color;
+    el.classList.toggle('tap', onlineGame() && !spectating() && color !== game.cfg.human);
     el.innerHTML =
       (botFace && window.GCBots ? '<div class="avatar bot' + (thinking ? ' busy' : '') + '">' + GCBots.avatar(game.cfg.level - 1, lang) + '</div>'
         : '<div class="avatar"><i class="pc-ic ' + BoardView.cls((color << 3) | 6) + '"></i></div>') +
@@ -2053,6 +2055,24 @@
   function playHome() { return game && botGame() ? 'bots' : 'play'; }
   function gameHome() { return game && game.fromHistory ? 'games' : playHome(); }
   $('btn-new').addEventListener('click', function () { go(playHome()); });
+  ['bar-top', 'bar-bot'].forEach(function (id) { $(id).addEventListener('click', function (e) { if (e.target.closest('.clock')) return; oppCard(+this.dataset.color); }); });
+  // who the opponent is: name, rating, the score with you; a house player (an account run by the developer) says so
+  function oppCard(color) {
+    if (!game || !onlineGame() || spectating() || color === game.cfg.human || !online || !online.s) return;
+    var s = online.s, name = game.cfg.names[color] || '', rt = game.cfg.ratings[color], house = s.house && (s.house === 'w' ? 0 : 1) === color;
+    var m = online.match && online.match.data;
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'opp';
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(name)));
+      var lines = [];
+      if (rt != null) lines.push('<b>' + esc(String(rt)) + '</b> ' + esc(T(game.cfg.pool)));
+      if (m && m.n) lines.push(esc(T('gamesWithYou')) + ': ' + esc(wdlText({ w: m.l, d: m.d, l: m.w })) + ' (' + esc(T('you')) + ' ' + pts(m.w, m.d) + ' : ' + pts(m.l, m.d) + ')');
+      card.appendChild(h('div', { class: 'dlg-sub opp-lines' }, lines.join('<br>')));
+      if (house) card.appendChild(h('div', { class: 'house-note', id: 'house-note' }, esc(T('houseNote'))));
+      var ok = h('button', { class: 'secondary', type: 'button' }, esc(T('done'))); ok.addEventListener('click', closeDialog);
+      var row = h('div', { class: 'row-btns' }); row.appendChild(ok); card.appendChild(row);
+    });
+  }
   $('btn-back').addEventListener('click', function () { go(gameHome()); });
   $('btn-settings').addEventListener('click', showSettings);
   $('btn-rules').addEventListener('click', showRules);
@@ -2363,7 +2383,7 @@
   // ---- lobby: seek a rated/casual opponent, or invite a friend by link
   function stopLobby() {
     if (!lobby) return;
-    clearTimeout(lobby.timer); clearInterval(lobby.tick);
+    clearTimeout(lobby.timer); clearInterval(lobby.tick); clearTimeout(lobby.houseTimer);
     if (lobby.sub) lobby.sub.close();
     lobby = null;
   }
@@ -2374,11 +2394,17 @@
     if (L.kind === 'invite' && L.gameId) net.call('resign', { game: L.gameId }).catch(function () { /* ignore */ });
   }
   function onPaired(id) { stopLobby(); if (currentDialog && currentDialog.dataset.kind === 'lobby') closeDialog(); openOnlineGame(id); }
+  // How long the search "takes" before a house player is seated when no one else is there: now and then at once,
+  // mostly a few seconds, up to ten. A human looking for the same game within that time is paired first.
+  function seekSpan() { return window.__gcSeekMs != null ? window.__gcSeekMs : Math.random() < 0.15 ? 300 + Math.random() * 600 : 2000 + Math.random() * 8000; }
   function startSeek(tc, rated) {
     stopLobby();
-    var L = lobby = { kind: 'seek', tc: tc, rated: rated, t0: perf(), timer: 0, tick: 0 };
+    var L = lobby = { kind: 'seek', tc: tc, rated: rated, t0: perf(), timer: 0, tick: 0, span: seekSpan(), houseTimer: 0 };
     showLobbyDialog();
-    ensureNet().then(function () { seekTick(L); }, function () { if (lobby === L) { stopLobby(); closeDialog(); toast(T('netError')); } });
+    ensureNet().then(function () {
+      seekTick(L);
+      L.houseTimer = setTimeout(function () { houseSeek(L); }, L.span);
+    }, function () { if (lobby === L) { stopLobby(); closeDialog(); toast(T('netError')); } });
   }
   function seekTick(L) {
     if (lobby !== L) return;
@@ -2386,6 +2412,13 @@
       if (r.game) { if (lobby === L || (online && online.id === r.game.id) || !online) onPaired(r.game.id); return; }
       if (lobby === L) L.timer = setTimeout(function () { seekTick(L); }, 3000);
     }, function () { if (lobby === L) L.timer = setTimeout(function () { seekTick(L); }, 5000); });
+  }
+  function houseSeek(L) {
+    if (lobby !== L) return;
+    net.call('house', { tc: L.tc, rated: L.rated }).then(function (r) {
+      if (r.game) { if (lobby === L || (online && online.id === r.game.id) || !online) onPaired(r.game.id); return; }
+      if (lobby === L) L.houseTimer = setTimeout(function () { houseSeek(L); }, 4000 + Math.random() * 4000);
+    }, function () { if (lobby === L) L.houseTimer = setTimeout(function () { houseSeek(L); }, 6000); });
   }
   function newOpponent() {
     var tc = game && game.cfg.tc ? game.cfg.tc.label : (lastSetup.otc || '3+2');
@@ -2428,7 +2461,11 @@
       if (L.kind === 'seek') {
         card.appendChild(h('div', { class: 'dlg-title' }, esc(T('searching'))));
         var sub = h('div', { class: 'dlg-sub', id: 'seek-sub' }); card.appendChild(sub);
-        card.appendChild(h('div', { class: 'seekbar' }, '<i></i>'));
+        var bar = h('div', { class: 'seekbar fill', id: 'seek-bar' }, '<i></i>');
+        card.appendChild(bar);
+        // the bar fills over the search span (then keeps looking if no one could be seated)
+        var fillTo = Math.max(0, L.span - (perf() - L.t0));
+        requestAnimationFrame(function () { var i = bar.firstChild; i.style.transitionDuration = fillTo + 'ms'; i.style.width = '100%'; });
         var upd = function () { if (lobby !== L) return; var sec = Math.floor((perf() - L.t0) / 1000); sub.textContent = meta + ', ' + Math.floor(sec / 60) + ':' + (sec % 60 < 10 ? '0' : '') + (sec % 60); };
         upd(); L.tick = setInterval(upd, 1000);
       } else {
@@ -2473,6 +2510,156 @@
     return T('netError');
   }
   function liveOnlineGame() { return !!(game && game.online && game.status === 'playing' && !spectating()); }
+
+  // ---- a house player as the opponent (games.house: its colour; house_style: its level and manner). This device
+  // plays for it: the engine picks the move, a think-time model says when it is made, and the server gets it with
+  // `house: true` and the time it took (the house side's clock is counted from that). Now and then it resigns a lost
+  // game, agrees to a draw in a dead one, wants a rematch, loses on time in time trouble, or leaves (rarely).
+  function houseColor() { var s = online && online.s; return s && s.house ? (s.house === 'w' ? 0 : 1) : -1; }
+  function houseOpp() { return online && online.color >= 0 && houseColor() >= 0 && houseColor() !== online.color; }
+  function houseStyle() { return (online && online.s && online.s.house_style) || {}; }
+  function houseCheck() {
+    var o = online;
+    if (!o || !o.s || !houseOpp() || o.pending || o.housePending) return;
+    if (o.s.status !== 'playing') { houseAfter(o); return; }
+    if (!game || game.status !== 'playing' || game.pos.side !== houseColor() || game.records.length !== o.s.moves.length) return;
+    var ply = game.records.length;
+    if (o.houseAt === ply) return;
+    o.houseAt = ply;
+    houseTurn(o, ply);
+  }
+  function houseValid(o, ply) { return online === o && game && game.online && game.status === 'playing' && game.pos.side === houseColor() && game.records.length === ply && !o.pending && !o.housePending; }
+  function houseTurn(o, ply) {
+    var st = houseStyle(), lvl = Math.max(1, Math.min(8, st.level || 5)), hc = houseColor(), fast = !!window.__gcFastBot;
+    var rnd = Math.random;
+    // the rare human things: not showing up for the first move (the game is aborted), walking away mid-game (loses on time)
+    if (!fast && ply <= 1 && rnd() < (st.abort != null ? st.abort : 0.015)) return;
+    if (!fast && ply >= 12 && !o.houseLeft && rnd() < (st.leave != null ? st.leave : 0.006)) { o.houseLeft = true; }
+    if (o.houseLeft) { houseFlag(o, ply); return; }
+    var budget = Engine.LEVELS[lvl - 1].time, t0 = perf();
+    if (game.clock) {
+      var left = game.timeLeft(hc, t0), inc = game.cfg.tc.inc;
+      budget = Math.min(budget, Math.max(40, left / 32 + inc * 0.7));
+      if (left < 4000) budget = Math.min(budget, Math.max(15, left / 60));
+    }
+    var id = ++reqSeq;
+    o.houseReq = id;
+    bot.think({ id: id, fen: game.startFen, moves: game.records.map(function (r) { return r.uci; }), timeMs: budget, level: lvl }, function (res) {
+      if (o.houseReq !== id || !houseValid(o, ply)) return;
+      var score = res && typeof res.score === 'number' ? res.score : 0, uci = res && res.uci;
+      var think = fast ? 0 : houseThinkMs(lvl, uci, hc, st);
+      var human = hc === 0 ? 'b' : 'w';
+      // the human offered a draw: taken in a level, long game; declined otherwise (then the move follows)
+      if (o.s.draw_offer === human && !o.houseDrawAt) {
+        o.houseDrawAt = ply;
+        var take = Math.abs(score) < (st.drawAt || 60) && ply >= 30 && rnd() < (st.draw != null ? st.draw : 0.8);
+        houseLater(o, fast ? 0 : 800 + rnd() * 2200, function () { houseAct(o, take ? 'accept' : 'decline'); if (!take) houseLater(o, 300, function () { if (houseValid(o, ply)) houseMove(o, ply, uci, think); }); });
+        return;
+      }
+      // a lost game: resigned after a while, not at once (weaker players play on)
+      if (st.resign !== 'never' && ply >= 20 && score < -(st.resignAt || 650) && rnd() < (st.resignP != null ? st.resignP : 0.35)) {
+        houseLater(o, Math.min(think, 2500) + (fast ? 0 : 400 + rnd() * 1600), function () { if (houseValid(o, ply)) houseAct(o, 'resign'); });
+        return;
+      }
+      // a dead-drawn long game: a draw is offered now and then (the move follows)
+      if (ply >= 60 && Math.abs(score) < 25 && !o.s.draw_offer && rnd() < 0.12) houseLater(o, 200, function () { houseAct(o, 'draw'); });
+      // time trouble: sometimes the flag falls
+      if (!fast && game.clock && game.timeLeft(hc, perf()) < 2000 && rnd() < (st.flag != null ? st.flag : 0.04)) { houseFlag(o, ply); return; }
+      houseLater(o, Math.max(0, think - (perf() - t0)), function () { if (houseValid(o, ply)) houseMove(o, ply, uci, Math.max(200, Math.round(perf() - t0 + 150))); });
+    });
+  }
+  function houseLater(o, ms, fn) { var t = setTimeout(function () { if (online === o) fn(); }, ms); (o.houseTimers = o.houseTimers || []).push(t); }
+  // the clock runs out on the house side: shown running down here, then told to the server as a move that took too long
+  function houseFlag(o, ply) {
+    var hc = houseColor(), left = game.clock ? game.timeLeft(hc, perf()) : 1000;
+    // the clock is seen running down (at most a minute and a half: the server gives the human the game after two
+    // minutes without a move from the house side, taking the human for gone)
+    houseLater(o, Math.min(Math.max(0, left) + 350, 90000), function () {
+      if (!houseValid(o, ply)) return;
+      var m = game.legal[0]; if (!m) return;
+      pushHouse(o, { ply: ply, uci: GC.moveToUci(m), tries: 0, think: Math.max(200, Math.round(left) + 600) });
+    });
+  }
+  // the house player's move goes to the server on its own track (o.pending is the human's own move: a premove
+  // answering the house move can be on its way at the same time; the server waits a moment for the house move to land)
+  function pushHouse(o, p) {
+    if (online !== o) return;
+    if (!o.housePending) o.housePending = p;
+    if (o.housePending !== p) return;
+    net.call('move', { game: o.id, uci: p.uci, ply: p.ply, house: true, think: p.think }).then(function (r) {
+      if (online !== o) return;
+      if (o.housePending === p) o.housePending = null;
+      onServerState(r.game);
+    }, function (e) {
+      if (online !== o || o.housePending !== p) return;
+      var d = e && e.data;
+      if (d && d.game) {
+        if (d.error === 'conflict' && d.game.status === 'playing' && d.game.moves.length === p.ply && p.tries++ < 4) { pushHouse(o, p); return; }
+        o.housePending = null; o.houseAt = -1; // refused: the house's turn is taken again from the server's state
+        onServerState(d.game, { force: true, authoritative: true });
+        return;
+      }
+      if (e && e.status === 401) { netReady = null; }
+      if (p.tries++ < 8) setTimeout(function () { pushHouse(o, p); }, Math.min(4000, 250 * p.tries));
+      else { o.housePending = null; o.houseAt = -1; resyncOnline(); }
+    });
+  }
+  // the think time of a house player: the bot's model (quick in the opening and in recaptures, longer when there is
+  // more to think about, in a hurry when short of time), scaled by its tempo
+  function houseThinkMs(lvl, uci, hc, st) {
+    var pos = game.pos, n = game.records.length, moveNo = Math.floor(n / 2) + 1, normal = 0;
+    game.legal.forEach(function (x) { if (!(x & F_GOLDEN)) normal++; });
+    var m = uci ? pos.moveFromUci(uci) : 0, golden = !!(m && (m & F_GOLDEN)), last = n ? game.records[n - 1] : null;
+    var recapture = !!(m && last && last.capture && (m & F_CAPTURE) && ((m >> 7) & 127) === ((last.m >> 7) & 127));
+    var ms;
+    if (normal <= 1 && !golden) ms = 380 + Math.random() * 420;
+    else {
+      ms = THINK_BASE[lvl - 1] * (st.tempo || 1);
+      ms *= moveNo <= 2 ? 0.35 : moveNo <= 5 ? 0.55 : moveNo <= 10 ? 0.85 : 1;
+      ms *= Math.max(0.7, Math.min(1.35, 0.72 + normal / 70));
+      if (pos.inCheck()) ms *= 0.85;
+      ms *= Math.exp(gauss() * 0.4);
+      if (moveNo > 8 && Math.random() < 0.12) ms *= 2.2;
+      if (recapture) ms = Math.min(ms, 350 + Math.random() * 500);
+      if (golden) ms = ms * 1.3 + 900;
+      ms = Math.max(400, Math.min(lvl >= 6 ? 14000 : 9000, ms));
+    }
+    if (game.clock) {
+      var left = game.timeLeft(hc, perf()), inc = game.cfg.tc.inc;
+      ms = Math.min(ms, Math.max(150, left / 26 + inc * 0.6));
+      if (left < 10000) ms = Math.min(ms, 150 + Math.random() * 300);
+    }
+    return ms;
+  }
+  function houseMove(o, ply, uci, think) {
+    var m = uci ? game.pos.moveFromUci(uci) : 0;
+    if (!m) m = game.legal[0];
+    if (!m) return;
+    // sent first, then shown: a premove answering it (commit runs it) is sent right after, and the server takes them in order
+    pushHouse(o, { ply: ply, uci: GC.moveToUci(m), tries: 0, think: think });
+    commit(m, false, 'opp');
+  }
+  function houseAct(o, op) {
+    if (online !== o) return;
+    net.call('house_act', { game: o.id, op: op }).then(function (r) {
+      if (online !== o) return;
+      if (r.game) onServerState(r.game, { force: true });
+      if (r.next) openOnlineGame(r.next);
+    }, function (e) { if (online === o && e && e.data && e.data.game) onServerState(e.data.game, { force: true }); });
+  }
+  // after the game: a rematch the human asked for is mostly taken; sometimes the house player asks first
+  function houseAfter(o) {
+    var s = o.s, human = online.color === 0 ? 'w' : 'b';
+    if (!s || s.rematch_game || o.houseRematch || (s.status !== 'over' && s.status !== 'aborted')) return;
+    var st = houseStyle(), fast = !!window.__gcFastBot;
+    if (s.rematch_offer === human) {
+      o.houseRematch = true;
+      if (Math.random() < (st.rematch != null ? st.rematch : 0.65)) houseLater(o, fast ? 0 : 1500 + Math.random() * 3500, function () { houseAct(o, 'rematch'); });
+    } else if (!s.rematch_offer && s.status === 'over' && !o.houseAsked) {
+      o.houseAsked = true;
+      if (Math.random() < 0.25) houseLater(o, fast ? 0 : 2500 + Math.random() * 4000, function () { if (online === o && o.s && !o.s.rematch_offer && !o.s.rematch_game) houseAct(o, 'rematch'); });
+    }
+  }
   function hasProgress() { return !!me && Object.keys(me.ratings).some(function (p) { return me.ratings[p].games > 0; }); }
   function boldVar(key, name, value) { var v = {}; v[name] = '\u0000'; return esc(T(key, v)).replace('\u0000', '<b>' + esc(value) + '</b>'); }
   // The account dialog (save progress, sign out) and the sign-in page share one flow.
@@ -2995,6 +3182,8 @@
     if (online.sub) online.sub.close();
     if (online.peer) online.peer.close();
     clearTimeout(online.peerCheck);
+    (online.houseTimers || []).forEach(clearTimeout);
+    online.houseReq = -1;
     online = null;
     save('online', null);
     setUrl(null);
@@ -3045,8 +3234,8 @@
     if (analysis.on) setAnalysis(false);
     closeDialog();
     var color = s.white_id === me.uid ? 0 : s.black_id === me.uid ? 1 : -1;
-    var o = online = { id: s.id, s: null, color: color, pending: null, sub: null, connected: false, lastEvent: perf(), oppHere: null,
-      claimBusy: false, claimNext: 0, reading: false, firstSec: -1, peer: null, peerMoves: [] };
+    var o = online = { id: s.id, s: null, color: color, pending: null, sub: null, connected: false, lastEvent: perf(), oppHere: s.house ? true : null,
+      claimBusy: false, claimNext: 0, reading: false, firstSec: -1, peer: null, peerMoves: [], houseAt: -1, houseReq: 0, houseTimers: [] };
     game = buildOnlineGame(s, color);
     view = game.records.length;
     setGoldenArmed(false);
@@ -3058,7 +3247,7 @@
     o.sub = net.sub('g:' + s.id, {
       event: function (ev, p) { if (ev === 'state' && online === o) { o.lastEvent = perf(); onServerState(p); } },
       status: function (st) { if (online !== o) return; var was = o.connected; o.connected = st === 'SUBSCRIBED'; if (o.connected && !was) resyncOnline(); },
-      presence: function (keys) { if (online !== o || color < 0) return; o.oppHere = keys.indexOf(opp) >= 0; renderBars(); }
+      presence: function (keys) { if (online !== o || color < 0) return; o.oppHere = keys.indexOf(opp) >= 0 || !!(o.s && o.s.house); renderBars(); }
     });
     // moves straight from the other player (shown at once; the server's state on g: stays the authority)
     o.peer = net.sub('m:' + s.id, { event: function (ev, p) { if (ev === 'move' && online === o) onPeerMove(p); } });
@@ -3076,13 +3265,14 @@
     view = game.records.length;
     if (goldenArmed) setGoldenArmed(false);
     board.sync(game.pos.board, []);
-    online.pending = null;
+    online.pending = null; online.housePending = null;
   }
   // bring the local game in line with a server state
   // a local move the server hasn't confirmed yet: ours on its way, or the opponent's seen peer-to-peer
   function unconfirmed(ply, uci) {
     var o = online, i;
     if (o.pending && o.pending.ply === ply && o.pending.uci === uci) return true;
+    if (o.housePending && o.housePending.ply === ply && o.housePending.uci === uci) return true;
     for (i = 0; i < o.peerMoves.length; i++) { var x = o.peerMoves[i]; if (x.ply === ply && x.uci === uci && perf() - x.at < PEER_TTL) return true; }
     return false;
   }
@@ -3141,10 +3331,11 @@
       online.pending = null;
       if (s.rated && s.white_diff != null && (!prev || prev.white_diff == null)) refreshMe();
       if (mine && s.rematch_offer && s.rematch_offer !== mine && (!prev || prev.rematch_offer !== s.rematch_offer) && !opts.initial) { Sound.play('select'); toast(T('oppWantsRematch', { name: sideLabel(online.color ^ 1) })); }
-      if (wasPlaying && !opts.initial) { gameOver(); return; }
+      if (wasPlaying && !opts.initial) { gameOver(); houseCheck(); return; }
     }
     renderAll();
     if (currentDialog && currentDialog.dataset.kind === 'over') showOver();
+    houseCheck();
   }
   function resyncOnline() {
     var o = online;
@@ -3180,6 +3371,7 @@
       if (online !== o) return;
       if (o.pending === p) o.pending = null;
       onServerState(r.game);
+      houseCheck(); // the state may have come by broadcast while the move was pending: the house's turn is taken now
     }, function (e) {
       if (online !== o || o.pending !== p) return;
       var d = e && e.data;
@@ -3444,7 +3636,7 @@
       // the two quieter ways to play, side by side under the main one
       var row = h('div', { class: 'play-row' });
       row.appendChild(bigBtn('second-btn', T('playFriendShort'), 'btn-friend', friendSheet));
-      row.appendChild(bigBtn('second-btn', T('playBot'), 'btn-bot', function () { go('bots'); }));
+      row.appendChild(bigBtn('second-btn', T('playBotShort'), 'btn-bot', function () { go('bots'); }));
       acts.appendChild(row);
       acts.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(signedIn() ? T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase() : T(appleShown() ? 'signInFreeApple' : googleShown() ? 'signInFree' : 'signInFreeEmail'))));
     } else {
@@ -3970,6 +4162,6 @@
     showAccount: showAccount, showSettings: showSettings, showOver: showOver, showReport: showReport,
     go: go, get curView() { return curView; }, showBotSetup: showBotSetup, showLocalSetup: showLocalSetup, botThinkMs: botThinkMs,
     historyStale: function () { hist.at = 0; },
-    pts: pts
+    pts: pts, rematch: rematch, oppCard: oppCard
   };
 })();

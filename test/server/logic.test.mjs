@@ -16,14 +16,24 @@ const A = PG ? 'aaaaaaaa-0000-4000-8000-000000000001' : 'alice';
 const B = PG ? 'bbbbbbbb-0000-4000-8000-000000000002' : 'bob';
 const C = PG ? 'cccccccc-0000-4000-8000-000000000003' : 'carol';
 const D = PG ? 'dddddddd-0000-4000-8000-000000000004' : 'dave';
-let repo, inspect, cleanup = async () => {};
+const H = PG ? 'eeeeeeee-0000-4000-8000-000000000005' : 'house1';
+let repo, inspect, cleanup = async () => {}, addHouse;
 if (PG) {
   const { setupPg } = await import('./pg-harness.mjs');
-  ({ repo, inspect, cleanup } = await setupPg([A, B, C, D]));
+  let pg;
+  ({ repo, inspect, cleanup, pg } = await setupPg([A, B, C, D, H]));
+  // a house player as the seed script makes one: a profile marked house, its house row, a rating at its target
+  addHouse = async (o) => {
+    await pg.query('insert into public.profiles (id, username, is_guest, house) values ($1, $2, false, true)', [o.id, o.name]);
+    await pg.query('insert into public.house (user_id, level, target, style, online_from, online_hours) values ($1, $2, $3, $4, $5, $6)', [o.id, o.level, o.target, JSON.stringify(o.style || {}), o.online_from || 0, o.online_hours || 24]);
+    for (const pool of ['bullet', 'blitz', 'rapid']) await pg.query('insert into public.ratings (user_id, pool, rating, rd, vol, games) values ($1, $2, $3, 70, 0.06, $4)', [o.id, pool, o.target, o.games || 0]);
+    return o.id;
+  };
 } else {
   const m = createMemoryRepo(now);
   repo = m.repo;
   inspect = { profiles: async () => [...m.db.profiles.values()], ratings: async () => [...m.db.ratings.values()], game: async (id) => m.db.games.get(id) };
+  addHouse = async (o) => m.addHouse(o);
 }
 const sent = [];
 const logic = createLogic({ repo, GC, now, broadcast: async (topic, event, payload) => { sent.push({ topic, event, payload }); } });
@@ -271,9 +281,97 @@ check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.erro
   check('moves work with the new caller shape', h.body.error === 'no_game', h.body);
 }
 
+// ---- house players: seated by `house` when the search found no one; played by the human's device
+{
+  await addHouse({ id: H, name: 'abc256', level: 3, target: 1300, style: { tempo: 0.9 }, games: 120 });
+  await ok(D, { action: 'hello' });
+  const hp = (await inspect.profiles()).find((p) => p.id === H);
+  check('house: the profile is marked as run by the developer', hp && hp.house === true && hp.username === 'abc256', hp);
+  r = await ok(D, { action: 'seek', tc: '3+2' });
+  check('house: a lone seek waits', r.waiting === true, r);
+  r = await ok(D, { action: 'house', tc: '3+2' });
+  let g = r.game;
+  check('house: seated when nobody came', g && g.status === 'playing' && [g.white_id, g.black_id].includes(H) && [g.white_id, g.black_id].includes(D), r);
+  check('house: the game says which side it plays, and how', g && g.house === (g.white_id === H ? 'w' : 'b') && g.house_style && g.house_style.level === 3 && g.house_style.tempo === 0.9, g && [g.house, g.house_style]);
+  check('house: its rating on the game is its own', g && (g.white_id === H ? g.white_rating : g.black_rating) === 1300, g && [g.white_rating, g.black_rating]);
+  r = await ok(D, { action: 'house', tc: '3+2' });
+  check('house: asked again, the same game comes back', r.game && r.game.id === g.id, r.game && r.game.id);
+  const hw = g.house === 'w';
+  const mv = async (asHouse, uci, extra) => {
+    const gg = await inspect.game(g.id);
+    return call(D, Object.assign({ action: 'move', game: g.id, uci, ply: gg.moves.length }, asHouse ? { house: true } : {}, extra || {}));
+  };
+  // whoever is white moves first; the human's device sends both sides' moves
+  const seq = ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4', 'f8c5', 'd2d3', 'g8f6', 'c2c3', 'd7d6'];
+  for (let i = 0; i < 4; i++) {
+    const white = i % 2 === 0, asHouse = white === hw;
+    r = await mv(asHouse, seq[i], asHouse ? { think: 1500 } : {});
+    check('house: move ' + (i + 1) + (asHouse ? ' (house)' : ' (human)') + ' accepted', r.status === 200 && !r.body.error && r.body.game.moves.length === i + 1, r.body);
+    T += 2000;
+  }
+  r = await call(B, { action: 'move', game: g.id, uci: seq[4], ply: 4, house: true });
+  check('house: someone else cannot move for the house player', r.body.error === 'not_player', r.body);
+  g = await inspect.game(g.id);
+  const sideToMove = g.moves.length % 2 === 0 ? 'w' : 'b';
+  r = await mv(sideToMove !== g.house, seq[4]);
+  check('house: a human move flagged as the house (or the reverse) is refused', r.body.error === 'not_player' || r.body.error === 'not_your_turn', r.body);
+  // clocks: the house side's time is what its device says the move took (not the wall clock), plus the increment
+  g = await inspect.game(g.id);
+  const hc = () => (hw ? 'clock_w' : 'clock_b'), pc = () => (hw ? 'clock_b' : 'clock_w');
+  const before = g[hc()];
+  if (sideToMove === g.house) { T += 20000; r = await mv(true, seq[4], { think: 5000 }); }
+  else { T += 20000; r = await mv(false, seq[4]); g = await inspect.game(g.id); T += 20000; r = await mv(true, seq[5], { think: 5000 }); }
+  g = await inspect.game(g.id);
+  check('house: its clock went down by the think time, not the 20 s on the wall', before - g[hc()] === 5000 - 2000, [before, g[hc()]]);
+  // the human walks away during the house player's turn: after two minutes the human loses on time
+  const hum = g.moves.length % 2 === 0 ? 'w' : 'b';
+  if (hum !== g.house) { r = await mv(false, seq[g.moves.length]); g = await inspect.game(g.id); }
+  check('house: the house side is to move', (g.moves.length % 2 === 0 ? 'w' : 'b') === g.house);
+  T += 60000;
+  r = await ok(D, { action: 'claim', game: g.id });
+  check('house: a minute without the house move changes nothing (its clock does not run on the wall)', r.game.status === 'playing', r.game.status);
+  T += 70000;
+  r = await ok(D, { action: 'claim', game: g.id });
+  check('house: after two minutes the human has gone: loses on time', r.game.status === 'over' && r.game.reason === 'timeout' && r.game.result === (hw ? '1-0' : '0-1'), [r.game.status, r.game.reason, r.game.result]);
+  const rh = Object.assign({}, (await inspect.ratings()).find((x) => x.user_id === H && x.pool === 'blitz')), rd = (await inspect.ratings()).find((x) => x.user_id === D && x.pool === 'blitz');
+  check('house: both rated; the house player won a little and stays near its target', rh && rh.rating > 1300 && rh.rating < 1340 && rh.games === 121 && rd && rd.rating < 1500 && rd.games === 1, [rh, rd]);
+  // next game: the house player resigns; its rating drifts back towards the target; a rematch keeps it, colours swapped
+  r = await ok(D, { action: 'house', tc: '3+2' });
+  g = r.game;
+  check('house: a second game found', g && g.status === 'playing' && g.house, g && g.house);
+  const first = g.house === 'w';
+  r = await mv(first, 'e2e4', first ? { think: 800 } : {}); r = await mv(!first, 'e7e5', first ? {} : { think: 800 });
+  r = await call(D, { action: 'house_act', game: g.id, op: 'resign' });
+  g = r.body.game;
+  check('house: it resigns on its device\'s word', g.status === 'over' && g.reason === 'resign' && g.result === (g.house === 'w' ? '0-1' : '1-0'), [g.status, g.reason, g.result]);
+  const rh2 = Object.assign({}, (await inspect.ratings()).find((x) => x.user_id === H && x.pool === 'blitz'));
+  check('house: after a loss its rating is pulled towards the target (1300)', rh2.rating < rh.rating && rh2.rating > 1270 && rh2.rd >= 60, [rh.rating, rh2.rating, rh2.rd]);
+  r = await ok(D, { action: 'rematch', game: g.id });
+  check('house: the human asks for a rematch', r.game.rematch_offer === (g.house === 'w' ? 'b' : 'w'), r.game.rematch_offer);
+  r = await call(D, { action: 'house_act', game: g.id, op: 'rematch' });
+  check('house: the house player takes it: a new game', r.status === 200 && r.body.next, r.body);
+  const ng = await inspect.game(r.body.next);
+  check('house: the rematch swaps colours and keeps the house player', ng && ng.house === (g.house === 'w' ? 'b' : 'w') && ng.house_style && ng.house_style.level === 3 && [ng.white_id, ng.black_id].includes(H), ng && [ng.house, ng.white_id, ng.black_id]);
+  r = await call(B, { action: 'house_act', game: g.id, op: 'resign' });
+  check('house: nobody else acts for it', r.body.error === 'not_player', r.body);
+  // the house player loses on time: its device says the move took longer than it had
+  g = ng;
+  const w1 = g.house === 'w';
+  await mv(w1, 'e2e4', w1 ? { think: 500 } : {}); await mv(!w1, 'e7e5', w1 ? {} : { think: 500 }); await mv(w1, 'g1f3', w1 ? { think: 500 } : {}); await mv(!w1, 'b8c6', w1 ? {} : { think: 500 });
+  g = await inspect.game(g.id);
+  if ((g.moves.length % 2 === 0 ? 'w' : 'b') !== g.house) { await mv(false, g.moves.length % 2 === 0 ? 'f1c4' : 'f8c5'); g = await inspect.game(g.id); }
+  r = await mv(true, g.moves.length % 2 === 0 ? 'f1c4' : 'f8c5', { think: 999999 });
+  check('house: a move that took longer than its clock: it loses on time', r.body.game && r.body.game.status === 'over' && r.body.game.reason === 'timeout' && r.body.game.result === (g.house === 'w' ? '0-1' : '1-0'), r.body.game && [r.body.game.status, r.body.game.reason, r.body.game.result]);
+  // nobody for the human's seek when every house player is busy: waiting
+  r = await ok(C, { action: 'seek', tc: '1+0' });
+  r = await ok(C, { action: 'house', tc: '1+0' });
+  check('house: a free house player is seated for anyone', r.game && r.game.house, r);
+  await ok(C, { action: 'resign', game: r.game.id });
+}
+
 // leaderboard
 r = await ok(A, { action: 'top', pool: 'bullet' });
-check('leaderboard', r.rows.length === 2 && r.rows[0].rating >= r.rows[1].rating);
+check('leaderboard (the house player among them)', r.rows.length === 3 && r.rows[0].rating >= r.rows[1].rating && r.rows.some((x) => x.name === 'abc256'), r.rows);
 
 // glicko sanity
 const gw = glicko2(1500, 350, 0.06, 1500, 350, 1);

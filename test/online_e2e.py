@@ -261,6 +261,58 @@ async def main():
             ok('server confirmed it', await wait_for(wb, '!__gc.online.resigning && __gc.online.s.status === "over" && __gc.online.s.reason === "resign"', 5000))
             ok('winner sees "won"', await wait_for(wa, '/won|побед/i.test((document.querySelector(".sheetdlg .dlg-title") || {}).textContent || "")', 3000))
 
+            # ---- 14. a house player (an account run by the developer) when nobody else is searching: seated at the end of
+            #          the search bar, played by this browser's engine; its clock counts its think time; the card says who it is
+            hid = admin('addhouse', name='abc256', level=2, target=1340, style={'tempo': 0.5, 'abort': 0, 'leave': 0, 'flag': 0, 'resign': 'never', 'rematch': 1}, games=88)['id']
+            ctxD = await br.new_context(viewport={'width': 390, 'height': 844}, has_touch=True)
+            D = await open_page(ctxD, 'D')
+            await D.evaluate('window.__gcFastBot = 1; window.__gcSeekMs = 700')
+            await wait_for(D, '!!document.getElementById("btn-start")'); await D.click('#btn-start')
+            await sign_in(D, 'dina@example.com', 'Dina')
+            ok('house: the search shows a filling bar', await wait_for(D, '__gc.dialogKind === "lobby" && !!document.querySelector("#seek-bar.fill")', 5000))
+            t0 = time.time()
+            ok('house: an opponent is found when the bar is full', await wait_for(D, '__gc.online && __gc.game.cfg.mode === "online"', 8000))
+            ok('house: found after the search span (~0.7 s), not at once', 0.4 < time.time() - t0 < 4, time.time() - t0)
+            st = await D.evaluate('({house: __gc.online.s.house, lvl: __gc.online.s.house_style && __gc.online.s.house_style.level, names: __gc.game.cfg.names, me: __gc.online.color})')
+            ok('house: the game is against abc256, played at level 2', st['house'] and st['lvl'] == 2 and 'abc256' in st['names'], st)
+            hc = 0 if st['house'] == 'w' else 1
+            if hc == 0: ok('house: as white it moves first', await wait_for(D, '__gc.game.records.length === 1 && !__gc.online.housePending', 8000))
+            else:
+                await click_move(D, 'e2', 'e4'); ok('house: answers the first move', await wait_for(D, '__gc.game.records.length === 2 && !__gc.online.housePending', 8000))
+            n0 = await nrec(D)
+            # a few more moves: the house replies each time; the server confirms each (records == server moves)
+            mv = [('e2', 'e4'), ('d2', 'd4'), ('g1', 'f3'), ('b1', 'c3'), ('c1', 'd2'), ('a2', 'a3'), ('h2', 'h3'), ('e1', 'd1')] if hc == 1 else [('e7', 'e5'), ('d7', 'd6'), ('g8', 'f6'), ('b8', 'c6'), ('c8', 'd7'), ('a7', 'a6'), ('h7', 'h6'), ('e8', 'd8')]
+            played = 0
+            for a, z in mv[1 if hc == 1 else 0:]:
+                if await D.evaluate('__gc.game.status !== "playing"'): break
+                before = await nrec(D)
+                mine = await D.evaluate('__gc.game.pos.side === __gc.online.color')
+                if not mine: break
+                okm = await D.evaluate('__gc.tryMove(%d, %d, false)' % (sq(a), sq(z)))
+                if not okm: continue
+                played += 1
+                if not await wait_for(D, '__gc.game.records.length === %d && !__gc.online.pending && !__gc.online.housePending && __gc.online.s.moves.length === %d' % (before + 2, before + 2), 10000): break
+            ok('house: the game went on, the house answering every move (server-confirmed)', played >= 3 and await D.evaluate('__gc.online.s.moves.length === __gc.game.records.length'), (played, await D.evaluate('[__gc.game.records.length, __gc.online.s.moves.length, __gc.game.status]')))
+            sv = await D.evaluate('({cw: __gc.online.s.clock_w, cb: __gc.online.s.clock_b, n: __gc.online.s.moves.length})')
+            hclock = sv['cw'] if hc == 0 else sv['cb']
+            ok('house: its clock moved by its (instant) think time plus the increment, never by the wall', 180000 - 2000 <= hclock <= 180000 + 2000 * sv['n'], sv)
+            ok('house: the opponent is shown as connected', await D.evaluate('__gc.online.oppHere === true'))
+            # the opponent's card: the note that this is an account run by the developer
+            bar = '#bar-top' if hc != await D.evaluate('__gc.board.orient') else '#bar-bot'
+            await D.click(bar + ' .pname')
+            ok('house: the opponent card says the account is run by the developer', await wait_for(D, '__gc.dialogKind === "opp" && !!document.getElementById("house-note")', 3000), await D.evaluate('document.querySelector(".sheetdlg") && document.querySelector(".sheetdlg").textContent'))
+            await D.evaluate('__gc.closeDialog()')
+            # the human resigns; the house player wants a rematch (style.rematch 1 means it takes one; here it asks itself with p=.25, so we ask)
+            await D.click('#btn-menu'); await D.click('.menu-list button.danger'); await D.click('.sheetdlg .secondary.danger')
+            ok('house: the human resigned', await wait_for(D, '__gc.online.s.status === "over" && __gc.online.s.reason === "resign"', 6000))
+            ok('house: rated, both ratings changed', await wait_for(D, '__gc.online.s.white_diff != null && __gc.online.s.black_diff != null', 6000), await D.evaluate('[__gc.online.s.white_diff, __gc.online.s.black_diff]'))
+            hr = [r for r in admin('ratings') if r['user_id'] == hid and r['pool'] == 'blitz'][0]
+            ok('house: its rating went up a little and stays close to its target', 1340 < hr['rating'] < 1380 and hr['games'] == 89, hr)
+            gid = await D.evaluate('__gc.online.id')
+            await D.evaluate('__gc.closeDialog()'); await D.evaluate('__gc.rematch()')
+            ok('house: a rematch asked for is taken: a new game, colours swapped', await wait_for(D, '__gc.online && __gc.online.id !== "%s" && __gc.online.s.house === "%s"' % (gid, 'b' if hc == 0 else 'w'), 8000), await D.evaluate('__gc.online && [__gc.online.id, __gc.online.s.house]'))
+            ok('house: no console errors (D)', not [e for e in errs['D'] if 'favicon' not in e], errs['D'][:3])
+
             for nm in errs:
                 bad = [e for e in errs[nm] if 'favicon' not in e]
                 ok(f'no console errors ({nm})', not bad, bad[:3])

@@ -21,7 +21,7 @@ const now = () => Date.now() + shift;
 const iso = (t) => new Date(t).toISOString();
 const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
 
-const { repo, db } = createMemoryRepo(now);
+const { repo, db, addHouse } = createMemoryRepo(now);
 
 // ---- SSE "realtime"
 const subs = new Map(); // topic -> Set<{res, uid}>
@@ -62,6 +62,13 @@ function authOp(b) {
   const uid = typeof b.token === 'string' && b.token ? b.token : null;
   if (!uid) return { status: 401, body: { error: 'no_authorization' } };
   if (b.op === 'whoami') { const e = accounts.emailOf.get(uid) || null; return { status: 200, body: { uid, email: e, guest: !e } }; }
+  if (b.op === 'idtoken') { // signInWithIdToken / linkIdentity: a test token "<provider>:<email>" stands for the provider's ID token
+    const m = /^(apple|google):(.+)$/.exec(String(b.idtoken || ''));
+    if (!m || m[1] !== b.provider) return { status: 400, body: { error: 'bad_id_token' } };
+    const em = m[2].toLowerCase(); let id = accounts.uidOf.get(em);
+    if (!id) { id = uid; accounts.emailOf.set(id, em); accounts.uidOf.set(em, id); }
+    return { status: 200, body: { uid: id, email: em } };
+  }
   const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : '';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { status: 400, body: { error: 'validation_failed' } };
   const owner = accounts.uidOf.get(email);
@@ -199,6 +206,8 @@ const server = http.createServer(async (req, res) => {
     else if (b.op === 'games') out = [...db.games.values()].map(clone);
     else if (b.op === 'ratings') out = [...db.ratings.values()].map(clone);
     else if (b.op === 'profiles') out = [...db.profiles.values()].map(clone);
+    else if (b.op === 'addhouse') out = { id: addHouse(b) };   // a house player: { name, level, target, style, online_from, online_hours }
+    else if (b.op === 'house') out = [...db.house.values()].map(clone);
     else if (b.op === 'outbox') out = accounts.outbox.filter((m) => !b.to || m.to === b.to);
     else if (b.op === 'addgames') {
       // older copies of a finished game with the given results (long histories without playing them)

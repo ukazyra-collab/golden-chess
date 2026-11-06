@@ -16,6 +16,13 @@ export const TCS = {
 };
 export const LAG_COMP = 150;        // ms credited back per move for network lag
 export const FIRST_MOVE_MS = 30000; // each side must make its first move within this time or the game is aborted
+// House players (accounts run by the developer; profiles.house): seated when no one else comes, played by the opponent's
+// device. Their clock doesn't run on the wall: the device says how long the move "took" (think, ms), so a player who
+// walks away during the house player's turn never wins on time. If the house side hasn't moved for this long, the
+// device driving it is gone: the human abandoned the game and loses on time.
+export const HOUSE_GONE_MS = 120000;
+export const HOUSE_DRIFT = 0.25;    // after a rated game a house player's rating is pulled this far back towards its target
+export const HOUSE_RD_MIN = 60;     // and its rating stays this responsive
 
 const ADJ = ['Golden', 'Swift', 'Silent', 'Brave', 'Clever', 'Royal', 'Lucky', 'Bold', 'Quiet', 'Sharp', 'Wild', 'Calm', 'Bright', 'Sly'];
 const NOUN = ['Knight', 'Bishop', 'Rook', 'Queen', 'Pawn', 'Castle', 'Gambit', 'Fork', 'Pin', 'Tempo', 'Fianchetto', 'Endgame'];
@@ -108,7 +115,8 @@ export function createLogic(opts) {
   const runningSince = (g) => (g.moves.length >= 2 && g.turn_started_at ? Date.parse(g.turn_started_at) : null);
   // both clocks as of time t (the running side's time deducted)
   function clocksAt(g, t) {
-    const side = sideToMove(g), since = runningSince(g), used = since == null ? 0 : Math.max(0, t - since);
+    const side = sideToMove(g), since = runningSince(g);
+    const used = since == null || (g.house && side === g.house) ? 0 : Math.max(0, t - since);
     return {
       clock_w: side === 'w' ? Math.max(0, Math.round(g.clock_w - used)) : g.clock_w,
       clock_b: side === 'b' ? Math.max(0, Math.round(g.clock_b - used)) : g.clock_b,
@@ -120,7 +128,14 @@ export function createLogic(opts) {
     const since = runningSince(g);
     if (since == null) return null;
     const side = sideToMove(g);
+    if (g.house && side === g.house) return null; // the house side's time is counted by its moves (see move)
     return (side === 'w' ? g.clock_w : g.clock_b) - (t - since) + LAG_COMP <= 0 ? side : null;
+  }
+  // the house side is to move but nobody drives it any more: the human left the game
+  function houseGone(g, t) {
+    if (!g.house || g.status !== 'playing' || sideToMove(g) !== g.house) return false;
+    const since = g.moves.length >= 2 && g.turn_started_at ? Date.parse(g.turn_started_at) : Date.parse(g.moves.length === 0 ? g.created_at : g.updated_at);
+    return t - since > HOUSE_GONE_MS;
   }
   function overPatch(g, t, end, extra) {
     return Object.assign(clocksAt(g, t), { status: 'over', result: end.result, reason: end.reason, draw_offer: null }, extra || {});
@@ -146,6 +161,11 @@ export function createLogic(opts) {
     const sw = g.result === '1-0' ? 1 : g.result === '0-1' ? 0 : 0.5;
     const nw = glicko2(w.rating, w.rd, w.vol, b.rating, b.rd, sw);
     const nb = glicko2(b.rating, b.rd, b.vol, w.rating, w.rd, 1 - sw);
+    if (g.house) {
+      // the house player's rating moves like anyone's, then drifts back towards the strength it really plays at
+      const hp = await repo.houseOf(g.house === 'w' ? g.white_id : g.black_id), n = g.house === 'w' ? nw : nb;
+      if (hp) { n.rating += HOUSE_DRIFT * (hp.target - n.rating); n.rd = Math.max(HOUSE_RD_MIN, n.rd); }
+    }
     const stamp = iso(now());
     const row = (p, n, s) => ({ user_id: p.user_id, pool: g.pool, rating: n.rating, rd: n.rd, vol: n.vol, games: p.games + 1,
       wins: p.wins + (s === 1 ? 1 : 0), draws: p.draws + (s === 0.5 ? 1 : 0), losses: p.losses + (s === 0 ? 1 : 0), updated_at: stamp });
@@ -162,6 +182,10 @@ export function createLogic(opts) {
     if (g.moves.length < 2) {
       const since = Date.parse(g.moves.length === 0 ? g.created_at : g.updated_at);
       return t - since > FIRST_MOVE_MS ? commit(g, abortPatch(g, t)) : view(g);
+    }
+    if (houseGone(g, t)) {
+      const { pos } = replay(g), human = other(g.house);
+      return commit(g, overPatch(g, t, timeoutEnd(pos, human), human === 'w' ? { clock_w: 0 } : { clock_b: 0 }));
     }
     const f = flagged(g, t);
     if (!f) return view(g);
@@ -216,6 +240,27 @@ export function createLogic(opts) {
 
   A.cancel = async (uid) => { await repo.deleteSeek(uid); return { ok: true }; };
 
+  // nobody came while the player was searching: seat a house player (a human who took the seek meanwhile wins)
+  A.house = async (uid, b) => {
+    const t = TCS[b.tc];
+    if (!t) throw new Fail('bad_tc');
+    const pool = poolOf(t[0], t[1]), rated = b.rated !== false;
+    const r = await rating(uid, pool);
+    const res = await repo.housePair({ user: uid, tc: b.tc, pool, rating: r.rating, rated, base: t[0], inc: t[1], startFen: GC.START_FEN });
+    if (!res || !res.game) return { waiting: true, now: now() };
+    const g = await game(res.game);
+    if (res.house) return { game: view(g) };
+    const s = await settle(g); // one of our own games is still on
+    return s.status === 'playing' ? { game: s } : { waiting: true, now: now() };
+  };
+  // the device of the human in a house game acts for the house player: the move itself goes through A.move (house: true)
+  function houseSide(g, uid) {
+    if (!g.house) throw new Fail('not_player', view(g));
+    const mine = colorOf(g, uid);
+    if (!mine || mine === g.house) throw new Fail('not_player', view(g));
+    return g.house;
+  }
+
   A.challenge = async (uid, b) => {
     const t = TCS[b.tc];
     if (!t) throw new Fail('bad_tc');
@@ -250,7 +295,7 @@ export function createLogic(opts) {
     read.catch(() => {});
     const uid = await auth; // an auth failure wins over any game error
     let g = await read;
-    const color = colorOf(g, uid);
+    const color = b.house ? (g.house && colorOf(g, uid) && colorOf(g, uid) !== g.house ? g.house : null) : colorOf(g, uid);
     // The player may have seen the opponent's move peer-to-peer (Realtime) before the server committed it,
     // and answered at once (often a premove). Give that move a moment to land instead of refusing as stale.
     for (let i = 0; i < 40 && color && g.status === 'playing' && Number.isInteger(b.ply) && g.moves.length === b.ply - 1 && sideToMove(g) === other(color); i++) {
@@ -267,7 +312,14 @@ export function createLogic(opts) {
     const t = now();
     let cw = g.clock_w, cb = g.clock_b;
     const since = runningSince(g);
-    if (since != null) {
+    if (b.house && since != null) {
+      // the house player's time: what its device says the move took, never less than a moment
+      const think = Math.max(200, Math.round(Number(b.think) || 0));
+      let rem = (color === 'w' ? cw : cb) - think;
+      if (rem <= 0) return { game: await commit(g, overPatch(g, t, timeoutEnd(pos, color), color === 'w' ? { clock_w: 0 } : { clock_b: 0 })) };
+      rem = Math.round(rem + g.tc_inc);
+      if (color === 'w') cw = rem; else cb = rem;
+    } else if (since != null) {
       let rem = (color === 'w' ? cw : cb) - Math.max(0, t - since - LAG_COMP);
       if (rem <= 0) return { game: await commit(g, overPatch(g, t, timeoutEnd(pos, color), color === 'w' ? { clock_w: 0 } : { clock_b: 0 })) };
       rem = Math.round(rem + g.tc_inc);
@@ -290,6 +342,13 @@ export function createLogic(opts) {
     try { return { game: await settle(g) }; } catch (e) { if (e.code === 'conflict') return { game: e.extra }; throw e; }
   };
 
+  async function resignAs(g, color) {
+    if (g.status !== 'playing') return { game: view(g) };
+    const t = now();
+    if (flagged(g, t)) return { game: await settle(g) };
+    if (g.moves.length < 2) return { game: await commit(g, abortPatch(g, t)) };
+    return { game: await commit(g, overPatch(g, t, { result: color === 'w' ? '0-1' : '1-0', reason: 'resign' })) };
+  }
   A.resign = async (uid, b) => {
     const g = await game(b.game);
     if (g.status === 'waiting') {
@@ -299,39 +358,55 @@ export function createLogic(opts) {
     if (g.status !== 'playing') return { game: view(g) };
     const color = colorOf(g, uid);
     if (!color) throw new Fail('not_player', view(g));
-    const t = now();
-    if (flagged(g, t)) return { game: await settle(g) };
-    if (g.moves.length < 2) return { game: await commit(g, abortPatch(g, t)) };
-    return { game: await commit(g, overPatch(g, t, { result: color === 'w' ? '0-1' : '1-0', reason: 'resign' })) };
+    return resignAs(g, color);
   };
 
+  async function drawAs(g, color, op) {
+    if (g.status !== 'playing') return { game: view(g) };
+    const t = now();
+    if (flagged(g, t)) return { game: await settle(g) };
+    if (op === 'decline') return { game: g.draw_offer === other(color) ? await commit(g, { draw_offer: null }) : view(g) };
+    if (g.draw_offer === other(color)) return { game: await commit(g, overPatch(g, t, { result: '1/2-1/2', reason: 'agreement' })) };
+    if (op === 'offer' && g.moves.length >= 2 && !g.draw_offer) return { game: await commit(g, { draw_offer: color }) };
+    return { game: view(g) };
+  }
   A.draw = async (uid, b) => {
     const g = await game(b.game);
     if (g.status !== 'playing') return { game: view(g) };
     const color = colorOf(g, uid);
     if (!color) throw new Fail('not_player', view(g));
-    const t = now();
-    if (flagged(g, t)) return { game: await settle(g) };
-    if (b.op === 'decline') return { game: g.draw_offer === other(color) ? await commit(g, { draw_offer: null }) : view(g) };
-    if (g.draw_offer === other(color)) return { game: await commit(g, overPatch(g, t, { result: '1/2-1/2', reason: 'agreement' })) };
-    if (b.op === 'offer' && g.moves.length >= 2 && !g.draw_offer) return { game: await commit(g, { draw_offer: color }) };
-    return { game: view(g) };
+    return drawAs(g, color, b.op);
   };
 
-  A.rematch = async (uid, b) => {
-    const g = await game(b.game);
+  async function rematchAs(g, color) {
     if (g.status !== 'over' && g.status !== 'aborted') throw new Fail('not_over', view(g));
-    const color = colorOf(g, uid);
-    if (!color) throw new Fail('not_player', view(g));
     if (g.rematch_game) return { game: view(g), next: g.rematch_game };
     if (g.rematch_offer !== other(color)) return { game: g.rematch_offer === color ? view(g) : await commit(g, { rematch_offer: color }) };
     const w = g.black_id, bl = g.white_id;
     const [pw, pb, rw, rb] = await Promise.all([repo.getProfile(w), repo.getProfile(bl), rating(w, g.pool), rating(bl, g.pool)]);
     const ng = await repo.insertGame({ status: 'playing', white_id: w, black_id: bl, white_name: pw ? pw.username : g.black_name, black_name: pb ? pb.username : g.white_name,
       white_rating: Math.round(rw.rating), black_rating: Math.round(rb.rating), tc_base: g.tc_base, tc_inc: g.tc_inc, pool: g.pool, rated: g.rated,
-      start_fen: GC.START_FEN, fen: GC.START_FEN, moves: [], sans: [], clock_w: g.tc_base, clock_b: g.tc_base, version: 0, created_at: iso(now()) });
+      start_fen: GC.START_FEN, fen: GC.START_FEN, moves: [], sans: [], clock_w: g.tc_base, clock_b: g.tc_base, version: 0, created_at: iso(now()),
+      house: g.house ? other(g.house) : null, house_style: g.house ? g.house_style : null }); // colours swap, the house player comes along
     const out = await commit(g, { rematch_game: ng.id, rematch_offer: null });
     return { game: out, next: ng.id };
+  }
+  A.rematch = async (uid, b) => {
+    const g = await game(b.game);
+    if (g.status !== 'over' && g.status !== 'aborted') throw new Fail('not_over', view(g));
+    const color = colorOf(g, uid);
+    if (!color) throw new Fail('not_player', view(g));
+    return rematchAs(g, color);
+  };
+
+  // the house player resigns, offers / accepts / declines a draw, or wants a rematch: said by the device playing it
+  A.house_act = async (uid, b) => {
+    const g = await game(b.game), color = houseSide(g, uid);
+    if (b.op === 'resign') return resignAs(g, color);
+    if (b.op === 'rematch') return rematchAs(g, color);
+    if (b.op === 'draw' || b.op === 'accept') return drawAs(g, color, b.op === 'draw' ? 'offer' : 'accept');
+    if (b.op === 'decline') return drawAs(g, color, 'decline');
+    throw new Fail('bad_op');
   };
 
   A.top = async (uid, b) => {
@@ -365,5 +440,5 @@ export function createLogic(opts) {
     }
   }
 
-  return { handle, Fail, settle, _test: { replay, clocksAt, flagged } };
+  return { handle, Fail, settle, _test: { replay, clocksAt, flagged, houseGone } };
 }

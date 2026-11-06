@@ -3,7 +3,8 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GAME_COLS = new Set(['status', 'white_id', 'black_id', 'white_name', 'black_name', 'white_rating', 'black_rating', 'host_id', 'host_color',
   'tc_base', 'tc_inc', 'pool', 'rated', 'start_fen', 'moves', 'sans', 'fen', 'clock_w', 'clock_b', 'turn_started_at', 'result', 'reason',
-  'white_diff', 'black_diff', 'white_after', 'black_after', 'draw_offer', 'rematch_offer', 'rematch_game', 'version', 'created_at', 'updated_at']);
+  'white_diff', 'black_diff', 'white_after', 'black_after', 'draw_offer', 'rematch_offer', 'rematch_game', 'version', 'created_at', 'updated_at',
+  'house', 'house_style']);
 
 function cols(obj) {
   const keys = Object.keys(obj);
@@ -70,6 +71,15 @@ export function createPgRepo(sql) {
       const r = await sql`select public.gc_pair(${a.user}::uuid, ${a.tc}::text, ${a.pool}::text, ${a.rating}::float8, ${a.rated}::boolean,
         ${a.base}::int, ${a.inc}::int, ${a.startFen}::text) as j`;
       return r[0].j;
+    },
+    async housePair(a) {
+      const r = await sql`select public.gc_house_pair(${a.user}::uuid, ${a.tc}::text, ${a.pool}::text, ${a.rating}::float8, ${a.rated}::boolean,
+        ${a.base}::int, ${a.inc}::int, ${a.startFen}::text) as j`;
+      return r[0].j;
+    },
+    async houseOf(uid) {
+      if (!UUID.test(String(uid))) return null;
+      return first(await sql`select to_jsonb(h) as j from public.house h where h.user_id = ${uid}`);
     },
     async abortWaiting(uid) {
       await sql`update public.games set status = 'aborted', result = '*', reason = 'abort' where host_id = ${uid} and status = 'waiting'`;
