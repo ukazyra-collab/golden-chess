@@ -100,12 +100,12 @@ async def main():
         tag = 'Chess with one Joker Move' if LANG == 'en' else 'Шахматы с одним джокером'
         html = f"""<html><head><style>{css}
           html,body{{margin:0;width:1024px;height:500px;overflow:hidden;background:#2a2f2d}}
-          .g{{position:absolute;inset:0;background:radial-gradient(ellipse at 28% 50%,rgba(231,180,74,.22),rgba(42,47,45,0) 60%),#2a2f2d}}
+          .g{{position:absolute;inset:0;background:radial-gradient(ellipse at 28% 50%,rgba(201,103,90,.22),rgba(42,47,45,0) 60%),#2a2f2d}}
           .sq{{position:absolute;right:-40px;top:-40px;width:520px;height:580px;opacity:.16;
                background:conic-gradient(#f4efe4 25%,transparent 0 50%,#f4efe4 0 75%,transparent 0) 0 0/116px 116px;transform:rotate(-8deg)}}
           img{{position:absolute;left:84px;top:110px;width:280px;height:280px;border-radius:62px;box-shadow:0 24px 60px rgba(0,0,0,.45)}}
           .t{{position:absolute;left:412px;top:150px;color:#f4efe4}}
-          h1{{margin:0;font:700 italic 88px/1 'Bodoni Moda',serif;letter-spacing:.5px}} h1 b{{color:#f0b941;font-weight:700}}
+          h1{{margin:0;font:700 italic 88px/1 'Bodoni Moda',serif;letter-spacing:.5px}} h1 b{{color:#e8917f;font-weight:700}}
           p{{margin:26px 0 0;font:700 32px/1.25 Manrope,sans-serif;color:#d8d3c8;max-width:580px}}
         </style></head><body><div class="g"></div><div class="sq"></div><img src="data:image/png;base64,{icon64}">
         <div class="t"><h1><b>Joker</b> Chess</h1><p>{tag}</p></div></body></html>"""
