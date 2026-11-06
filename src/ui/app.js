@@ -85,6 +85,7 @@
       stPools: 'Last 30 days: bullet {bullet}, blitz {blitz}, rapid {rapid}', stLegend: 'games per day (top {g}), dots: new accounts',
       guestNote: 'Guest: your rating is kept on this device only.', saveProgress: 'Save progress',
       guestRatingNote: 'Your rating is kept on this device only. Add your email to keep it.',
+      introTag: 'Chess with one Joker Move',
       back: 'Back', navPlay: 'Play', navLearn: 'Learn', navRatings: 'Ratings', navProfile: 'Profile',
       startGame: 'Start Game', playFriend: 'Play a Friend', playFriendSub: 'Send a link, the game starts when they open it',
       playBot: 'Play a Bot', playBotSub: 'Eight levels, from 600 to 2500 Elo', passPlay: 'Two Players', passPlaySub: 'Take turns on one device',
@@ -241,6 +242,7 @@
       stPools: 'За 30 дней: пуля {bullet}, блиц {blitz}, рапид {rapid}', stLegend: 'партий в день (максимум {g}), точки: новые аккаунты',
       guestNote: 'Гость: рейтинг хранится только на этом устройстве.', saveProgress: 'Сохранить прогресс',
       guestRatingNote: 'Рейтинг хранится только на этом устройстве. Добавьте почту, чтобы не потерять его.',
+      introTag: 'Шахматы с одним джокером',
       back: 'Назад', navPlay: 'Играть', navLearn: 'Обучение', navRatings: 'Рейтинг', navProfile: 'Профиль',
       startGame: 'Начать игру', playFriend: 'Сыграть с другом', playFriendSub: 'Отправьте ссылку, игра начнётся, когда друг её откроет',
       playBot: 'Сыграть с ботом', playBotSub: 'Восемь уровней, от 600 до 2500 Elo', passPlay: 'Вдвоём', passPlaySub: 'По очереди на одном устройстве',
@@ -4545,9 +4547,27 @@
     }
   }
 
+  // ------------------------------------------------------------------ the launch intro
+  // In the app it takes over from the native splash (same mark, same charcoal); on the website it plays on the first
+  // visit only. A tap ends it early; reduced motion skips it.
+  function intro() {
+    var el = $('intro'); if (!el) return;
+    var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var want = !reduced && !AUTH_HASH.test(location.hash || '') && (NATIVE.on || !load('introSeen', false));
+    if (!want) { el.remove(); return; }
+    if (!NATIVE.on) save('introSeen', true);
+    var tag = $('intro-tag'); if (tag) tag.textContent = T('introTag');
+    el.hidden = false; el.classList.add('run');
+    if (NATIVE.on) NATIVE.call('SplashScreen', 'hide', { fadeOutDuration: 150 }).catch(function () { /* no plugin */ });
+    var done = false;
+    function end() { if (done) return; done = true; el.classList.add('out'); setTimeout(function () { el.remove(); }, 450); }
+    el.addEventListener('click', end);
+    setTimeout(end, 1450);
+  }
+
   // ------------------------------------------------------------------ boot
   function boot(hotData) {
-    applySettings(); applyLang(); nativeInit();
+    applySettings(); applyLang(); nativeInit(); intro();
     var saved = (hotData && hotData.game) || load('game', null), g = saved ? Game.restore(saved) : null;
     if (g) {
       game = g; view = game.records.length;
