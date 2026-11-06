@@ -24,6 +24,8 @@
 
    **Выпуск 1.1 в App Store** (на Маке, переменные как в §4): `cd golden-chess/app && git pull && npm install && python3 asc.py capability && sh ios_release.sh && python3 asc.py build --wait && python3 asc.py metadata && python3 asc.py submit`.
 
+   **Тексты и скриншоты магазинов** (ноя 2026): App Store — `listing.json` (имя «Golden Chess — One Golden Move», подзаголовок «One move that changes the game», описание в духе рассылки: «кажется, мы починили шахматы»), скриншоты `store/appstore/` (первый экран — сам золотой ход: конь с золотой стрелкой через всю доску); Google Play — тексты EN/RU в `listing.play.json`, кадры `store/play/{en,ru}/play-N.png` и баннер `feature-graphic.png` (их же отдаёт сайт: `https://golden-chess.com/app/store/play/en/play-1-golden.png`, так их можно подставить в форму Play Console прямо из браузера). Пересобрать: `python3 test/store_shots.py <папка> en` (и `ru android`), затем `python3 test/store_frames_ios.py <папка> en` и `python3 test/store_frames.py <папка> en|ru`. Поменять тексты/скриншоты уже поданной версии: `python3 asc.py cancel && python3 asc.py metadata && python3 asc.py screenshots store/appstore && python3 asc.py submit`.
+
 ## 2. iPhone по кабелю (без платного аккаунта)
 
 Нужны Mac, Xcode (App Store) и Node (`brew install node`). В Терминале:

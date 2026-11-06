@@ -29,11 +29,12 @@ export function createMemoryRepo(now) {
     async insertProfile(uid, name, guest = true) {
       if (db.profiles.has(uid)) return null;
       for (const p of db.profiles.values()) if (p.username.toLowerCase() === name.toLowerCase()) return null;
-      const p = { id: uid, username: name, is_guest: !!guest, name_chosen: false, created_at: iso(now()) };
+      const p = { id: uid, username: name, is_guest: !!guest, name_chosen: false, avatar_v: 0, created_at: iso(now()) };
       db.profiles.set(uid, p);
       return clone(p);
     },
     async setGuest(uid, guest) { const p = db.profiles.get(uid); if (!p) return null; p.is_guest = !!guest; return clone(p); },
+    async setAvatar(uid, v) { const p = db.profiles.get(uid); if (!p) return null; p.avatar_v = v; return clone(p); },
     async renameProfile(uid, name) {
       for (const p of db.profiles.values()) if (p.id !== uid && p.username.toLowerCase() === name.toLowerCase()) return { taken: true };
       const p = db.profiles.get(uid);
@@ -97,7 +98,7 @@ export function createMemoryRepo(now) {
     async deleteSeek(uid) { db.seeks.delete(uid); },
     async top(pool, n) {
       return [...db.ratings.values()].filter((r) => r.pool === pool && r.games > 0).sort((a, b) => b.rating - a.rating).slice(0, n)
-        .map((r) => ({ uid: r.user_id, name: db.profiles.get(r.user_id)?.username || '?', rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses }));
+        .map((r) => ({ uid: r.user_id, name: db.profiles.get(r.user_id)?.username || '?', avatar_v: db.profiles.get(r.user_id)?.avatar_v || 0, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses }));
     },
     async rankOf(uid, pool) {
       const r = db.ratings.get(uid + '|' + pool);

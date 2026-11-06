@@ -235,6 +235,14 @@ export function createLogic(opts) {
     return { profile: r.row };
   };
 
+  // the player's picture was put in storage by their device (or taken away): the profile says so, with a version
+  A.avatar = async (uid, b) => {
+    const v = b.remove ? 0 : (Math.floor(now() / 1000) % 2000000000) || 1;
+    const prof = await repo.setAvatar(uid, v);
+    if (!prof) throw new Fail('profile');
+    return { profile: prof };
+  };
+
   A.seek = async (uid, b) => {
     const t = TCS[b.tc];
     if (!t) throw new Fail('bad_tc');

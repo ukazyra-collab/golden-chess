@@ -11,6 +11,7 @@ altool looks too) or from ASC_KEY_PATH.
   python3 asc.py screenshots DIR             uploads DIR/iphone67/*.png (1290x2796) and DIR/ipad129/*.png (2048x2732) to version 1.1
   python3 asc.py build [--wait]              the newest build of 1.4: its state; --wait until Apple has processed it; attaches it to the version
   python3 asc.py submit                      sends version 1.1 to App Review
+  python3 asc.py cancel                      takes the version back from the review queue (then metadata / screenshots / submit again)
   python3 asc.py status                      where the version stands
 
 The app record itself (My Apps → + → New App) cannot be made through the API: Apple keeps that in the website. Everything after it can."""
@@ -184,6 +185,17 @@ def cmd_submit():
             else: raise
     print('submitted for review:', VERSION)
 
+# take the version back from the review queue (Waiting for Review / In Review): its texts and screenshots can then be
+# changed, and `submit` sends it again
+def cmd_cancel():
+    a = app()
+    subs = api('GET', f"/v1/reviewSubmissions?filter[app]={a['id']}&filter[state]=WAITING_FOR_REVIEW,IN_REVIEW,READY_FOR_REVIEW,UNRESOLVED_ISSUES&limit=5").get('data') or []
+    if not subs: print('nothing in review'); return
+    for sub in subs:
+        api('PATCH', f"/v1/reviewSubmissions/{sub['id']}", {'data': {'type': 'reviewSubmissions', 'id': sub['id'], 'attributes': {'canceled': True}}})
+        print('taken back from review:', sub['attributes']['state'], sub['attributes'].get('submittedDate'))
+    time.sleep(5)
+
 def cmd_status():
     a, v = version(create=False)
     print(a['attributes']['name'], a['attributes']['bundleId']); print('version', VERSION, '→', v['attributes'].get('appStoreState') or v['attributes'].get('appVersionState') if v else 'not created')
@@ -200,5 +212,6 @@ if __name__ == '__main__':
     elif c == 'screenshots': cmd_screenshots(sys.argv[2] if len(sys.argv) > 2 else os.path.join(HERE, 'store', 'appstore'))
     elif c == 'build': cmd_build('--wait' in sys.argv)
     elif c == 'submit': cmd_submit()
+    elif c == 'cancel': cmd_cancel()
     elif c == 'status': cmd_status()
     else: print(__doc__)

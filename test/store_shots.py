@@ -55,17 +55,20 @@ async def main():
                     await pg.wait_for_timeout(100)
                 return False
 
-            # 1. the golden move armed: every empty square a teleport target
+            # 1. the golden move itself: in the real game (8.Qe2 allows the golden Nb8★f4) the knight is armed and the engine's
+            #    arrow shows it landing on f4 — a piece teleported into the attack
             await pg.evaluate("__gc.closeDialog(); __gc.startGame({ mode: 'local', level: 3, color: 'w', tc: 'none' })")
-            await pg.evaluate("""() => { for (const u of ['e2e4','e7e5','g1f3','b8c6','f1c4','g8f6','b1c3','f8c5']) { const m = __gc.game.pos.moveFromUci(u); __gc.tryMove(m & 127, (m >> 7) & 127, false); } }""")
-            await pg.wait_for_timeout(500)
+            await pg.evaluate("""(moves) => { for (const u of moves) { const m = __gc.game.pos.moveFromUci(u); if (u.includes('*')) __gc.setGoldenArmed(true); __gc.tryMove(m & 127, (m >> 7) & 127, false); } }""", GAME['moves'][:15])
+            await pg.wait_for_timeout(400)
+            await pg.evaluate("__gc.setAnalysis(true)")
+            await until("(() => { const t = (document.getElementById('ana') || {}).textContent || ''; return /★/.test(t) || /Nb8/.test(t); })()", 30000)
             await pg.evaluate("__gc.setGoldenArmed(true)")
-            pt = await pg.evaluate("(() => { const r = document.getElementById('board').getBoundingClientRect(), q = r.width / 8; return [r.left + 3.5 * q, r.top + 7.5 * q]; })()")  # d1, the queen
+            pt = await pg.evaluate("(() => { const r = document.getElementById('board').getBoundingClientRect(), q = r.width / 8, o = __gc.board.orient; return [r.left + (o ? 6.5 : 1.5) * q, r.top + (o ? 7.5 : 0.5) * q]; })()")  # b8, the knight
             await pg.mouse.click(*pt)
             await shot('1-golden')
-            await pg.evaluate("__gc.setGoldenArmed(false)")
+            await pg.evaluate("__gc.setGoldenArmed(false); __gc.setAnalysis(false)")
 
-            # the real game for the review (8.Qe2 allows the golden Nb8★f4)
+            # the real game for the review
             await pg.evaluate("__gc.closeDialog(); __gc.startGame({ mode: 'local', level: 3, color: 'w', tc: 'none' })")
             await pg.evaluate("""(moves) => { for (const u of moves) { const m = __gc.game.pos.moveFromUci(u); if (u.includes('*')) __gc.setGoldenArmed(true); __gc.tryMove(m & 127, (m >> 7) & 127, false); } }""", GAME['moves'])
             await pg.evaluate("__gc.game.end('1/2-1/2', 'agreement')")

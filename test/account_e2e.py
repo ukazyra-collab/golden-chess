@@ -144,6 +144,16 @@ async def main():
             ok('nothing left waiting', await A.evaluate('localStorage.getItem("goldenchess.pending")') in (None, 'null'))
             await A.evaluate('__gc.closeDialog()')
             ok('Play shows the account', await wait_for(A, '/Alice/.test((document.getElementById("acct-chip") || {}).textContent || "")', 3000))
+            # a picture, then taken away again
+            from PIL import Image
+            pic = os.path.join(ROOT, 'test/shots/_avatar2.png'); Image.new('RGB', (120, 400), (40, 120, 200)).save(pic)
+            await A.evaluate('__gc.go("profile")'); await wait_for(A, '!!document.getElementById("photo-file")', 4000)
+            await A.set_input_files('#photo-file', pic)
+            ok('photo: saved', await wait_for(A, '!!document.querySelector("#btn-photo .ava.pic img") && __gc.me.profile.avatar_v > 0', 8000))
+            await A.click('#btn-photo')
+            ok('photo: the sheet offers to remove it', await wait_for(A, '__gc.dialogKind === "photo" && !!document.getElementById("btn-photo-remove")', 3000))
+            await A.click('#btn-photo-remove')
+            ok('photo: removed', await wait_for(A, '!document.querySelector("#btn-photo .ava.pic") && __gc.me.profile.avatar_v === 0', 6000))
 
             # ---- 2. another guest signs in from the Profile tab and comes back to it; a taken name is refused
             ok('profile tab', await nav(B, 'profile'))

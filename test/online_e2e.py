@@ -92,6 +92,18 @@ async def main():
                 await pg.click('#acct-chip')
                 await sign_in(pg, email, name)
                 ok(f'{name}: back on Play after signing in', await wait_for(pg, '__gc.curView === "play" && !__gc.dialogOpen', 5000))
+                if pg is A:
+                    # a picture on the profile: squared and shrunk here, up to storage, shown on the profile and the start screen chip
+                    from PIL import Image
+                    pic = os.path.join(ROOT, 'test/shots/_avatar.png'); Image.new('RGB', (300, 200), (200, 60, 60)).save(pic)
+                    await pg.evaluate('__gc.go("profile")')
+                    ok('photo: the profile picture is a button with a camera badge', await wait_for(pg, '!!document.querySelector("#btn-photo .cam") && !!document.getElementById("photo-file")', 5000))
+                    await pg.set_input_files('#photo-file', pic)
+                    ok('photo: saved and shown on the profile', await wait_for(pg, '!!document.querySelector("#btn-photo .ava.pic img") && __gc.me.profile.avatar_v > 0', 8000))
+                    info = await pg.evaluate('fetch(document.querySelector("#btn-photo .ava.pic img").src).then(r => r.blob()).then(b => createImageBitmap(b).then(i => [b.type, i.width, i.height]))')
+                    ok('photo: a 256×256 JPEG went up', info == ['image/jpeg', 256, 256], info)
+                    await pg.evaluate('__gc.go("play")')
+                    ok('photo: on the start screen chip', await wait_for(pg, '!!document.querySelector("#acct-chip .ava.pic img")', 3000))
                 await pg.click('#btn-start')
                 ok(f'{name}: the search starts', await wait_for(pg, '__gc.dialogKind === "lobby"', 5000))
                 await pg.wait_for_timeout(150)
@@ -104,6 +116,8 @@ async def main():
             ok('black sees the board flipped', await Bl.evaluate('__gc.board.orient') == 1 and await W.evaluate('__gc.board.orient') == 0)
             nmB = await B.evaluate('__gc.me.profile.username')
             ok("A's bar shows B's name", nmB in (await A.inner_text('#bar-top')), nmB)
+            ok("photo: B sees A's picture on the bar", await wait_for(B, '!!document.querySelector("#bar-top .ava.pic img")', 6000))
+            ok("photo: A sees B's initial (no picture)", await A.evaluate('!!document.querySelector("#bar-top .ava:not(.pic) i")'))
             ok('no dialog left open', not await A.evaluate('__gc.dialogOpen') and not await B.evaluate('__gc.dialogOpen'))
             ok('first-move countdown shown', 'first move' in (await W.inner_text('#ana-side' if W == A else '#ana')).lower() or 'first move' in (await W.inner_text('#ana')).lower())
 
@@ -377,6 +391,7 @@ async def main():
             await B.evaluate('__gc.go("ratings")')
             ok('player: the leaderboard lists Alice', await wait_for(B, '!!document.querySelector(".lb-row[data-name=\'%s\']")' % nmA, 6000))
             ok('player: the leaderboard shows my own place', await wait_for(B, '/#\\d+/.test(document.getElementById("my-rating").textContent)', 4000), await B.evaluate('document.getElementById("my-rating").textContent'))
+            ok("photo: Alice's picture in the leaderboard", await wait_for(B, '!!document.querySelector(".lb-row[data-name=\'%s\'] .ava.pic img")' % nmA, 4000))
             await B.click('.lb-row[data-name="%s"]' % nmA)
             ok("player: Alice's page opens", await wait_for(B, '__gc.curView === "player" && !!document.getElementById("pl-games") && document.querySelectorAll("#pl-games .gh-row").length >= 3', 6000))
             txt = await B.evaluate('document.getElementById("view-player").textContent')

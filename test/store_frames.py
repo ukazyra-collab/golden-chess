@@ -9,19 +9,19 @@ DIR, LANG = sys.argv[1], sys.argv[2]
 FONTS = ROOT + '/vendor/fontsource-%s-5.3.0/package/files/%s'
 CAPS = {
     'en': {
-        '1-golden': ('One golden move per game', 'Teleport a queen, rook, bishop or knight to any empty square'),
-        '2-report': ('A review after every game', 'Accuracy, mistakes and the golden moves you missed'),
+        '1-golden': ('One move that changes the game', 'Once per game, teleport a queen, rook, bishop or knight to any empty square'),
+        '2-report': ('A review after every game, free', 'Accuracy, mistakes and the golden moves you missed'),
         '3-coach': ('The coach shows why', 'Every mistake explained, with the answer that punishes it'),
         '4-best': ('See the best line', 'Golden moves included'),
-        '5-bots': ('Eight bots: 600 to 2500', 'Or rated games online'),
+        '5-bots': ('Eight bots, 600 to 2500', 'Or rated games online, no sign-up needed'),
         '6-learn': ('Learn it in a minute', 'The rule in pictures, then puzzles'),
     },
     'ru': {
-        '1-golden': ('Один золотой ход за партию', 'Ферзь, ладья, слон или конь — на любое пустое поле'),
-        '2-report': ('Разбор после каждой партии', 'Точность, ошибки и упущенные золотые ходы'),
+        '1-golden': ('Один ход меняет всю партию', 'Раз за партию перенесите ферзя, ладью, слона или коня на любое пустое поле'),
+        '2-report': ('Разбор после каждой партии, бесплатно', 'Точность, ошибки и упущенные золотые ходы'),
         '3-coach': ('Тренер объясняет почему', 'Каждая ошибка — с ответом, который её наказывает'),
         '4-best': ('Лучший вариант', 'С золотыми ходами'),
-        '5-bots': ('Восемь ботов: 600–2500', 'Или онлайн-партии на рейтинг'),
+        '5-bots': ('Восемь ботов: 600–2500', 'Или онлайн на рейтинг — без регистрации'),
         '6-learn': ('Правило за минуту', 'Картинки, потом задачи'),
     },
 }

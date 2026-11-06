@@ -40,6 +40,9 @@ export function createPgRepo(sql) {
         throw e;
       }
     },
+    async setAvatar(uid, v) {
+      return first(await sql`update public.profiles p set avatar_v = ${v} where p.id = ${uid} returning to_jsonb(p) as j`);
+    },
     async setGuest(uid, guest) {
       return first(await sql`update public.profiles p set is_guest = ${!!guest} where p.id = ${uid} returning to_jsonb(p) as j`);
     },
@@ -100,7 +103,7 @@ export function createPgRepo(sql) {
       await sql`delete from public.seeks where user_id = ${uid}`;
     },
     async top(pool, n) {
-      return plain(await sql`select r.user_id as uid, p.username as name, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses
+      return plain(await sql`select r.user_id as uid, p.username as name, p.avatar_v, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses
         from public.ratings r join public.profiles p on p.id = r.user_id where r.pool = ${pool} and r.games > 0 order by r.rating desc limit ${n}`);
     },
     // the player's place in the pool (null when unrated there)
