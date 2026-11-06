@@ -753,9 +753,22 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 @media (max-width: 767px) {
   html.native .shell:not([data-view="game"]):not([data-view="signin"]) .views { margin-bottom: 0; }
 }
-@media (min-width: 768px) { .play-wrap { align-items: center; } .play-head .brand { visibility: hidden; } }
+/* tablet and desktop: the rail carries the name; the account chip sits in the top-right corner, level with the rail's logo;
+   the menu is one block centred on the board square (the caption hangs below the square and doesn't shift it).
+   Spacing on an 8 px scale: 16 between controls, 32 between groups, 72 around the content. */
+@media (min-width: 768px) {
+  .play-wrap { position: relative; align-items: center; padding-block: 72px; }
+  .play-head { position: absolute; top: max(16px, env(safe-area-inset-top, 0px)); right: max(24px, env(safe-area-inset-right, 0px)); min-height: 0; z-index: 2; }
+  .play-head .brand { display: none; }
+  .play-head .acct-chip { max-width: 320px; }
+  .play-col { gap: 0; }
+  .play-main { flex: none; padding: 0; gap: 32px; }
+  .play-mark { width: 120px; height: 120px; margin: 0; }
+  .play-board { position: relative; }
+  .play-board .play-reel-cap { position: absolute; left: 0; right: 0; top: calc(100% + 16px); margin: 0; }
+}
 @media (min-width: 1100px) {
-  .play-board { display: block; width: min(560px, calc(100vh - 96px)); }
+  .play-board { display: block; width: min(560px, calc(100vh - 208px)); }
 }
 /* full-width buttons in column layouts (in a row of buttons they share the row) */
 .acct-form > .primary, .my-card > .primary, .signin-card > .primary { flex: none; width: 100%; }
