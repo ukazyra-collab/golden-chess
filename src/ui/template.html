@@ -673,8 +673,6 @@ svg { display: block; }
 .play-wrap { min-height: 100%; box-sizing: border-box; display: flex; align-items: flex-start; justify-content: center; gap: 48px;
   padding-block: 18px 32px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
 .play-board { display: none; flex: none; }
-.play-mark { align-self: center; width: 116px; height: 116px; margin: 6px 0 2px; }
-.play-mark .logo-big { width: 100%; height: 100%; filter: drop-shadow(0 10px 22px rgba(0, 0, 0, .45)) drop-shadow(0 0 28px rgba(240, 185, 65, .18)); }
 .play-reel { align-self: center; width: min(100%, 320px); width: clamp(200px, calc(100dvh - 540px - env(safe-area-inset-bottom, 0px)), 320px); max-width: 100%; display: flex; flex-direction: column; gap: 10px; margin: 0; }
 .play-reel .mini-board { box-shadow: 0 14px 34px rgba(0, 0, 0, .42); }
 .play-reel-cap { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 22px; font-weight: 700; font-size: 14.5px; line-height: 1.3; color: var(--bone); text-align: center; text-wrap: balance; }
@@ -690,6 +688,7 @@ svg { display: block; }
 .acct-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acct-chip.out { padding: 0 16px; }
 .play-actions { display: flex; flex-direction: column; gap: 16px; }
+.play-h { display: none; }
 .tc-field { width: 100%; height: 58px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); display: flex; align-items: center; gap: 12px; padding: 0 16px; box-sizing: border-box; text-align: left; }
 .tc-field:hover { background: #3a413e; }
 .tc-field .tc-ic svg { width: 22px; height: 22px; }
@@ -757,17 +756,21 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
    the menu is one block centred on the board square (the caption hangs below the square and doesn't shift it).
    Spacing on an 8 px scale: 16 between controls, 32 between groups, 72 around the content. */
 @media (min-width: 768px) {
-  .play-wrap { position: relative; align-items: center; padding-block: 72px; }
+  .play-wrap { position: relative; align-items: center; padding-block: 40px; }
   .play-head { position: absolute; top: max(16px, env(safe-area-inset-top, 0px)); right: max(24px, env(safe-area-inset-right, 0px)); min-height: 0; z-index: 2; }
   .play-head .brand { display: none; }
   .play-head .acct-chip { max-width: 320px; }
-  .play-col { gap: 0; }
+  .play-col { gap: 0; max-width: 440px; }
   .play-main { flex: none; padding: 0; gap: 32px; }
-  .play-mark { width: 120px; height: 120px; margin: 0; }
+  /* the menu is a panel: a title, the time control, the main button, the two quieter ways to play */
+  .play-actions { box-sizing: border-box; background: var(--panel); border-radius: 22px; padding: 28px; gap: 16px; }
+  .play-actions .resume { background: var(--raise); }
+  .play-h { display: block; margin: 0 0 8px; font: 800 22px/1.2 var(--f-ui); letter-spacing: -.3px; color: var(--bone); }
   .play-board { position: relative; }
   .play-board .play-reel-cap { position: absolute; left: 0; right: 0; top: calc(100% + 16px); margin: 0; }
 }
 @media (min-width: 1100px) {
+  .play-wrap { padding-block: 72px; }
   .play-board { display: block; width: min(560px, calc(100vh - 208px)); }
 }
 /* full-width buttons in column layouts (in a row of buttons they share the row) */

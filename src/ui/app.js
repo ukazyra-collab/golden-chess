@@ -85,6 +85,7 @@
       stPools: 'Last 30 days: bullet {bullet}, blitz {blitz}, rapid {rapid}', stLegend: 'games per day (top {g}), dots: new accounts',
       guestNote: 'Guest: your rating is kept on this device only.', saveProgress: 'Save progress',
       guestRatingNote: 'Your rating is kept on this device only. Add your email to keep it.',
+      playH: 'Play online',
       back: 'Back', navPlay: 'Play', navLearn: 'Learn', navRatings: 'Ratings', navProfile: 'Profile',
       startGame: 'Start Game', playFriend: 'Play a Friend', playFriendSub: 'Send a link, the game starts when they open it',
       playBot: 'Play a Bot', playBotSub: 'Eight levels, from 600 to 2500 Elo', passPlay: 'Two Players', passPlaySub: 'Take turns on one device',
@@ -241,6 +242,7 @@
       stPools: 'За 30 дней: пуля {bullet}, блиц {blitz}, рапид {rapid}', stLegend: 'партий в день (максимум {g}), точки: новые аккаунты',
       guestNote: 'Гость: рейтинг хранится только на этом устройстве.', saveProgress: 'Сохранить прогресс',
       guestRatingNote: 'Рейтинг хранится только на этом устройстве. Добавьте почту, чтобы не потерять его.',
+      playH: 'Играть онлайн',
       back: 'Назад', navPlay: 'Играть', navLearn: 'Обучение', navRatings: 'Рейтинг', navProfile: 'Профиль',
       startGame: 'Начать игру', playFriend: 'Сыграть с другом', playFriendSub: 'Отправьте ссылку, игра начнётся, когда друг её откроет',
       playBot: 'Сыграть с ботом', playBotSub: 'Восемь уровней, от 600 до 2500 Elo', passPlay: 'Вдвоём', passPlaySub: 'По очереди на одном устройстве',
@@ -3705,7 +3707,6 @@
   var PENCIL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5h4l10.3-10.3a2.83 2.83 0 0 0-4-4L4.5 15.5z"/><path d="M13.3 6.7l4 4"/></svg>';
   var STAR_SVG = '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="var(--gold)" stroke="var(--gold)"><rect x="24" y="90" width="52" height="9" rx="4"/> <rect x="24" y="90" width="52" height="5" rx="3"/> <rect x="30" y="84" width="40" height="8" rx="3"/> <path d="M40 86 L41 70 L59 70 L60 86 Z"/> <path d="M43 86 L44 72 L56 72 L57 86 Z"/> <path d="M31 40 C25 35 25 27 30 25 C34 28 36 34 36 40 Z"/> <path d="M69 40 C75 35 75 27 70 25 C66 28 64 34 64 40 Z"/> <circle cx="50" cy="54" r="27"/> <circle cx="50" cy="56" r="21"/> <ellipse cx="50" cy="66" rx="14" ry="9"/> <path d="M40 67 C44 74 56 74 60 67" stroke-width="2.8" stroke-linecap="round"/> <circle cx="50" cy="60" r="7"/> <ellipse cx="47.4" cy="57.4" rx="2" ry="1.4" /> <ellipse cx="41" cy="49" rx="4.8" ry="5.2"/><ellipse cx="59" cy="49" rx="4.8" ry="5.2"/> <circle cx="41.6" cy="49.6" r="3.2"/><circle cx="59.6" cy="49.6" r="3.2"/> <circle cx="42.8" cy="48.2" r="1.1"/><circle cx="60.8" cy="48.2" r="1.1"/> <path d="M35.5 42.5 C38.5 39.5 43.5 39.5 46 41.5" stroke-width="2.3" stroke-linecap="round"/> <path d="M54 41.5 C56.5 39.5 61.5 39.5 64.5 42.5" stroke-width="2.3" stroke-linecap="round"/> <path d="M34 30 C26 24 14 20 6 24 C14 26 20 30 26 36 Z"/> <path d="M35 34 C45 31 48.5 20 50 2 C51.5 20 55 31 65 34 Z"/> <path d="M66 30 C74 24 86 20 94 24 C86 26 80 30 74 36 Z"/> <path d="M29 35 C40 26 60 26 71 35 L71 39 C60 31 40 31 29 39 Z"/> <circle cx="6" cy="24" r="3.2" stroke-width=".8"/> <circle cx="50" cy="3.5" r="3.2" stroke-width=".8"/> <circle cx="94" cy="24" r="3.2" stroke-width=".8"/></g></svg>';
   var LOGO_SVG = '<svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7.2" fill="#232826"/><svg x="2.5" y="2.5" width="27" height="27" viewBox="0 0 100 100"><rect x="24" y="90" width="52" height="9" rx="4" fill="#f0b941"/> <rect x="24" y="90" width="52" height="5" rx="3" fill="#f0b941"/> <rect x="30" y="84" width="40" height="8" rx="3" fill="#f0b941"/> <path d="M40 86 L41 70 L59 70 L60 86 Z" fill="#f0b941"/> <path d="M43 86 L44 72 L56 72 L57 86 Z" fill="#f0b941"/> <path d="M31 40 C25 35 25 27 30 25 C34 28 36 34 36 40 Z" fill="#f0b941"/> <path d="M69 40 C75 35 75 27 70 25 C66 28 64 34 64 40 Z" fill="#f0b941"/> <circle cx="50" cy="54" r="27" fill="#f0b941"/> <circle cx="50" cy="56" r="21" fill="#f0b941"/> <ellipse cx="50" cy="66" rx="14" ry="9" fill="#f0b941"/> <path d="M40 67 C44 74 56 74 60 67" fill="#f0b941" stroke="#f0b941" stroke-width="2.8" stroke-linecap="round"/> <circle cx="50" cy="60" r="7" fill="#f0b941"/> <ellipse cx="47.4" cy="57.4" rx="2" ry="1.4" fill="#f0b941" /> <ellipse cx="41" cy="49" rx="4.8" ry="5.2" fill="#f0b941"/><ellipse cx="59" cy="49" rx="4.8" ry="5.2" fill="#f0b941"/> <circle cx="41.6" cy="49.6" r="3.2" fill="#f0b941"/><circle cx="59.6" cy="49.6" r="3.2" fill="#f0b941"/> <circle cx="42.8" cy="48.2" r="1.1" fill="#f0b941"/><circle cx="60.8" cy="48.2" r="1.1" fill="#f0b941"/> <path d="M35.5 42.5 C38.5 39.5 43.5 39.5 46 41.5" fill="#f0b941" stroke="#f0b941" stroke-width="2.3" stroke-linecap="round"/> <path d="M54 41.5 C56.5 39.5 61.5 39.5 64.5 42.5" fill="#f0b941" stroke="#f0b941" stroke-width="2.3" stroke-linecap="round"/> <path d="M34 30 C26 24 14 20 6 24 C14 26 20 30 26 36 Z" fill="#f0b941"/> <path d="M35 34 C45 31 48.5 20 50 2 C51.5 20 55 31 65 34 Z" fill="#f0b941"/> <path d="M66 30 C74 24 86 20 94 24 C86 26 80 30 74 36 Z" fill="#f0b941"/> <path d="M29 35 C40 26 60 26 71 35 L71 39 C60 31 40 31 29 39 Z" fill="#f0b941"/> <circle cx="6" cy="24" r="3.2" fill="#f0b941" stroke="#f0b941" stroke-width=".8"/> <circle cx="50" cy="3.5" r="3.2" fill="#f0b941" stroke="#f0b941" stroke-width=".8"/> <circle cx="94" cy="24" r="3.2" fill="#f0b941" stroke="#f0b941" stroke-width=".8"/></svg></svg>';
-  var LOGO_BIG = '<svg class="logo-big" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7.2" fill="#232826"/><svg x="2.5" y="2.5" width="27" height="27" viewBox="0 0 100 100"><rect x="24" y="90" width="52" height="9" rx="4" fill="#f0b941"/> <rect x="24" y="90" width="52" height="5" rx="3" fill="#f0b941"/> <rect x="30" y="84" width="40" height="8" rx="3" fill="#f0b941"/> <path d="M40 86 L41 70 L59 70 L60 86 Z" fill="#f0b941"/> <path d="M43 86 L44 72 L56 72 L57 86 Z" fill="#f0b941"/> <path d="M31 40 C25 35 25 27 30 25 C34 28 36 34 36 40 Z" fill="#f0b941"/> <path d="M69 40 C75 35 75 27 70 25 C66 28 64 34 64 40 Z" fill="#f0b941"/> <circle cx="50" cy="54" r="27" fill="#f0b941"/> <circle cx="50" cy="56" r="21" fill="#f0b941"/> <ellipse cx="50" cy="66" rx="14" ry="9" fill="#f0b941"/> <path d="M40 67 C44 74 56 74 60 67" fill="#f0b941" stroke="#f0b941" stroke-width="2.8" stroke-linecap="round"/> <circle cx="50" cy="60" r="7" fill="#f0b941"/> <ellipse cx="47.4" cy="57.4" rx="2" ry="1.4" fill="#f0b941" /> <ellipse cx="41" cy="49" rx="4.8" ry="5.2" fill="#f0b941"/><ellipse cx="59" cy="49" rx="4.8" ry="5.2" fill="#f0b941"/> <circle cx="41.6" cy="49.6" r="3.2" fill="#f0b941"/><circle cx="59.6" cy="49.6" r="3.2" fill="#f0b941"/> <circle cx="42.8" cy="48.2" r="1.1" fill="#f0b941"/><circle cx="60.8" cy="48.2" r="1.1" fill="#f0b941"/> <path d="M35.5 42.5 C38.5 39.5 43.5 39.5 46 41.5" fill="#f0b941" stroke="#f0b941" stroke-width="2.3" stroke-linecap="round"/> <path d="M54 41.5 C56.5 39.5 61.5 39.5 64.5 42.5" fill="#f0b941" stroke="#f0b941" stroke-width="2.3" stroke-linecap="round"/> <path d="M34 30 C26 24 14 20 6 24 C14 26 20 30 26 36 Z" fill="#f0b941"/> <path d="M35 34 C45 31 48.5 20 50 2 C51.5 20 55 31 65 34 Z" fill="#f0b941"/> <path d="M66 30 C74 24 86 20 94 24 C86 26 80 30 74 36 Z" fill="#f0b941"/> <path d="M29 35 C40 26 60 26 71 35 L71 39 C60 31 40 31 29 39 Z" fill="#f0b941"/> <circle cx="6" cy="24" r="3.2" fill="#f0b941" stroke="#f0b941" stroke-width=".8"/> <circle cx="50" cy="3.5" r="3.2" fill="#f0b941" stroke="#f0b941" stroke-width=".8"/> <circle cx="94" cy="24" r="3.2" fill="#f0b941" stroke="#f0b941" stroke-width=".8"/></svg></svg>';
   var CHEV_SVG = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
   var CHEV_RIGHT = '<svg class="chev-r" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
   var BACK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
@@ -3908,15 +3909,14 @@
     }
     col.appendChild(head);
     var main = h('div', { class: 'play-main' }); col.appendChild(main);
-    // wide screens: the reel of Joker Moves on a board beside the menu. Narrower: the app shows the reel above the menu,
-    // the website its big logo. The layout follows the window as it is resized or zoomed (WIDE_MQ below).
-    var wide = WIDE_MQ ? WIDE_MQ.matches : false, reelHost = null;
-    if (wide) reelHost = bw;
-    else if (NATIVE.on) { reelHost = h('div', { class: 'play-reel' }); main.appendChild(reelHost); }
-    if (!NATIVE.on) main.appendChild(h('div', { class: 'play-mark', 'aria-hidden': 'true' }, LOGO_BIG));
+    // the reel of Joker Moves: on a board beside the menu on wide screens, above the menu otherwise; the layout follows
+    // the window as it is resized or zoomed (WIDE_MQ below)
+    var wide = WIDE_MQ ? WIDE_MQ.matches : false, reelHost = wide ? bw : h('div', { class: 'play-reel' });
     var reelCap = h('div', { class: 'play-reel-cap', 'aria-live': 'polite' });
+    if (!wide) main.appendChild(reelHost);
     var acts = h('div', { class: 'play-actions' });
     main.appendChild(acts);
+    if (NETCFG) acts.appendChild(h('h2', { class: 'play-h' }, esc(T('playH')))); // the panel's title on tablet and desktop
     var lr = localResume(); if (lr) acts.appendChild(lr);
     if (liveOnlineGame()) {
       // a game is on: the only thing to do here is to go back to it
@@ -3947,8 +3947,7 @@
       } else if (window.GC_SITE) acts.appendChild(h('div', { class: 'offline-note' }, esc(T('onlineElsewhere')) + ' <a class="site-link" href="' + esc(window.GC_SITE) + '" target="_blank" rel="noopener">' + esc(window.GC_SITE.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>'));
     }
     // the reel plays on the Play tab only (learnKit.active pauses it elsewhere)
-    if (reelHost && kit()) { learnKit.heroBoard(reelHost, reelCap); reelHost.appendChild(reelCap); }
-    else if (learnKit) learnKit.active(curView); // no reel on this layout: keep its board still
+    if (kit()) { learnKit.heroBoard(reelHost, reelCap); reelHost.appendChild(reelCap); }
   }
   function onlineTc() { return ONLINE_TCS.indexOf(lastSetup.otc) >= 0 ? lastSetup.otc : '3+2'; }
   function bigBtn(cls, label, id, fn) {
