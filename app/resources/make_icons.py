@@ -10,7 +10,7 @@ ROOT = os.path.dirname(APP)
 RES = os.path.join(APP, 'android/app/src/main/res')
 IOS = os.path.join(APP, 'ios/App/App/Assets.xcassets')
 
-GROUND, DARK, LIGHT, INK = '#232826', '#ebe5d6', '#f4efe4', '#232826'
+GROUND, DARK, LIGHT, INK = '#232826', '#232826', '#2b302e', '#f0b941'
 
 
 def star(cx, cy, r):
@@ -104,7 +104,7 @@ def splash_svg(w, h, size):
     # the knight and the star (no board) in the middle of the launch screen; size = width of the 1024 design
     k = size / 1024
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}">{defs(92)}{ART_DEFS}'
-            f'<rect width="{w}" height="{h}" fill="{GROUND}"/><g transform="translate({w / 2 - size / 2:.2f} {h / 2 - size / 2:.2f}) scale({k:.5f})">{art(color="#f4efe4")}</g></svg>')
+            f'<rect width="{w}" height="{h}" fill="{GROUND}"/><g transform="translate({w / 2 - size / 2:.2f} {h / 2 - size / 2:.2f}) scale({k:.5f})">{art(color="#f0b941")}</g></svg>')
 
 
 async def render(page, svg, w, h, path, alpha=True):
