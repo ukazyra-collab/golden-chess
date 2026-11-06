@@ -6,7 +6,10 @@ import json, random, uuid, os, datetime
 
 random.seed(20261106)
 HERE = os.path.dirname(os.path.abspath(__file__))
-# name, level (1-8), target rating — ordinary-looking names, nicknames and plain dumb handles side by side
+# name, level (1-8), target rating — ordinary-looking names, nicknames and plain dumb handles side by side.
+# The levels written here are the ones first seeded; 20261106180000_house_levels.sql then set every player's level from
+# its target (rating + ~300 on the engine's scale, see that file) — a new batch should draw its level the same way:
+#   level_for(target) = 2 if target < 750 else 3 if < 975 else 4 if < 1175 else 5 if < 1450 else 6 if < 1775 else 7 if < 2075 else 8
 P = [
   ('abc256', 3, 1290), ('555xyz', 2, 1040), ('qwerty88', 4, 1380), ('user31337', 5, 1615), ('aaa111', 1, 790), ('zzz_top', 4, 1455),
   ('x_x_x', 3, 1210), ('player1', 2, 980), ('guest4521', 3, 1335), ('mmm123', 1, 860), ('asdf', 4, 1420), ('1234567', 2, 1120),

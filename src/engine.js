@@ -34,7 +34,7 @@ var Engine = (function (GC) {
   var history = new Int32Array(2 * 128 * 128);
   var repLo = new Int32Array(4096), repHi = new Int32Array(4096), repN = 0;
   var nodes = 0, stopped = false, deadline = 0, nodeLimit = 0;
-  var noiseAmp = 0;
+  var noiseAmp = 0, rootPly = 0;
   var candTmpM = new Int32Array(1024), candTmpS = new Int32Array(1024);
   var emptiesTmp = new Int16Array(64);
 
@@ -456,7 +456,10 @@ var Engine = (function (GC) {
     var maxDepth = Math.min(opts.maxDepth || lv.depth || 64, 64);
     deadline = t0 + Math.max(10, timeMs);
     nodeLimit = opts.nodes || 0;
-    nodes = 0; stopped = false; noiseAmp = opts.analysis ? 0 : lv.noise;
+    // the opening: half the eval noise (it drowns the small differences development makes, and the weak levels
+    // then wander), so the first moves out of the book look like a club player's, not a random walk
+    rootPly = (pos.fullmove - 1) * 2 + pos.side;
+    nodes = 0; stopped = false; noiseAmp = opts.analysis ? 0 : lv.noise * (rootPly < OPENING_PLIES ? 0.5 : 1);
     killers.fill(0);
 
     var rootAll = pos.legalMoves(true);
@@ -547,6 +550,21 @@ var Engine = (function (GC) {
     };
   }
 
+  // What club players hardly ever do in the opening, however the eval looks: walk a piece back home, take the king for
+  // a stroll, shuffle a rook before castling, push an edge pawn, bring the queen out at once. The weak levels sample
+  // among near-equal moves, and without this they land on such moves as often as on natural ones.
+  var OPENING_PLIES = 16;
+  var HOME = [{ 1: KNIGHT, 6: KNIGHT, 2: BISHOP, 5: BISHOP, 3: QUEEN }, { 0x71: KNIGHT, 0x76: KNIGHT, 0x72: BISHOP, 0x75: BISHOP, 0x73: QUEEN }];
+  function humanPrior(m) {
+    if (rootPly >= 20 || (m & (F_GOLDEN | F_CAPTURE | GC.F_CASTLE))) return 1;
+    var from = m & 127, to = (m >> 7) & 127, t = pos.board[from] & 7, side = pos.side;
+    if (HOME[side][to] === t) return 0.12;
+    if (t === KING && !pos.inCheck()) return 0.08;
+    if (t === ROOK && (pos.castling & (side === WHITE ? 3 : 12))) return 0.3;
+    if (t === PAWN && ((to & 7) === 0 || (to & 7) === 7) && rootPly < 12) return 0.4;
+    if (t === QUEEN && rootPly < 8) return 0.5;
+    return 1;
+  }
   // Weak levels: sample among near-best moves; all golden moves together count as one option.
   function choose(root, lv) {
     var best = -INF, i;
@@ -558,11 +576,14 @@ var Engine = (function (GC) {
     if (bestGold) cands.push(bestGold);
     for (i = 0; i < cands.length; i++) if (cands[i].s > best) best = cands[i].s;
     if (Math.abs(best) > MATE_BOUND) { for (i = 0; i < cands.length; i++) if (cands[i].s === best) return cands[i]; }
+    // the opening is played closer to the best move (the differences there are small, the mistakes come later)
+    var opening = rootPly < OPENING_PLIES, temp = lv.temp * (opening ? 0.6 : 1), margin = lv.margin * (opening ? 0.5 : 1);
     var w = [], tot = 0;
     for (i = 0; i < cands.length; i++) {
       var d = cands[i].s - best;
-      var wt = d < -lv.margin ? 0 : Math.exp(d / lv.temp);
+      var wt = d < -margin ? 0 : Math.exp(d / temp);
       if (cands[i].gold && d < 0) wt *= 0.25; // weak bots rarely burn the golden move on a whim
+      wt *= humanPrior(cands[i].m);
       w.push(wt); tot += wt;
     }
     var x = Math.random() * tot;

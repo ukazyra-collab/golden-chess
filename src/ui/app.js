@@ -912,6 +912,7 @@
       ms *= Math.exp(gauss() * 0.33);
       if (moveNo > 8 && Math.random() < 0.12) ms *= 1.8;
       if (recapture) ms = Math.min(ms, 450 + Math.random() * 550);
+      if (moveNo <= 8) ms = Math.min(ms, 1300 + Math.random() * 1700); // early moves come quickly even out of book
       if (golden) ms = ms * 1.3 + 900;
       ms = Math.max(450, Math.min(lvl >= 6 ? 9000 : 6500, ms));
     }
@@ -935,9 +936,12 @@
     }
     botReq = { id: id, timer: 0 };
     renderBars(); renderSide();
-    bot.think({ id: id, fen: game.startFen, moves: game.records.map(function (r) { return r.uci; }), timeMs: budget, level: lvl }, function (res) {
+    var moves = game.records.map(function (r) { return r.uci; });
+    // the opening from the book (the engine's noise at the lower levels picks odd moves there), played quickly
+    var book = game.startFen === GC.START_FEN && window.GCBook ? GCBook.pick(moves, lvl) : null;
+    var answer = function (res, fromBook) {
       if (!botReq || botReq.id !== id) return;
-      var wait = Math.max(0, (window.__gcFastBot ? 0 : botThinkMs(res && res.uci)) - (perf() - t0));
+      var wait = Math.max(0, (window.__gcFastBot ? 0 : fromBook ? bookThinkMs(1) : botThinkMs(res && res.uci)) - (perf() - t0));
       botReq.timer = setTimeout(function () {
         if (!botReq || botReq.id !== id) return;
         botReq = null;
@@ -946,7 +950,15 @@
         if (!m) m = game.legal[0];
         if (m) commit(m, false, 'bot');
       }, wait);
-    });
+    };
+    if (book) answer({ uci: book }, true);
+    else bot.think({ id: id, fen: game.startFen, moves: moves, timeMs: budget, level: lvl }, answer);
+  }
+  // a book move takes a moment, as if remembered (now and then a little longer); tempo scales it (house players)
+  function bookThinkMs(tempo) {
+    var ms = 350 + Math.random() * 650;
+    if (Math.random() < 0.1) ms = 1200 + Math.random() * 1200;
+    return ms * (tempo || 1);
   }
   function cancelBot() {
     if (botReq) { clearTimeout(botReq.timer); botReq = null; }
@@ -2627,7 +2639,15 @@
     }
     var id = ++reqSeq;
     o.houseReq = id;
-    bot.think({ id: id, fen: game.startFen, moves: game.records.map(function (r) { return r.uci; }), timeMs: budget, level: lvl }, function (res) {
+    var moves = game.records.map(function (r) { return r.uci; });
+    var book = game.startFen === GC.START_FEN && window.GCBook ? GCBook.pick(moves, lvl) : null;
+    if (book) {
+      // a book move: played from memory, quickly; nothing to resign or offer a draw over here
+      var bt = fast ? 0 : bookThinkMs(st.tempo || 1);
+      houseLater(o, bt, function () { if (houseValid(o, ply)) houseMove(o, ply, book, Math.max(200, Math.round(bt + 120))); });
+      return;
+    }
+    bot.think({ id: id, fen: game.startFen, moves: moves, timeMs: budget, level: lvl }, function (res) {
       if (o.houseReq !== id || !houseValid(o, ply)) return;
       var score = res && typeof res.score === 'number' ? res.score : 0, uci = res && res.uci;
       var think = fast ? 0 : houseThinkMs(lvl, uci, hc, st);
@@ -2717,6 +2737,7 @@
       ms *= Math.exp(gauss() * 0.45);
       if (moveNo > 8 && Math.random() < 0.12) ms *= 2.4; // the long think now and then
       if (recapture) ms = Math.min(ms, 350 + Math.random() * 500);
+      if (moveNo <= 8) ms = Math.min(ms, 1200 + Math.random() * 1800); // early moves come quickly even out of book
       if (golden) ms = ms * 1.3 + 900;
       ms = Math.max(400, Math.min(lvl >= 6 ? 25000 : 18000, ms));
     }
