@@ -7,3 +7,4 @@ vendor/fontsource-*/
 test/shots/
 test/calib/
 *.log
+__pycache__/

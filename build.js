@@ -35,19 +35,29 @@ for (const [k, svg] of Object.entries(pieces)) css += `.p-${k}{background-image:
 const SCENE = rd('app/resources/scene.svg').replace(/^<\?xml[^>]*>\s*/, '');
 const core = rd('src/core.js'), engine = rd('src/engine.js');
 const workerSrc = [core, engine, rd('src/worker.js')].join('\n;\n');
-const mainSrc = [core, engine, rd('src/book.js'), rd('src/review.js'), rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/puzzles.js'), rd('src/ui/learn.js'), rd('src/ui/bots.js'), rd('src/ui/app.js')].join('\n;\n');
+// the icon (app/resources/icon.svg, made by app/resources/brand.py): the logo in the page and the favicon
+const ICON_INNER = rd('app/resources/icon.svg').replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+if (/'/.test(ICON_INNER)) throw new Error('icon.svg contains a single quote');
+const LOGO = '<svg class="logo" viewBox="0 0 100 100" aria-hidden="true">' + ICON_INNER + '</svg>';
+// the name (app/resources/wordmark.svg, made by app/resources/make_wordmark.py)
+const WORDMARK = rd('app/resources/wordmark.svg').trim().replace(/^<svg xmlns="[^"]*" /, '<svg ');
+if (/'/.test(WORDMARK)) throw new Error('wordmark.svg contains a single quote');
+// each copy put in the page gets its own ids (clip paths, masks)
+let uniqN = 0;
+const uniq = (svg) => { const n = 'b' + (++uniqN); return svg.replace(/id="([^"]+)"/g, 'id="$1' + n + '"').replace(/url\(#([^)]+)\)/g, 'url(#$1' + n + ')'); };
+const mainSrc = [core, engine, rd('src/book.js'), rd('src/review.js'), rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/puzzles.js'), rd('src/ui/learn.js'), rd('src/ui/bots.js'), rd('src/ui/app.js').replace("'__LOGO_SVG__'", () => "'" + LOGO + "'").replace("'__WORDMARK__'", () => "'" + WORDMARK + "'")].join('\n;\n');
 const supa = rd('vendor/supabase-js-2.117.2.umd.js');
 for (const [name, src] of [['worker', workerSrc], ['main', mainSrc], ['supabase', supa]]) if (/<\/script/i.test(src)) throw new Error(name + ' contains </script');
 
-const page = (pre) => rd('src/ui/template.html').replace('/*PIECE_CSS*/', () => css).replace('<!--INTRO_SCENE-->', () => SCENE).replace('/*ENGINE_SRC*/', () => workerSrc).replace('/*MAIN_SRC*/', () => pre + mainSrc);
+const page = (pre) => rd('src/ui/template.html').replace('/*PIECE_CSS*/', () => css).replace('<!--INTRO_SCENE-->', () => SCENE).replace(/<!--LOGO-->/g, () => uniq(LOGO)).replace(/<!--WORDMARK-->/g, () => uniq(WORDMARK)).replace('/*ENGINE_SRC*/', () => workerSrc).replace('/*MAIN_SRC*/', () => pre + mainSrc);
 const body = page('');
 // the artifact can't reach the game server, so it points to the website for online play
 const artifactBody = page('window.GC_SITE = ' + JSON.stringify(SITE) + ';\n');
 const RESET = '<style>:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}html{box-sizing:border-box}body{margin:0;font:14px system-ui}img{max-width:100%}[hidden]{display:none!important}</style>';
 const doc = (head, b) => '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">' + head + RESET + '</head><body>' + b + '</body></html>\n';
 
-// the same mark as the logo in the page (LOGO_SVG in app.js)
-const ICON = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7.2" fill="#232826"/><svg x="2.5" y="2.5" width="27" height="27" viewBox="0 0 100 100"><rect x="24" y="90" width="52" height="9" rx="4" fill="#f0b941"/> <rect x="24" y="90" width="52" height="5" rx="3" fill="#f0b941"/> <rect x="30" y="84" width="40" height="8" rx="3" fill="#f0b941"/> <path d="M40 86 L41 70 L59 70 L60 86 Z" fill="#f0b941"/> <path d="M43 86 L44 72 L56 72 L57 86 Z" fill="#f0b941"/> <path d="M31 40 C25 35 25 27 30 25 C34 28 36 34 36 40 Z" fill="#f0b941"/> <path d="M69 40 C75 35 75 27 70 25 C66 28 64 34 64 40 Z" fill="#f0b941"/> <circle cx="50" cy="54" r="27" fill="#f0b941"/> <circle cx="50" cy="56" r="21" fill="#f0b941"/> <ellipse cx="50" cy="66" rx="14" ry="9" fill="#f0b941"/> <path d="M40 67 C44 74 56 74 60 67" fill="#f0b941" stroke="#f0b941" stroke-width="2.8" stroke-linecap="round"/> <circle cx="50" cy="60" r="7" fill="#f0b941"/> <ellipse cx="47.4" cy="57.4" rx="2" ry="1.4" fill="#f0b941" /> <ellipse cx="41" cy="49" rx="4.8" ry="5.2" fill="#f0b941"/><ellipse cx="59" cy="49" rx="4.8" ry="5.2" fill="#f0b941"/> <circle cx="41.6" cy="49.6" r="3.2" fill="#f0b941"/><circle cx="59.6" cy="49.6" r="3.2" fill="#f0b941"/> <circle cx="42.8" cy="48.2" r="1.1" fill="#f0b941"/><circle cx="60.8" cy="48.2" r="1.1" fill="#f0b941"/> <path d="M35.5 42.5 C38.5 39.5 43.5 39.5 46 41.5" fill="#f0b941" stroke="#f0b941" stroke-width="2.3" stroke-linecap="round"/> <path d="M54 41.5 C56.5 39.5 61.5 39.5 64.5 42.5" fill="#f0b941" stroke="#f0b941" stroke-width="2.3" stroke-linecap="round"/> <path d="M34 30 C26 24 14 20 6 24 C14 26 20 30 26 36 Z" fill="#f0b941"/> <path d="M35 34 C45 31 48.5 20 50 2 C51.5 20 55 31 65 34 Z" fill="#f0b941"/> <path d="M66 30 C74 24 86 20 94 24 C86 26 80 30 74 36 Z" fill="#f0b941"/> <path d="M29 35 C40 26 60 26 71 35 L71 39 C60 31 40 31 29 39 Z" fill="#f0b941"/> <circle cx="6" cy="24" r="3.2" fill="#f0b941" stroke="#f0b941" stroke-width=".8"/> <circle cx="50" cy="3.5" r="3.2" fill="#f0b941" stroke="#f0b941" stroke-width=".8"/> <circle cx="94" cy="24" r="3.2" fill="#f0b941" stroke="#f0b941" stroke-width=".8"/></svg></svg>');
+// the favicon: the same icon as the logo in the page
+const ICON = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' + ICON_INNER + '</svg>');
 const DESC = 'Chess with one Joker Move per game: teleport a queen, rook, bishop or knight to any empty square. Play the bot, a friend, or rated games online.';
 // plain http (an old link, the github.io redirect before HTTPS is enforced) goes to https: one origin, one saved session
 const TO_HTTPS = '<script>if(location.protocol==="http:"&&/(^|\\.)golden-chess\\.com$/.test(location.hostname))location.replace("https://golden-chess.com"+location.pathname+location.search+location.hash)</script>';

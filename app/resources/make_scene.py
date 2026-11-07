@@ -2,14 +2,16 @@
 # Writes app/resources/scene.svg (a 390x844 portrait design that also covers wider canvases: the board and the
 # background run past the box). Used by the website's launch intro (build.js inlines it) and by the native
 # splash images (make_icons.py). Run: python3 app/resources/make_scene.py
-import base64, json, os, re
+import base64, json, os, re, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import brand
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 MARK = open(os.path.join(HERE, 'mark.svg'), encoding='utf-8').read()
 PIECES = json.load(open(os.path.join(ROOT, 'build/pieces.json')))
 
-BG, LIGHT, DARK = '#232826', '#3a4542', '#2b3331'
+BG, LIGHT, DARK = '#232826', brand.GREEN_LIGHT, brand.GREEN_DARK
 W, H = 390, 844
 # the scene sits high, like chess.com's: the wordmark above it (the intro's .intro-word, clear of iOS banners at the top),
 # the board running down off the bottom; DY lifts board, pieces and Joker together
@@ -47,8 +49,7 @@ def board():
 
 
 def scene_inner():
-    mark = re.search(r'<svg[^>]*>(.*)</svg>', MARK, re.S).group(1)
-    mark = re.sub(r'\s+', ' ', mark).strip().replace('fill="#f4efe4"', 'fill="url(#jg)"').replace('stroke="#f4efe4"', 'stroke="url(#jg)"')
+    mark = brand.piece('sc')  # the Joker, shaded from the side like the icon
     knight = piece('bN', '#3b4340', '#1d2220', '#4a5350')
     rook = piece('bR', '#3b4340', '#1d2220', '#4a5350')
     return (

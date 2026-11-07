@@ -1,7 +1,9 @@
-# Draws the app icons and launch screens for iOS, Android and the website from one design: the Joker Chess mascot
-# (app/resources/mascot.svg) on a 2x2 corner of a chessboard in the site's charcoal tones.
+# Draws the app icons and launch screens for iOS, Android and the website from one design (app/resources/brand.py):
+# the gold Joker piece, shaded from the side, on a 2x2 corner of the board in two greens.
 # Run from anywhere: python3 app/resources/make_icons.py   (needs Playwright with Chromium, and Pillow)
-import asyncio, io, os, re
+import asyncio, io, os, re, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import brand
 from PIL import Image
 from playwright.async_api import async_playwright
 
@@ -76,28 +78,29 @@ def art(mono=False, scale=0.84, color=INK):
 
 
 def icon_svg(px, shape='square'):
-    # 1024 design units; shape: square (iOS, web: the system rounds it), rounded or round (old Android)
+    # shape: square (iOS, web: the system rounds it), rounded or round (old Android)
     clip = ''
     if shape == 'round':
-        clip = '<clipPath id="c"><circle cx="512" cy="512" r="512"/></clipPath>'
+        clip = '<clipPath id="c"><circle cx="50" cy="50" r="50"/></clipPath>'
     elif shape == 'rounded':
-        clip = '<clipPath id="c"><rect width="1024" height="1024" rx="225"/></clipPath>'
-    body = board(1024) + art(scale=0.72 if shape == 'round' else 0.84)
+        clip = '<clipPath id="c"><rect width="100" height="100" rx="22"/></clipPath>'
+    body = brand.board() + brand.figure('i', 0.70 if shape == 'round' else 0.78)
     if clip:
-        body = f'<g clip-path="url(#c)">{body}</g>'
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="{px}" height="{px}">{defs(92)}{ART_DEFS}{clip and "<defs>" + clip + "</defs>"}{body}</svg>'
+        body = f'<defs>{clip}</defs><g clip-path="url(#c)">{body}</g>'
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="{px}" height="{px}">{body}</svg>'
 
 
 def foreground_svg(px):
-    # Android adaptive icon, front layer: 108dp, of which the middle 72dp show (66dp on round masks)
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="{px}" height="{px}">{defs(92)}{ART_DEFS}'
-            f'<g transform="translate(18 18) scale({72 / 1024})">{art()}</g></svg>')
+    # Android adaptive icon, front layer: 108dp, of which the middle 72dp show (66dp on round masks); the board is the
+    # back layer (res/drawable/ic_launcher_background.xml)
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="{px}" height="{px}">'
+            f'<g transform="translate(18 18) scale(.72)">{brand.figure("f", 0.74)}</g></svg>')
 
 
 def monochrome_svg(px):
     # Android 13 themed icons: only the shape counts
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="{px}" height="{px}">'
-            f'<g transform="translate(18 18) scale({72 / 1024})">{art(mono=True)}</g></svg>')
+            f'<g transform="translate(18 18) scale(.72)"><g transform="translate(13 12) scale(.74)">{brand.piece("m", flat="#fff")}</g></g></svg>')
 
 
 SCENE_FILE = os.path.join(APP, 'resources/scene.svg')
