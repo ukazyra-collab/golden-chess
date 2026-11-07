@@ -938,6 +938,14 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 .bot-color .seg button { flex: 1; }
 .cta-bar { position: sticky; bottom: 0; z-index: 3; margin-top: 2px; padding: 16px 0 calc(18px + env(safe-area-inset-bottom, 0px) * 0); background: linear-gradient(rgba(42, 47, 45, 0), var(--ground) 30%); }
 @media (min-width: 768px) { .bot-grid { gap: 18px 16px; } }
+/* a phone where the page comes out a little taller than the screen: tighter, so it fits without scrolling (app.js squeeze) */
+.tight .bots-page { gap: 10px; padding-top: 10px; }
+.tight .bot-hero { padding: 14px; gap: 10px 14px; }
+.tight .bot-grid { row-gap: 8px; }
+.tight .bot-tile { gap: 4px; }
+.tight .bot-bio { line-height: 1.4; }
+.tight .bot-group { margin: 0 0 -4px; }
+.tight .cta-bar { padding-top: 10px; padding-bottom: 12px; }
 
 /* ---- sign in ---- */
 .signin { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column;

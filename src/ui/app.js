@@ -4823,8 +4823,25 @@
   // Watched as the content changes size (a page re-rendered, a list loaded, the window resized).
   function fitPages() {
     if (typeof ResizeObserver === 'undefined') return;
+    // Play and Bots are one-screen pages on a phone: when they come out a little taller than the screen (a short
+    // phone, the status bar and the home bar taking their share), the reel board gets smaller / the gaps tighter
+    function squeeze(pg) {
+      if (window.innerWidth >= 768) { pg.classList.remove('tight'); return; }
+      var reel = pg.querySelector('.play-reel');
+      if (reel) {
+        reel.style.width = '';
+        var d = pg.scrollHeight - pg.clientHeight;
+        if (d > 0) reel.style.width = Math.max(170, reel.offsetWidth - d - 2) + 'px';
+      }
+      if (pg.id === 'view-bots') {
+        pg.classList.remove('tight');
+        var d2 = pg.scrollHeight - pg.clientHeight;
+        if (d2 > 0 && d2 <= 140) pg.classList.add('tight');
+      }
+    }
     function fit(pg) {
-      var fits = pg.scrollHeight - pg.clientHeight <= 8 && !pg.classList.contains('snap');
+      if (pg.id === 'view-play' || pg.id === 'view-bots') squeeze(pg);
+      var fits = pg.scrollHeight - pg.clientHeight <= 12 && !pg.classList.contains('snap');
       if (fits && pg.scrollTop) pg.scrollTop = 0;
       pg.classList.toggle('fits', fits);
     }

@@ -947,6 +947,14 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 .bot-color .seg button { flex: 1; }
 .cta-bar { position: sticky; bottom: 0; z-index: 3; margin-top: 2px; padding: 16px 0 calc(18px + env(safe-area-inset-bottom, 0px) * 0); background: linear-gradient(rgba(42, 47, 45, 0), var(--ground) 30%); }
 @media (min-width: 768px) { .bot-grid { gap: 18px 16px; } }
+/* a phone where the page comes out a little taller than the screen: tighter, so it fits without scrolling (app.js squeeze) */
+.tight .bots-page { gap: 10px; padding-top: 10px; }
+.tight .bot-hero { padding: 14px; gap: 10px 14px; }
+.tight .bot-grid { row-gap: 8px; }
+.tight .bot-tile { gap: 4px; }
+.tight .bot-bio { line-height: 1.4; }
+.tight .bot-group { margin: 0 0 -4px; }
+.tight .cta-bar { padding-top: 10px; padding-bottom: 12px; }
 
 /* ---- sign in ---- */
 .signin { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column;
@@ -10159,8 +10167,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   // Watched as the content changes size (a page re-rendered, a list loaded, the window resized).
   function fitPages() {
     if (typeof ResizeObserver === 'undefined') return;
+    // Play and Bots are one-screen pages on a phone: when they come out a little taller than the screen (a short
+    // phone, the status bar and the home bar taking their share), the reel board gets smaller / the gaps tighter
+    function squeeze(pg) {
+      if (window.innerWidth >= 768) { pg.classList.remove('tight'); return; }
+      var reel = pg.querySelector('.play-reel');
+      if (reel) {
+        reel.style.width = '';
+        var d = pg.scrollHeight - pg.clientHeight;
+        if (d > 0) reel.style.width = Math.max(170, reel.offsetWidth - d - 2) + 'px';
+      }
+      if (pg.id === 'view-bots') {
+        pg.classList.remove('tight');
+        var d2 = pg.scrollHeight - pg.clientHeight;
+        if (d2 > 0 && d2 <= 140) pg.classList.add('tight');
+      }
+    }
     function fit(pg) {
-      var fits = pg.scrollHeight - pg.clientHeight <= 8 && !pg.classList.contains('snap');
+      if (pg.id === 'view-play' || pg.id === 'view-bots') squeeze(pg);
+      var fits = pg.scrollHeight - pg.clientHeight <= 12 && !pg.classList.contains('snap');
       if (fits && pg.scrollTop) pg.scrollTop = 0;
       pg.classList.toggle('fits', fits);
     }
