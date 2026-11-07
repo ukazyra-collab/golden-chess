@@ -18,7 +18,10 @@ export function createMemoryRepo(now) {
     return clone(g);
   }
   // the fresh seeks for the same game by someone else, closest in rating first, then the longest waiting
-  const fresh = (a, t) => [...db.seeks.values()].filter((s) => s.tc === a.tc && s.rated === a.rated && s.user_id !== a.user && t - s.updated < 30000)
+  // (not someone they have just played: a finished game between the two in the last 15 minutes)
+  const justPlayed = (u, v, t) => [...db.games.values()].some((g) => g.status === 'over' && t - Date.parse(g.updated_at) < 15 * 60000 &&
+    ((g.white_id === u && g.black_id === v) || (g.white_id === v && g.black_id === u)));
+  const fresh = (a, t) => [...db.seeks.values()].filter((s) => s.tc === a.tc && s.rated === a.rated && s.user_id !== a.user && t - s.updated < 30000 && !justPlayed(a.user, s.user_id, t))
     .sort((x, y) => Math.abs(x.rating - a.rating) - Math.abs(y.rating - a.rating) || x.since - y.since);
   // the game between two people (colours by lot), the seeks of both cleared
   function pairGame(a, other) {

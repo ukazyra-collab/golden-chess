@@ -353,6 +353,7 @@ async def main():
 
             # ---- 16. leaving: away during the opponent's turn is fine (the game waits); on one's own turn 20 s away loses,
             #          with a countdown on the other screen; coming back in time just goes on
+            admin('forgetgames')  # A and B have just played: the search would keep them apart for a quarter of an hour
             for pg in (A, B): await pg.evaluate('window.__gcSeekMs = 60000; __gc.startSeek("3+2", true)')
             ok('left: A and B paired again', await wait_for(A, '__gc.online && __gc.game.status === "playing" && __gc.online.s.moves.length === 0', 20000) and await wait_for(B, '__gc.online && __gc.game.status === "playing"', 9000))  # their ratings have drifted apart: the window widens for a few seconds
             W, Bl = (A, B) if await A.evaluate('__gc.online.color') == 0 else (B, A)

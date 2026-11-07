@@ -21,13 +21,15 @@ const [E, F, G] = PG ? ['ffffffff-0000-4000-8000-000000000006', 'ffffffff-0000-4
 const [M1, M2, M3] = PG ? ['99999999-0000-4000-8000-000000000011', '99999999-0000-4000-8000-000000000012', '99999999-0000-4000-8000-000000000013'] : ['mona', 'milo', 'mira'];
 let repo, inspect, cleanup = async () => {}, addHouse, pg;
 // test knobs for matchmaking: when a player last opened the app (null: not lately), how long a search has run, a rating
-let setSeen, quietAll, ageSeek, setRating;
+let setSeen, quietAll, ageSeek, setRating, playedAgo;
+// playedAgo(u, v, ms): the finished games between two players ended ms ago (the search keeps just-met players apart)
 if (PG) {
   const { setupPg } = await import('./pg-harness.mjs');
   ({ repo, inspect, cleanup, pg } = await setupPg([A, B, C, D, H, E, F, G, M1, M2, M3]));
   setSeen = (uid, on) => pg.query('update public.profiles set last_seen = ' + (on ? 'now()' : 'null') + ' where id = $1', [uid]);
   quietAll = () => pg.query('update public.profiles set last_seen = null');
   ageSeek = (uid, ms) => pg.query('update public.seeks set since = since - make_interval(secs => $2) where user_id = $1', [uid, ms / 1000]);
+  playedAgo = (u, v, ms) => pg.query("update public.games set updated_at = now() - make_interval(secs => $3) where status = 'over' and ((white_id = $1 and black_id = $2) or (white_id = $2 and black_id = $1))", [u, v, ms / 1000]);
   setRating = (uid, pool, rating) => pg.query('insert into public.ratings (user_id, pool, rating, rd, vol, games) values ($1, $2, $3, 80, 0.06, 10) on conflict (user_id, pool) do update set rating = excluded.rating', [uid, pool, rating]);
   // a house player as the seed script makes one: a profile marked house, its house row, a rating at its target
   addHouse = async (o) => {
@@ -44,6 +46,7 @@ if (PG) {
   setSeen = async (uid, on) => { const p = m.db.profiles.get(uid); if (p) p.last_seen = on ? new Date(T).toISOString() : null; };
   quietAll = async () => { for (const p of m.db.profiles.values()) p.last_seen = null; };
   ageSeek = async (uid, ms) => { const x = m.db.seeks.get(uid); if (x) x.since -= ms; };
+  playedAgo = async (u, v, ms) => { for (const g of m.db.games.values()) if (g.status === 'over' && ((g.white_id === u && g.black_id === v) || (g.white_id === v && g.black_id === u))) g.updated_at = new Date(T - ms).toISOString(); };
   setRating = async (uid, pool, rating) => { const k = uid + '|' + pool; m.db.ratings.set(k, Object.assign(m.db.ratings.get(k) || { user_id: uid, pool, rd: 80, vol: 0.06, games: 10, wins: 0, draws: 0, losses: 0 }, { rating })); };
 }
 const sent = [];
@@ -424,7 +427,7 @@ check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.erro
   const rW = (await inspect.ratings()).find((x) => x.user_id === W && x.pool === 'blitz'), rB = (await inspect.ratings()).find((x) => x.user_id === Bk && x.pool === 'blitz');
   check('left: rated as a win and a loss', rW && rB && rW.rating > rB.rating && rW.wins >= 1 && rB.losses >= 1, [rW, rB]);
   // the other way round: the one who went away comes back too late and learns of the loss from their own move
-  await ok(C, { action: 'seek', tc: '3+2' }); await ageSeek(C, 60000); r = await ok(D, { action: 'seek', tc: '3+2' });
+  await playedAgo(C, D, 20 * 60000); await ok(C, { action: 'seek', tc: '3+2' }); await ageSeek(C, 60000); r = await ok(D, { action: 'seek', tc: '3+2' });
   g = r.game; const W2 = g.white_id, B2 = g.black_id;
   for (const u of [W2, B2]) await ok(u, { action: 'seen', game: g.id });
   await mv2(W2, 'e2e4'); await mv2(B2, 'e7e5'); await mv2(W2, 'g1f3');
@@ -436,7 +439,7 @@ check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.erro
   r = await mv2(B2, 'f8c5');
   check('left: 25 s of silence on one\'s own turn: the move comes too late, the game is lost', r.status === 200 && r.body.game && r.body.game.status === 'over' && r.body.game.reason === 'left' && r.body.game.result === '1-0', r.body);
   // before move two the first-move rule decides (an abort, no loss), and a player whose device never said hello is judged by the clock alone
-  await ok(C, { action: 'seek', tc: '3+2' }); await ageSeek(C, 60000); r = await ok(D, { action: 'seek', tc: '3+2' });
+  await playedAgo(C, D, 20 * 60000); await ok(C, { action: 'seek', tc: '3+2' }); await ageSeek(C, 60000); r = await ok(D, { action: 'seek', tc: '3+2' });
   g = r.game;
   await mv2(g.white_id, 'e2e4'); await mv2(g.black_id, 'e7e5'); await mv2(g.white_id, 'g1f3');
   T += 60000; r = await ok(g.white_id, { action: 'claim', game: g.id });
@@ -483,6 +486,31 @@ if (PG) {
   r = await ok(E, { action: 'seek', tc: '3+2' });
   check('mm: E (1500) gets G (1560), not F (1950)', r.game && [r.game.white_id, r.game.black_id].includes(G), r.game && [r.game.white_id, r.game.black_id]);
   if (r.game) await ok(E, { action: 'resign', game: r.game.id });
+  // two people who have just played each other are not sent to each other again by the search
+  {
+    const ng = r.game ? r.game.id : null; // E vs G above (resigned: aborted before move two, so it doesn't count)
+    await ok(F, { action: 'cancel' });
+    await setRating(E, 'blitz', 1500); await setRating(G, 'blitz', 1500);
+    await ok(E, { action: 'seek', tc: '3+2' });
+    let rr = await ok(G, { action: 'seek', tc: '3+2' });
+    const pg1 = rr.game;
+    await ok(pg1.white_id, { action: 'move', game: pg1.id, uci: 'e2e4', ply: 0 }); await ok(pg1.black_id, { action: 'move', game: pg1.id, uci: 'e7e5', ply: 1 });
+    await ok(G, { action: 'resign', game: pg1.id });
+    await playedAgo(E, G, 60000);
+    await ok(E, { action: 'seek', tc: '3+2' });
+    rr = await ok(G, { action: 'seek', tc: '3+2' });
+    check('mm: just played each other: the search does not pair them again', rr.waiting === true && !rr.game, rr);
+    rr = await ok(G, { action: 'house', tc: '3+2' });
+    check('mm: ...nor does the house fallback: G gets a house player', rr.game && rr.game.house && ![rr.game.white_id, rr.game.black_id].includes(E), rr.game && [rr.game.white_id, rr.game.black_id, rr.game.house]);
+    if (rr.game) await ok(G, { action: 'resign', game: rr.game.id });
+    await ok(E, { action: 'cancel' });
+    await playedAgo(E, G, 16 * 60000);
+    await ok(E, { action: 'seek', tc: '3+2' });
+    rr = await ok(G, { action: 'seek', tc: '3+2' });
+    check('mm: a quarter of an hour later they may meet again', rr.game && [rr.game.white_id, rr.game.black_id].includes(E), rr);
+    if (rr.game) await ok(E, { action: 'resign', game: rr.game.id });
+    void ng;
+  }
   // the house is never seated while a person is searching for the same game, whatever the gap
   await ok(F, { action: 'cancel' });
   await ok(F, { action: 'seek', tc: '3+2' });

@@ -272,6 +272,7 @@ const server = http.createServer(async (req, res) => {
     else if (b.op === 'profiles') out = [...db.profiles.values()].map(clone);
     else if (b.op === 'addhouse') out = { id: addHouse(b) };   // a house player: { name, level, target, style, online_from, online_hours }
     else if (b.op === 'addadmin') db.admins.add(b.uid);
+    else if (b.op === 'forgetgames') { for (const g of db.games.values()) if (g.status === 'over') g.updated_at = iso(now() - 3600000); } // the finished games are an hour old (the search keeps just-met players apart)
     else if (b.op === 'rate') {                                  // a rating row for a player (tests of the leaderboard): { uid, pool, rating, games, wins, draws, losses }
       const t = new Date(now()).toISOString();
       db.ratings.set(b.uid + '|' + b.pool, { user_id: b.uid, pool: b.pool, rating: +b.rating, rd: b.rd || 80, vol: 0.06, games: b.games || 1, wins: b.wins || 0, draws: b.draws || 0, losses: b.losses || 0, updated_at: t });
