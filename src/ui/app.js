@@ -2698,10 +2698,15 @@
     }, 800);
   }
   function onPaired(id) { stopLobby(); if (currentDialog && currentDialog.dataset.kind === 'lobby') closeDialog(); haptic('found'); openOnlineGame(id); }
-  // How long the search "takes" before a house player is seated when no one else is there: 2-3 s (a real search, never
-  // instant). People come first: one searching for the same game is paired instead, and while others have the app open
-  // the server holds the house back up to 6 s of search (gc_house_pair), so a search is over within about 8 s.
-  function seekSpan() { return window.__gcSeekMs != null ? window.__gcSeekMs : 2000 + Math.random() * 1000; }
+  // How long the search "takes" before a house player is seated when no person is found: like a real queue, often
+  // quick (2-3 s), mostly 4-5 s, now and then 6-7.5 s. People come first all along: one searching for the same game
+  // is paired at once, and while others have the app open the server holds the house back for 5 s of search
+  // (gc_house_pair), so a search ends within about 8 s.
+  function seekSpan() {
+    if (window.__gcSeekMs != null) return window.__gcSeekMs;
+    var r = Math.random();
+    return r < 0.3 ? 2000 + Math.random() * 1000 : r < 0.82 ? 3500 + Math.random() * 1800 : 6000 + Math.random() * 1500;
+  }
   function startSeek(tc, rated) {
     stopLobby();
     var L = lobby = { kind: 'seek', tc: tc, rated: rated, t0: perf(), timer: 0, tick: 0, span: seekSpan(), houseTimer: 0 };
@@ -2722,7 +2727,7 @@
     if (lobby !== L) return;
     net.call('house', { tc: L.tc, rated: L.rated }).then(function (r) {
       if (r.game) { if (lobby === L || (online && online.id === r.game.id) || !online) onPaired(r.game.id); return; }
-      if (lobby === L) L.houseTimer = setTimeout(function () { houseSeek(L); }, 1500);
+      if (lobby === L) L.houseTimer = setTimeout(function () { houseSeek(L); }, 1000);
     }, function () { if (lobby === L) L.houseTimer = setTimeout(function () { houseSeek(L); }, 6000); });
   }
   function newOpponent() {

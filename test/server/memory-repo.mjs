@@ -5,7 +5,7 @@ const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
 
 export function createMemoryRepo(now) {
   // as gc_house_pair's house_wait; the browser suites set MOCK_HOUSE_WAIT=0 (their other pages are always "around")
-  const HOUSE_WAIT = process.env.MOCK_HOUSE_WAIT != null ? +process.env.MOCK_HOUSE_WAIT : 6000;
+  const HOUSE_WAIT = process.env.MOCK_HOUSE_WAIT != null ? +process.env.MOCK_HOUSE_WAIT : 5000;
   const iso = (t) => new Date(t).toISOString();
   const db = { games: new Map(), profiles: new Map(), ratings: new Map(), seeks: new Map(), house: new Map(), admins: new Set(), seen: new Map() };
   const GAME_DEFAULTS = { status: 'playing', white_id: null, black_id: null, white_name: null, black_name: null, white_rating: null, black_rating: null,
