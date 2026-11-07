@@ -4,6 +4,8 @@ import crypto from 'node:crypto';
 const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
 
 export function createMemoryRepo(now) {
+  // as gc_house_pair's house_wait; the browser suites set MOCK_HOUSE_WAIT=0 (their other pages are always "around")
+  const HOUSE_WAIT = process.env.MOCK_HOUSE_WAIT != null ? +process.env.MOCK_HOUSE_WAIT : 12000;
   const iso = (t) => new Date(t).toISOString();
   const db = { games: new Map(), profiles: new Map(), ratings: new Map(), seeks: new Map(), house: new Map(), admins: new Set(), seen: new Map() };
   const GAME_DEFAULTS = { status: 'playing', white_id: null, black_id: null, white_name: null, black_name: null, white_rating: null, black_rating: null,
@@ -14,6 +16,18 @@ export function createMemoryRepo(now) {
     const g = Object.assign({}, GAME_DEFAULTS, { id: crypto.randomUUID(), created_at: t, updated_at: t }, clone(row));
     db.games.set(g.id, g);
     return clone(g);
+  }
+  // the fresh seeks for the same game by someone else, closest in rating first, then the longest waiting
+  const fresh = (a, t) => [...db.seeks.values()].filter((s) => s.tc === a.tc && s.rated === a.rated && s.user_id !== a.user && t - s.updated < 30000)
+    .sort((x, y) => Math.abs(x.rating - a.rating) - Math.abs(y.rating - a.rating) || x.since - y.since);
+  // the game between two people (colours by lot), the seeks of both cleared
+  function pairGame(a, other) {
+    db.seeks.delete(other); db.seeks.delete(a.user);
+    const [w, b] = Math.random() < 0.5 ? [a.user, other] : [other, a.user];
+    const rr = (u) => { const r = db.ratings.get(u + '|' + a.pool); return r ? Math.round(r.rating) : 1500; };
+    return insertGame({ white_id: w, black_id: b, white_name: db.profiles.get(w)?.username, black_name: db.profiles.get(b)?.username,
+      white_rating: rr(w), black_rating: rr(b), tc_base: a.base, tc_inc: a.inc, pool: a.pool, rated: a.rated, start_fen: a.startFen, fen: a.startFen,
+      clock_w: a.base, clock_b: a.base });
   }
   const repo = {
     async getGame(id) { return clone(db.games.get(id) || null); },
@@ -54,24 +68,29 @@ export function createMemoryRepo(now) {
         .sort((x, y) => (x.created_at < y.created_at ? 1 : -1))[0];
       if (mine) { db.seeks.delete(a.user); return { game: mine.id }; }
       const t = now();
-      const cands = [...db.seeks.values()].filter((s) => s.tc === a.tc && s.rated === a.rated && s.user_id !== a.user && t - s.updated < 30000)
-        .sort((x, y) => Math.abs(x.rating - a.rating) - Math.abs(y.rating - a.rating) || x.updated - y.updated);
-      if (!cands.length) { db.seeks.set(a.user, { user_id: a.user, tc: a.tc, pool: a.pool, rating: a.rating, rated: a.rated, updated: t }); return { waiting: true }; }
+      const own = db.seeks.get(a.user);
+      const since = own && own.tc === a.tc && own.rated === a.rated && t - own.updated < 30000 ? own.since : t;
+      // close in rating: 150 points at once, 25 more for every second the longer-waiting of the two has searched
+      const cands = fresh(a, t).filter((s) => Math.abs(s.rating - a.rating) <= 150 + 25 * (t - Math.min(s.since, since)) / 1000);
+      if (!cands.length) { db.seeks.set(a.user, { user_id: a.user, tc: a.tc, pool: a.pool, rating: a.rating, rated: a.rated, updated: t, since }); return { waiting: true }; }
       const opp = cands[0];
-      db.seeks.delete(opp.user_id); db.seeks.delete(a.user);
-      const [w, b] = Math.random() < 0.5 ? [a.user, opp.user_id] : [opp.user_id, a.user];
-      const rr = (u) => { const r = db.ratings.get(u + '|' + a.pool); return r ? Math.round(r.rating) : 1500; };
-      const g = insertGame({ white_id: w, black_id: b, white_name: db.profiles.get(w)?.username, black_name: db.profiles.get(b)?.username,
-        white_rating: rr(w), black_rating: rr(b), tc_base: a.base, tc_inc: a.inc, pool: a.pool, rated: a.rated, start_fen: a.startFen, fen: a.startFen,
-        clock_w: a.base, clock_b: a.base });
-      return { game: g.id, opponent: opp.user_id };
+      return { game: pairGame(a, opp.user_id).id, opponent: opp.user_id };
     },
     // a house player (test setups add them with addHouse): the same choice as gc_house_pair, in memory
     async housePair(a) {
       const mine = [...db.games.values()].filter((g) => g.status === 'playing' && (g.white_id === a.user || g.black_id === a.user))
         .sort((x, y) => (x.created_at < y.created_at ? 1 : -1))[0];
+      if (mine) { db.seeks.delete(a.user); return { game: mine.id }; }
+      // a person searching for the same game comes before any house player, whatever the gap in rating
+      const t = now(), people = fresh(a, t);
+      if (people.length) return { game: pairGame(a, people[0].user_id).id, opponent: people[0].user_id };
+      // other people have the app open (and are not in a game): the house waits HOUSE_WAIT of search
+      const own = db.seeks.get(a.user);
+      const since = own && own.tc === a.tc && own.rated === a.rated && t - own.updated < 30000 ? own.since : t;
+      const playing = new Set([...db.games.values()].filter((g) => g.status === 'playing' && t - Date.parse(g.updated_at) < 600000).flatMap((g) => [g.white_id, g.black_id]));
+      const around = [...db.profiles.values()].some((p) => p.id !== a.user && !p.house && p.last_seen && t - Date.parse(p.last_seen) < 120000 && !playing.has(p.id));
+      if (around && t - since < HOUSE_WAIT) return { waiting: true };
       db.seeks.delete(a.user);
-      if (mine) return { game: mine.id };
       const over = [...db.games.values()].filter((g) => g.status === 'over' && (g.white_id === a.user || g.black_id === a.user)).sort((x, y) => (x.updated_at < y.updated_at ? 1 : -1))[0];
       const lastOpp = over ? (over.white_id === a.user ? over.black_id : over.white_id) : null;
       const hour = new Date(now()).getUTCHours();

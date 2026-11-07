@@ -268,7 +268,8 @@ export function createLogic(opts) {
 
   A.cancel = async (uid) => { await repo.deleteSeek(uid); return { ok: true }; };
 
-  // nobody came while the player was searching: seat a house player (a human who took the seek meanwhile wins)
+  // nobody came while the player was searching: seat a house player (a person searching for the same game is paired
+  // instead, and while other people have the app open the house waits a little longer; see gc_house_pair)
   A.house = async (uid, b) => {
     const t = TCS[b.tc];
     if (!t) throw new Fail('bad_tc');
@@ -278,6 +279,8 @@ export function createLogic(opts) {
     if (!res || !res.game) return { waiting: true, now: now() };
     const g = await game(res.game);
     if (res.house) return { game: view(g) };
+    // a person was searching for the same game: they come first
+    if (res.opponent) { await later(broadcast('u:' + res.opponent, 'paired', { game: g.id })); return { game: view(g) }; }
     const s = await settle(g); // one of our own games is still on
     return s.status === 'playing' ? { game: s } : { waiting: true, now: now() };
   };

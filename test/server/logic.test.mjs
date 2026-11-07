@@ -17,10 +17,17 @@ const B = PG ? 'bbbbbbbb-0000-4000-8000-000000000002' : 'bob';
 const C = PG ? 'cccccccc-0000-4000-8000-000000000003' : 'carol';
 const D = PG ? 'dddddddd-0000-4000-8000-000000000004' : 'dave';
 const H = PG ? 'eeeeeeee-0000-4000-8000-000000000005' : 'house1';
+const [E, F, G] = PG ? ['ffffffff-0000-4000-8000-000000000006', 'ffffffff-0000-4000-8000-000000000007', 'ffffffff-0000-4000-8000-000000000008'] : ['erin', 'frank', 'grace'];
 let repo, inspect, cleanup = async () => {}, addHouse, pg;
+// test knobs for matchmaking: when a player last opened the app (null: not lately), how long a search has run, a rating
+let setSeen, quietAll, ageSeek, setRating;
 if (PG) {
   const { setupPg } = await import('./pg-harness.mjs');
-  ({ repo, inspect, cleanup, pg } = await setupPg([A, B, C, D, H]));
+  ({ repo, inspect, cleanup, pg } = await setupPg([A, B, C, D, H, E, F, G]));
+  setSeen = (uid, on) => pg.query('update public.profiles set last_seen = ' + (on ? 'now()' : 'null') + ' where id = $1', [uid]);
+  quietAll = () => pg.query('update public.profiles set last_seen = null');
+  ageSeek = (uid, ms) => pg.query('update public.seeks set since = since - make_interval(secs => $2) where user_id = $1', [uid, ms / 1000]);
+  setRating = (uid, pool, rating) => pg.query('insert into public.ratings (user_id, pool, rating, rd, vol, games) values ($1, $2, $3, 80, 0.06, 10) on conflict (user_id, pool) do update set rating = excluded.rating', [uid, pool, rating]);
   // a house player as the seed script makes one: a profile marked house, its house row, a rating at its target
   addHouse = async (o) => {
     await pg.query('insert into public.profiles (id, username, is_guest, house) values ($1, $2, false, true)', [o.id, o.name]);
@@ -33,6 +40,10 @@ if (PG) {
   repo = m.repo;
   inspect = { profiles: async () => [...m.db.profiles.values()], ratings: async () => [...m.db.ratings.values()], game: async (id) => m.db.games.get(id) };
   addHouse = async (o) => m.addHouse(o);
+  setSeen = async (uid, on) => { const p = m.db.profiles.get(uid); if (p) p.last_seen = on ? new Date(T).toISOString() : null; };
+  quietAll = async () => { for (const p of m.db.profiles.values()) p.last_seen = null; };
+  ageSeek = async (uid, ms) => { const x = m.db.seeks.get(uid); if (x) x.since -= ms; };
+  setRating = async (uid, pool, rating) => { const k = uid + '|' + pool; m.db.ratings.set(k, Object.assign(m.db.ratings.get(k) || { user_id: uid, pool, rd: 80, vol: 0.06, games: 10, wins: 0, draws: 0, losses: 0 }, { rating })); };
 }
 const sent = [];
 const logic = createLogic({ repo, GC, now, broadcast: async (topic, event, payload) => { sent.push({ topic, event, payload }); } });
@@ -284,6 +295,7 @@ check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.erro
 {
   await addHouse({ id: H, name: 'abc256', level: 3, target: 1300, style: { tempo: 0.9 }, games: 120 });
   await ok(D, { action: 'hello' });
+  await quietAll(); // nobody else has the app open: the house needn't wait (see "humans first" below)
   const hp = (await inspect.profiles()).find((p) => p.id === H);
   check('house: the profile is marked as run by the developer', hp && hp.house === true && hp.username === 'abc256', hp);
   r = await ok(D, { action: 'seek', tc: '3+2' });
@@ -411,7 +423,7 @@ check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.erro
   const rW = (await inspect.ratings()).find((x) => x.user_id === W && x.pool === 'blitz'), rB = (await inspect.ratings()).find((x) => x.user_id === Bk && x.pool === 'blitz');
   check('left: rated as a win and a loss', rW && rB && rW.rating > rB.rating && rW.wins >= 1 && rB.losses >= 1, [rW, rB]);
   // the other way round: the one who went away comes back too late and learns of the loss from their own move
-  await ok(C, { action: 'seek', tc: '3+2' }); r = await ok(D, { action: 'seek', tc: '3+2' });
+  await ok(C, { action: 'seek', tc: '3+2' }); await ageSeek(C, 60000); r = await ok(D, { action: 'seek', tc: '3+2' });
   g = r.game; const W2 = g.white_id, B2 = g.black_id;
   for (const u of [W2, B2]) await ok(u, { action: 'seen', game: g.id });
   await mv2(W2, 'e2e4'); await mv2(B2, 'e7e5'); await mv2(W2, 'g1f3');
@@ -423,7 +435,7 @@ check('duplicate move: exactly one applied', [x1, x2].filter((x) => !x.body.erro
   r = await mv2(B2, 'f8c5');
   check('left: 25 s of silence on one\'s own turn: the move comes too late, the game is lost', r.status === 200 && r.body.game && r.body.game.status === 'over' && r.body.game.reason === 'left' && r.body.game.result === '1-0', r.body);
   // before move two the first-move rule decides (an abort, no loss), and a player whose device never said hello is judged by the clock alone
-  await ok(C, { action: 'seek', tc: '3+2' }); r = await ok(D, { action: 'seek', tc: '3+2' });
+  await ok(C, { action: 'seek', tc: '3+2' }); await ageSeek(C, 60000); r = await ok(D, { action: 'seek', tc: '3+2' });
   g = r.game;
   await mv2(g.white_id, 'e2e4'); await mv2(g.black_id, 'e7e5'); await mv2(g.white_id, 'g1f3');
   T += 60000; r = await ok(g.white_id, { action: 'claim', game: g.id });
@@ -448,6 +460,53 @@ if (PG) {
   check('stats: sign-in methods', st.methods && st.methods.google === 1 && st.methods.email === 1, st.methods);
   check('stats: games, active players, the last 30 days by day', st.games >= 5 && st.active30 >= 2 && Array.isArray(st.days) && st.days.length === 31 && st.days.some((d) => d.games >= 1), [st.games, st.active30, st.days && st.days.length]);
   check('stats: house games counted apart', st.games_house30 >= 3 && st.games_house30 <= st.games30, [st.games_house30, st.games30]);
+}
+
+// ---- matchmaking: people play people first; close ratings first; the house only fills in
+{
+  for (const u of [E, F, G]) await ok(u, { action: 'hello' });
+  await setRating(E, 'blitz', 1500); await setRating(F, 'blitz', 1950); await setRating(G, 'blitz', 1560);
+  await quietAll();
+  // far apart in rating: not paired at once...
+  r = await ok(E, { action: 'seek', tc: '3+2' });
+  check('mm: E waits', r.waiting === true, r);
+  r = await ok(F, { action: 'seek', tc: '3+2' });
+  check('mm: 450 points apart, not paired at once', r.waiting === true, r);
+  // ...but the window widens with the wait: 12 s of search, 150 + 25*12 = 450
+  await ageSeek(E, 12000);
+  r = await ok(F, { action: 'seek', tc: '3+2' });
+  check('mm: after 12 s of search the two are paired', r.game && [r.game.white_id, r.game.black_id].includes(E) && [r.game.white_id, r.game.black_id].includes(F), r);
+  if (r.game) await ok(E, { action: 'resign', game: r.game.id });
+  // closest rating first among the people searching
+  await ok(F, { action: 'seek', tc: '3+2' }); await ok(G, { action: 'seek', tc: '3+2' }); await ageSeek(F, 60000); await ageSeek(G, 60000);
+  r = await ok(E, { action: 'seek', tc: '3+2' });
+  check('mm: E (1500) gets G (1560), not F (1950)', r.game && [r.game.white_id, r.game.black_id].includes(G), r.game && [r.game.white_id, r.game.black_id]);
+  if (r.game) await ok(E, { action: 'resign', game: r.game.id });
+  // the house is never seated while a person is searching for the same game, whatever the gap
+  await ok(F, { action: 'cancel' });
+  await ok(F, { action: 'seek', tc: '3+2' });
+  sent.length = 0;
+  r = await ok(E, { action: 'house', tc: '3+2' });
+  check('mm: house asked while F searches: E plays F, not a house player', r.game && [r.game.white_id, r.game.black_id].includes(F) && !r.game.house, r.game && [r.game.white_id, r.game.black_id, r.game.house]);
+  check('mm: F is told about it', sent.some((x) => x.topic === 'u:' + F && x.event === 'paired' && r.game && x.payload.game === r.game.id), sent);
+  if (r.game) await ok(E, { action: 'resign', game: r.game.id });
+  // different game (time control): the house may fill in
+  await ok(F, { action: 'seek', tc: '1+0' });
+  await ok(E, { action: 'seek', tc: '3+2' });
+  r = await ok(E, { action: 'house', tc: '3+2' });
+  check('mm: someone searching another time control does not hold the house back', r.game && r.game.house, r.game && r.game.house);
+  if (r.game) await ok(E, { action: 'resign', game: r.game.id });
+  await ok(F, { action: 'cancel' });
+  // someone else has the app open (not in a game): the house waits 12 s of search
+  await setSeen(G, true);
+  r = await ok(E, { action: 'seek', tc: '3+2' });
+  r = await ok(E, { action: 'house', tc: '3+2' });
+  check('mm: G has the app open: the house waits', r.waiting === true && !r.game, r);
+  await ageSeek(E, 13000);
+  r = await ok(E, { action: 'house', tc: '3+2' });
+  check('mm: 13 s on, the house steps in', r.game && r.game.house, r);
+  if (r.game) await ok(E, { action: 'resign', game: r.game.id });
+  await quietAll();
 }
 
 // leaderboard
