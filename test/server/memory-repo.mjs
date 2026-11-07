@@ -105,6 +105,21 @@ export function createMemoryRepo(now) {
       if (!r || !r.games) return null;
       return [...db.ratings.values()].filter((x) => x.pool === pool && x.games > 0 && x.rating > r.rating).length + 1;
     },
+    async poolSize(pool) { return [...db.ratings.values()].filter((x) => x.pool === pool && x.games > 0).length; },
+    async rowOf(uid, pool) {
+      const r = db.ratings.get(uid + '|' + pool);
+      if (!r || !r.games) return null;
+      return { uid, name: db.profiles.get(uid)?.username || '?', avatar_v: db.profiles.get(uid)?.avatar_v || 0, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses };
+    },
+    async touchSeen(uid) { const p = db.profiles.get(uid); if (p) p.last_seen = iso(now()); },
+    async lobby() {
+      const t = now(), fresh = (x) => x && t - Date.parse(x) < 5 * 60000;
+      const seeks = [...db.seeks.values()].filter((s) => t - s.updated < 30000);
+      const games = [...db.games.values()].filter((g) => g.status === 'playing' && t - Date.parse(g.updated_at) < 3600000).length;
+      const online = new Set([...[...db.profiles.values()].filter((p) => fresh(p.last_seen)).map((p) => p.id),
+        ...[...db.seen.values()].filter((s) => fresh(s.at)).map((s) => s.user_id), ...seeks.map((s) => s.user_id)]);
+      return { seeking: seeks.length, games, online: online.size };
+    },
   };
 
 

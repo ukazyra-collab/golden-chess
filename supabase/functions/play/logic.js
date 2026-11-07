@@ -223,9 +223,12 @@ export function createLogic(opts) {
     if (!prof) throw new Fail('profile');
     // a guest who has since saved the account with an email (or Google) login
     if (guest !== null && prof.is_guest !== guest) prof = (await repo.setGuest(uid, guest)) || Object.assign(prof, { is_guest: guest });
-    const [ratings, live, admin] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid), repo.isAdmin ? repo.isAdmin(uid) : false]);
+    const [ratings, live, admin] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid), repo.isAdmin ? repo.isAdmin(uid) : false, repo.touchSeen ? repo.touchSeen(uid) : null]);
     return { profile: prof, ratings: ratings || [], live: live || null, now: now(), admin: !!admin || undefined };
   };
+
+  // who is around: for the search dialog ("12 players online · 3 games on")
+  A.lobby = async () => Object.assign({ seeking: 0, games: 0, online: 0 }, repo.lobby ? await repo.lobby() : {});
 
   A.rename = async (uid, b) => {
     const name = String(b.name || '').trim().replace(/\s+/g, ' ');
@@ -458,10 +461,13 @@ export function createLogic(opts) {
     throw new Fail('bad_op');
   };
 
+  // the leaderboard: the top 50, the pool's size, the caller's place and (when outside the top) their own row
   A.top = async (uid, b) => {
     const pool = ['bullet', 'blitz', 'rapid'].includes(b.pool) ? b.pool : 'blitz';
-    const [rows, rank] = await Promise.all([repo.top(pool, 50), repo.rankOf ? repo.rankOf(uid, pool) : null]);
-    return { pool, rows: rows || [], rank: rank || null };
+    const [rows, rank, total] = await Promise.all([repo.top(pool, 50), repo.rankOf ? repo.rankOf(uid, pool) : null, repo.poolSize ? repo.poolSize(pool) : null]);
+    const list = rows || [];
+    const me = rank && !list.some((r) => r.uid === uid) && repo.rowOf ? await repo.rowOf(uid, pool) : null;
+    return { pool, rows: list, rank: rank || null, total: total == null ? list.length : total, me: me || null };
   };
 
   // auth: a promise of the caller, either a user id or { sub, guest } (resolved lazily so `move` can overlap

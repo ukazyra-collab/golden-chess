@@ -1,4 +1,5 @@
-/* Synthesized sounds (no samples): wooden knocks for moves, a gilded chime for the Joker Move. */
+/* Synthesized sounds (no samples). Moves are crisp mechanical clicks in the family of the pick-up tick (a shutter, not a
+   wooden thud): a bright snap with a lower click right behind it. The Joker Move is a gilded chime. */
 var Sound = (function () {
   'use strict';
   var ctx = null, master = null, buffers = {}, enabled = true, ready = false;
@@ -47,6 +48,14 @@ var Sound = (function () {
     add(out, tone(sr, 60, body * 2.71, 9, 0.5), 0, 0.22);
     return out;
   }
+  // a piece set down: the shutter click — a bright snap, a lower click 4 ms behind it, a pinch of pitch (no boomy body)
+  function snap(sr, hi, lo, weight) {
+    var n = Math.round(sr * 0.09), out = new Float32Array(n);
+    add(out, click(sr, hi || 4200, 2.2, 2.2, 30), 0, 1.0);
+    add(out, click(sr, lo || 1700, 2.8, 6, 50), Math.round(sr * 0.004), weight || 0.75);
+    add(out, tone(sr, 24, (hi || 4200) * 0.57, 5, 0.3), 0, 0.25);
+    return out;
+  }
   function normalize(x, peak) {
     var m = 0; for (var i = 0; i < x.length; i++) m = Math.max(m, Math.abs(x[i]));
     if (m > 0) for (i = 0; i < x.length; i++) x[i] *= peak / m;
@@ -56,22 +65,24 @@ var Sound = (function () {
 
   function build(sr) {
     var b = {};
-    b.move = normalize(knock(sr, 2600, 330), 0.55);
+    b.move = normalize(snap(sr), 0.5);
+    // a capture: the same click with more weight, and a second, lower one as the taken piece leaves
     var cap = mk(sr, 170);
-    add(cap, knock(sr, 3400, 420), 0, 1);
-    add(cap, knock(sr, 2300, 300), Math.round(sr * 0.022), 0.8);
-    b.capture = normalize(cap, 0.75);
+    add(cap, snap(sr, 4400, 1500, 1.0), 0, 1);
+    add(cap, snap(sr, 3200, 1100, 1.0), Math.round(sr * 0.045), 0.8);
+    b.capture = normalize(cap, 0.62);
+    // castling: two pieces, two clicks
     var cas = mk(sr, 200);
-    add(cas, knock(sr, 2600, 330), 0, 1);
-    add(cas, knock(sr, 2300, 300), Math.round(sr * 0.085), 0.85);
-    b.castle = normalize(cas, 0.6);
+    add(cas, snap(sr), 0, 1);
+    add(cas, snap(sr, 3800, 1500, 0.8), Math.round(sr * 0.09), 0.9);
+    b.castle = normalize(cas, 0.52);
     var chk = mk(sr, 380);
-    add(chk, knock(sr, 2900, 360), 0, 0.9);
+    add(chk, snap(sr, 4400, 1600, 0.9), 0, 0.9);
     add(chk, tone(sr, 360, 1046.5, 120, 3), Math.round(sr * 0.012), 0.38);
     add(chk, tone(sr, 300, 1568, 80, 3), Math.round(sr * 0.012), 0.22);
     b.check = normalize(chk, 0.7);
     var pro = mk(sr, 420);
-    add(pro, knock(sr, 2600, 330), 0, 0.8);
+    add(pro, snap(sr), 0, 0.8);
     [784, 988, 1175, 1568].forEach(function (f, i) { add(pro, tone(sr, 220, f, 90, 3), Math.round(sr * (0.03 + i * 0.055)), 0.3); });
     b.promote = normalize(pro, 0.65);
     // golden: gilded shimmer + soft rising whoosh

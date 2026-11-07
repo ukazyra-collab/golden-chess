@@ -17,7 +17,7 @@
       goldenWhiteOnce: 'White: once per game', goldenBlackOnce: 'Black: once per game',
       goldenOnly: 'Only a queen, rook, bishop or knight can make the Joker Move', goldenGone: 'Your Joker Move is already used',
       goldenArmedToast: 'Joker Move on: pick a piece, then a joker dot', goldenPlayed: '{side} played the Joker Move {san}',
-      you: 'You', bot: 'Joker Bot', white: 'White', black: 'Black', level: 'Level {n}',
+      you: 'You', bot: 'Joker Bot', white: 'White', black: 'Black', level: 'Level {n}', haptics: 'Vibration',
       lv1: 'Beginner', lv2: 'Casual', lv3: 'Club player', lv4: 'Strong club', lv5: 'Expert', lv6: 'Master', lv7: 'Grandmaster', lv8: 'Maximum',
       opponent: 'Opponent', computer: 'Computer', twoPlayers: 'Two players, one device', playAs: 'Play as', random: 'Random',
       timeControl: 'Time control', noClock: 'No clock', strength: 'Bot strength', play: 'Play',
@@ -54,6 +54,8 @@
       reviewHint: 'Tap the graph or step through the moves. You can also move pieces to try your own lines.',
       eloApprox: '\u2248{n} Elo',
       online: 'Online', findOpp: 'Find opponent', invite: 'Invite a friend', searching: 'Looking for an opponent', rated: 'Rated', casual: 'Casual',
+      lobbyOnline: '{n} players online', lobbyOnline1: '1 player online', lobbyGames: '{n} games on', lobbyGames1: '1 game on', lobbySeeking: '{n} searching',
+      lobbyMoods: ['Polishing the queen\u2019s crown', 'Waking up the knights', 'Counting the pawns twice', 'Shuffling the joker deck', 'Winding the clocks', 'Wiping the bishops\u2019 diagonals', 'Dusting off the a1 rook', 'Arguing with the arbiter', 'Warming up the board'],
       playingAs: 'Playing as', change: 'Change', save: 'Save', nameTaken: 'That name is taken by another player. If it’s you on another account, sign in with that account instead.', nameAcct: 'Account: {email}', badName: 'Use 2\u201320 letters, digits, spaces, _ or -',
       inviteSub: 'Send this link to a friend. The game starts when they open it.', copyLink: 'Copy link', linkCopied: 'Link copied', share: 'Share',
       shareText: 'Play Joker Chess with me', waitingFriend: 'Waiting for your friend', connecting: 'Connecting', netError: 'Can\u2019t reach the server. Check your connection and try again.',
@@ -95,21 +97,24 @@
       practise: 'Just practising?', playTheBot: 'Play the bot without an account',
       nameTitle: 'Your name in the game', nameSub: 'Opponents and the ratings see it. You can change it in Profile.', namePh: 'Your name', nameEmpty: 'Type your name', changeName: 'Change name', signedInTitle: 'You\u2019re signed in',
       yourRating: 'Your rating', wdl: '{w} wins, {d} draws, {l} losses', provisional: 'provisional', noGamesYet: 'no games yet',
+      placeOf: '#{n} of {total}', topPct: 'top {p}%', unranked: 'Play a rated game to get a place', yourPlace: 'Your place', lbTop: 'Top 50', lbYou: 'you',
+      wins1: 'wins', draws1: 'draws', losses1: 'losses', ratingH: 'Rating', gamesH: 'Games',
       profileGuest: 'Guest', profileSignedOut: 'Sign in to keep your rating and games on any device.', howItWorks: 'How the Joker Move works',
       learnTitle: 'One move that changes the game',
-      learnLead: 'Joker Chess is regular chess with one extra move for each player: once per game, teleport your queen, rook, bishop or knight to any empty square.',
+      learnLead: 'Chess, plus one move per game: teleport your queen, rook, bishop or knight to any empty square.',
       heroCap1: 'White still has the Joker Move. Black\u2019s queen stands right in front of the king.',
       heroCap2: '<b>Joker Move:</b> the rook teleports to e1 and pins the queen to the king.', heroCap3: 'The king steps aside, and the queen is lost.',
       ruleH: 'The rule', r1T: 'Any empty square',
       r1P: 'A queen, rook, bishop or knight. No captures, and never a check: joker dots show where this rook can go, red crosses mark squares that would give check.',
       r2T: 'It can block a check', r2P: 'Teleport a piece into the line of a check. Your own king must be safe afterwards.',
-      reelMate0: 'Check. In normal chess this is mate.', reelMate: 'The rook drops in and blocks it. White is fine.',
-      reelNet0: 'Black has the queen. No mate in sight.', reelNet: 'The knight lands on f6: Rxh7 is mate, and nothing stops it.', reelNet2: 'The queen rushes back to cover h7\u2026', reelNet3: 'Mate.',
-      reelFork0: 'Two rooks and the queen. The knight has not left b1.', reelFork: 'The knight lands on d6: queen and rook forked.', reelFork2: 'The queen steps away, the rook is gone. White is a rook up.',
-      reelPin0: 'The queen stands in front of the king.', reelPin: 'The rook teleports and pins it.', reelPin2: 'The king steps aside, the queen is lost.',
-      reelDiag0: 'Queen and king on one diagonal.', reelDiag: 'The bishop appears, protected by the rook. The queen is pinned.', reelDiag2: 'A queen for a bishop. White is a rook up.',
-      reelBlock0: 'Black is about to give check.', reelBlock1: 'In normal chess this is mate.', reelBlock: 'The queen lands on g2 and blocks it. White is winning.',
-      reelBoth0: 'Both sides still hold a Joker Move.', reelBoth1: 'White pins the queen. It looks lost.', reelBoth2: 'Black answers with its own: the rook drops into the line.', reelBoth3: 'Rooks traded, pin gone. Black keeps the extra knight.',
+      // the Play tab reel: one line each on a phone (about 36 characters)
+      reelMate0: 'Check. In normal chess, mate.', reelMate: 'The rook drops in and blocks it.',
+      reelNet0: 'Black has the queen. No mate in sight.', reelNet: 'Knight to f6: Rxh7 mate is coming.', reelNet2: 'The queen rushes back to h7\u2026', reelNet3: 'Mate.',
+      reelFork0: 'Two rooks and a queen vs the knight.', reelFork: 'Knight to d6: queen and rook forked.', reelFork2: 'The rook is gone. White is a rook up.',
+      reelPin0: 'The queen stands before the king.', reelPin: 'The rook teleports and pins it.', reelPin2: 'The king steps aside, the queen falls.',
+      reelDiag0: 'Queen and king on one diagonal.', reelDiag: 'The bishop drops in: queen pinned.', reelDiag2: 'A queen for a bishop. A rook up.',
+      reelBlock0: 'Black is about to give check.', reelBlock1: 'In normal chess this is mate.', reelBlock: 'The queen lands on g2 and blocks it.',
+      reelBoth0: 'Both sides still hold a Joker Move.', reelBoth1: 'White pins the queen. It looks lost.', reelBoth2: 'Black answers: a rook blocks the line.', reelBoth3: 'Rooks traded. Black is a knight up.',
       r2Cap0: 'Black is about to give check.', r2Cap1: 'The queen checks along the diagonal. In normal chess, that is mate.', r2Cap2: 'The <b>Joker Move</b> blocks it: the queen lands on g2, protected by the king.',
       r3T: 'Once per game, for each side', r3P: 'It replaces your normal move. While the joker is lit, it\u2019s still in your hand.', inHand: 'still in hand', usedUp: 'used',
       whyH: 'Why it changes chess',
@@ -155,7 +160,7 @@
       vsTwo: 'Two players', resWon: 'Won', resLost: 'Lost', resDraw: 'Draw', opponents: 'Opponents',
       h2h: 'You {w} : {l} {name}', h2hDraws: 'draws: {d}', allOpponents: 'All opponents', reviewShort: 'Review', today: 'Today', yesterday: 'Yesterday',
       // the coach: why a move is good or bad, lines on the board, another try
-      showFollow: 'Show follow-up', showShort: 'Show', hideLine: 'Hide', bestBtn: 'Best', bestShort: 'Best', retryBtn: 'Retry', retryShort: 'Retry', tryAgain: 'Try again', againShort: 'Again',
+      showFollow: 'What follows', showShort: 'Next moves', hideLine: 'Back', bestBtn: 'Best: {san}', bestShort: '{san}', retryBtn: 'Find it yourself', retryShort: 'Try it', tryAgain: 'Try again', againShort: 'Again',
       lnFollow: 'Follow-up', lnBest: 'Best: {san}',
       rtAsk: 'Find a better move for {side}', rtChecking: 'Checking {san}…', rtRight: '{san} is the best move!', rtExcellent: '{san} is excellent too!',
       rtGood: '{san} is good, but there is better', rtWrong: '{san} isn’t it', rtGoldHint: 'A Joker Move counts too.',
@@ -174,7 +179,7 @@
       goldenWhiteOnce: 'Белые: один раз за партию', goldenBlackOnce: 'Чёрные: один раз за партию',
       goldenOnly: 'Джокер делают только ферзь, ладья, слон или конь', goldenGone: 'Ваш джокер уже сделан',
       goldenArmedToast: 'Джокер: выберите фигуру, затем точку джокера', goldenPlayed: '{side}: джокер {san}',
-      you: 'Вы', bot: 'Joker Bot', white: 'Белые', black: 'Чёрные', level: 'Уровень {n}',
+      you: 'Вы', bot: 'Joker Bot', white: 'Белые', black: 'Чёрные', level: 'Уровень {n}', haptics: 'Вибрация',
       lv1: 'Новичок', lv2: 'Любитель', lv3: 'Клубный игрок', lv4: 'Сильный клубный', lv5: 'Эксперт', lv6: 'Мастер', lv7: 'Гроссмейстер', lv8: 'Максимум',
       opponent: 'Соперник', computer: 'Компьютер', twoPlayers: 'Двое на одном устройстве', playAs: 'Играть за', random: 'Случайно',
       timeControl: 'Контроль времени', noClock: 'Без часов', strength: 'Сила бота', play: 'Играть',
@@ -186,6 +191,8 @@
       r_fifty: 'Правило 50 ходов', r_insufficient: 'Недостаточно материала', 'r_timeout-insufficient': 'Время вышло, но у соперника не хватает материала для мата', r_abort: 'Партия прервана',
       r_left: 'уход из партии', oppLeft: 'Соперник вышел \u00b7 победа через {s} с',
       memberSince: 'Играет с {d}', recentGames: 'Последние партии', yourRank: 'Ваше место: #{n}', viewProfile: 'Профиль',
+      placeOf: '#{n} из {total}', topPct: 'топ {p}%', unranked: 'Сыграйте партию на рейтинг, чтобы занять место', yourPlace: 'Ваше место', lbTop: 'Топ-50', lbYou: 'вы',
+      wins1: 'побед', draws1: 'ничьих', losses1: 'поражений', ratingH: 'Рейтинг', gamesH: 'Партий',
       allTime: 'За всё время', movesN: 'ходов: {n}', vsBotScore: 'Против {name}',
       playFreeNote: 'Без регистрации. Войти можно потом — чтобы рейтинг остался с вами на любом устройстве.',
       photo: 'Фото', choosePhoto: 'Выбрать фото', removePhoto: 'Убрать фото', photoSaved: 'Фото сохранено', photoRemoved: 'Фото убрано', photoFailed: 'Не удалось сохранить фото', photoSub: 'Видно рядом с вашим именем в партиях и в рейтинге.',
@@ -211,6 +218,8 @@
       reviewHint: 'Коснитесь графика или листайте ходы. Можно двигать фигуры и пробовать свои варианты.',
       eloApprox: '\u2248{n} Elo',
       online: 'Онлайн', findOpp: 'Найти соперника', invite: 'Пригласить друга', searching: 'Ищем соперника', rated: 'На рейтинг', casual: 'Без рейтинга',
+      lobbyOnline: '{n} {w} онлайн', lobbyOnlineW: ['игрок', 'игрока', 'игроков'], lobbyGames: '{n} {w}', lobbyGamesW: ['партия идёт', 'партии идут', 'партий идёт'], lobbySeeking: 'ищут: {n}',
+      lobbyMoods: ['Полируем корону ферзя', 'Будим коней', 'Пересчитываем пешки', 'Тасуем колоду джокеров', 'Заводим часы', 'Протираем диагонали слонам', 'Чистим ладью на a1', 'Спорим с арбитром', 'Греем доску'],
       playingAs: 'Ваше имя:', change: 'Изменить', save: 'Сохранить', nameTaken: 'Это имя уже у другого игрока. Если это вы с другого аккаунта, войдите через него.', nameAcct: 'Аккаунт: {email}', badName: 'Нужно 2–20 букв, цифр, пробелов, _ или -',
       inviteSub: 'Отправьте ссылку другу. Партия начнётся, когда он её откроет.', copyLink: 'Скопировать', linkCopied: 'Ссылка скопирована', share: 'Поделиться',
       shareText: 'Сыграем в Joker Chess', waitingFriend: 'Ждём друга', connecting: 'Подключение', netError: 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.',
@@ -254,19 +263,19 @@
       yourRating: 'Ваш рейтинг', wdl: 'побед {w}, ничьих {d}, поражений {l}', provisional: 'предварительный', noGamesYet: 'партий ещё нет',
       profileGuest: 'Гость', profileSignedOut: 'Войдите, чтобы рейтинг и партии остались с вами на любом устройстве.', howItWorks: 'Как работает джокер',
       learnTitle: 'Один ход, который меняет партию',
-      learnLead: 'Joker Chess — это обычные шахматы, но у каждого игрока есть один джокер за партию: перенести ферзя, ладью, слона или коня на любое пустое поле.',
+      learnLead: 'Шахматы плюс один ход за партию: перенести ферзя, ладью, слона или коня на любое пустое поле.',
       heroCap1: 'У белых остался джокер. Чёрный ферзь стоит прямо перед своим королём.',
       heroCap2: '<b>Джокер:</b> ладья переносится на e1 и связывает ферзя с королём.', heroCap3: 'Король уходит в сторону, и ферзь потерян.',
       ruleH: 'Правило', r1T: 'Любое пустое поле',
       r1P: 'Ферзь, ладья, слон или конь. Без взятия и никогда с шахом: точки джокера показывают, куда может перенестись ладья, красные крестики — поля, где был бы шах.',
       r2T: 'Им можно закрыться от шаха', r2P: 'Поставьте фигуру на линию шаха. Ваш король после хода должен быть в безопасности.',
-      reelMate0: 'Шах. В обычных шахматах это мат.', reelMate: 'Ладья прыгает и закрывает линию. У белых всё в порядке.',
-      reelNet0: 'У чёрных ферзь. Мата не видно.', reelNet: 'Конь садится на f6: Лxh7 — мат, и его не остановить.', reelNet2: 'Ферзь бежит защищать h7\u2026', reelNet3: 'Мат.',
-      reelFork0: 'Две ладьи и ферзь. Конь ещё на b1.', reelFork: 'Конь садится на d6: вилка на ферзя и ладью.', reelFork2: 'Ферзь отходит, ладья съедена. У белых лишняя ладья.',
-      reelPin0: 'Ферзь стоит перед королём.', reelPin: 'Ладья телепортируется и связывает его.', reelPin2: 'Король отходит, ферзь потерян.',
-      reelDiag0: 'Ферзь и король на одной диагонали.', reelDiag: 'Слон появляется под защитой ладьи. Ферзь связан.', reelDiag2: 'Ферзь за слона. У белых лишняя ладья.',
-      reelBlock0: 'Чёрные сейчас дадут шах.', reelBlock1: 'В обычных шахматах это мат.', reelBlock: 'Ферзь садится на g2 и закрывает. Белые выигрывают.',
-      reelBoth0: 'Джокер ещё есть у обеих сторон.', reelBoth1: 'Белые связывают ферзя. Кажется, он потерян.', reelBoth2: 'Чёрные отвечают своим: ладья падает на линию связки.', reelBoth3: 'Размен ладей, связки нет. У чёрных лишний конь.',
+      reelMate0: 'Шах. В обычных шахматах — мат.', reelMate: 'Ладья прыгает и закрывает линию.',
+      reelNet0: 'У чёрных ферзь. Мата не видно.', reelNet: 'Конь на f6: грозит Лxh7 и мат.', reelNet2: 'Ферзь бежит защищать h7\u2026', reelNet3: 'Мат.',
+      reelFork0: 'Две ладьи и ферзь. Конь ещё на b1.', reelFork: 'Конь на d6: вилка на ферзя и ладью.', reelFork2: 'Ладья съедена. У белых лишняя ладья.',
+      reelPin0: 'Ферзь стоит перед королём.', reelPin: 'Ладья прыгает и связывает его.', reelPin2: 'Король отходит, ферзь потерян.',
+      reelDiag0: 'Ферзь и король на одной диагонали.', reelDiag: 'Слон появляется. Ферзь связан.', reelDiag2: 'Ферзь за слона. Лишняя ладья.',
+      reelBlock0: 'Чёрные сейчас дадут шах.', reelBlock1: 'В обычных шахматах это мат.', reelBlock: 'Ферзь садится на g2 и закрывает.',
+      reelBoth0: 'Джокер ещё есть у обеих сторон.', reelBoth1: 'Белые связывают ферзя. Он потерян?', reelBoth2: 'Чёрные отвечают: ладья на линию.', reelBoth3: 'Размен ладей. У чёрных лишний конь.',
       r2Cap0: 'Чёрные сейчас дадут шах.', r2Cap1: 'Ферзь даёт шах по диагонали. В обычных шахматах это мат.', r2Cap2: '<b>Джокер</b> закрывает шах: ферзь встаёт на g2 под защитой короля.',
       r3T: 'Один раз за партию у каждого', r3P: 'Он заменяет обычный ход. Пока звезда горит, ход у вас в запасе.', inHand: 'в запасе', usedUp: 'использован',
       whyH: 'Чем это меняет шахматы',
@@ -310,7 +319,7 @@
       games: 'Партии', allGames: 'Все партии', noGames: 'Партий пока нет. Доиграйте партию — она появится здесь.', showMore: 'Показать ещё',
       vsTwo: 'Вдвоём', resWon: 'Победа', resLost: 'Поражение', resDraw: 'Ничья', opponents: 'Соперники',
       h2h: 'Вы {w} : {l} {name}', h2hDraws: 'ничьих: {d}', allOpponents: 'Все соперники', reviewShort: 'Разбор', today: 'Сегодня', yesterday: 'Вчера',
-      showFollow: 'Показать продолжение', showShort: 'Показать', hideLine: 'Скрыть', bestBtn: 'Лучший ход', bestShort: 'Лучший', retryBtn: 'Повторить', retryShort: 'Заново', tryAgain: 'Ещё раз', againShort: 'Ещё раз',
+      showFollow: 'Что дальше', showShort: 'Дальше', hideLine: 'Назад', bestBtn: 'Лучше: {san}', bestShort: '{san}', retryBtn: 'Найти самому', retryShort: 'Найти', tryAgain: 'Ещё раз', againShort: 'Ещё раз',
       lnFollow: 'Продолжение', lnBest: 'Лучший: {san}',
       rtAsk: 'Найдите ход сильнее за {sideGen}', rtChecking: 'Проверяем {san}…', rtRight: '{san} — лучший ход!', rtExcellent: '{san} — тоже отличный ход!',
       rtGood: '{san} — неплохо, но есть сильнее', rtWrong: '{san} — не то', rtGoldHint: 'Джокер тоже считается.',
@@ -323,12 +332,28 @@
       t_knight: 'коня', t_bishop: 'слона', t_rook: 'ладью', t_queen: 'ферзя', sideGenW: 'белых', sideGenB: 'чёрных'
     }
   };
-  var settings = Object.assign({ sound: true, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
+  var settings = Object.assign({ sound: true, haptics: true, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
   var lang = settings.lang || (/^ru\b/i.test(navigator.language || '') ? 'ru' : 'en');
   function T(key, vars) {
     var s = (STR[lang] && STR[lang][key]) || STR.en[key] || key;
+    if (typeof s !== 'string') return s; // a list (lobbyMoods and the like)
     if (vars) s = s.replace(/\{(\w+)\}/g, function (_, k) { return vars[k] != null ? vars[k] : ''; });
     return s;
+  }
+  // Russian counts: 1 игрок, 2 игрока, 5 игроков (forms: one, few, many)
+  function ruForm(n, forms) { var m10 = n % 10, m100 = n % 100; return forms[m10 === 1 && m100 !== 11 ? 0 : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 1 : 2]; }
+  // "12 players online · 3 games on": what the search dialog says about who is around
+  function lobbyLine(o) {
+    var parts = [];
+    if (lang === 'ru') {
+      parts.push(T('lobbyOnline', { n: o.online, w: ruForm(o.online, T('lobbyOnlineW')) }));
+      if (o.games) parts.push(T('lobbyGames', { n: o.games, w: ruForm(o.games, T('lobbyGamesW')) }));
+    } else {
+      parts.push(o.online === 1 ? T('lobbyOnline1') : T('lobbyOnline', { n: o.online }));
+      if (o.games) parts.push(o.games === 1 ? T('lobbyGames1') : T('lobbyGames', { n: o.games }));
+    }
+    if (o.seeking > 1) parts.push(T('lobbySeeking', { n: o.seeking }));
+    return parts.join(' \u00b7 ');
   }
 
   // ------------------------------------------------------------------ storage
@@ -875,6 +900,8 @@
     if (!keepSel || !game.pos.board[selected] || (game.pos.board[selected] >> 3) !== game.cfg.human) selected = -1;
     board.sync(displayBoard(), hintsFor(rec, instant));
     moveSound(rec);
+    // the special moments, felt: a Joker Move by either side, a check against me
+    if (rec.golden) haptic('joker'); else if (rec.check && theirs) haptic('check');
     if (rec.golden && (theirs || !oppGame())) toast(T('goldenPlayed', { side: sideLabel(rec.color), san: rec.san }), 'gold');
     if (analysis.on) setAnalysis(false);
     if (onlineGame() && !theirs) sendMove(rec);
@@ -1323,6 +1350,7 @@
   var STAR_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg>';
   var RETRY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7L4 8.5"/><path d="M4 3.5v5h5"/></svg>';
   var HIDE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  var BACK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
   // a coach button: the full label, and a short one for narrow screens
   function cbtn(act, icon, label, extra, short) {
     return '<button type="button" class="cbtn' + (extra ? ' ' + extra : '') + '" data-act="' + act + '" aria-label="' + esc(label) + '">' + icon +
@@ -1333,14 +1361,15 @@
       '</div><div class="coach-body">' + body + '</div>' + (acts ? '<div class="coach-acts">' + acts + '</div>' : '') + '</div>';
   }
   var B_FOLLOW = function () { return cbtn('follow', LINE_ICON, T('showFollow'), '', T('showShort')); };
-  var B_BEST = function () { return cbtn('best', STAR_ICON, T('bestBtn'), '', T('bestShort')); };
+  // the best move's name is on its button, so the row reads as a sentence: "Best: Nf3 · What follows · Find it yourself"
+  var B_BEST = function (mv) { var san = mv && mv.bestSan ? mv.bestSan.replace(/\*/g, '\u2605') : ''; return cbtn('best', STAR_ICON, T('bestBtn', { san: san }), 'gold', T('bestShort', { san: san })); };
   var B_RETRY = function () { return cbtn('retry', RETRY_ICON, T('retryBtn'), '', T('retryShort')); };
-  var B_HIDE = function () { return cbtn('hide', HIDE_ICON, T('hideLine'), 'on'); };
+  var B_HIDE = function () { return cbtn('hide', BACK_ICON, T('hideLine'), 'on'); };
   // the coach on a move of the game: what it was, why, and the ways to see it on the board
   function coachHtml(i, mv) {
     var rec = game.records[i], why = coachReason(i, mv), acts = '', bad = !GOOD_CLS[mv.cls];
     if (mv.follow && mv.follow.ucis.length) acts += B_FOLLOW();
-    if (mv.best && mv.best !== rec.uci) acts += B_BEST();
+    if (mv.best && mv.best !== rec.uci) acts += B_BEST(mv);
     if (bad || mv.cls === 'good') acts += B_RETRY();
     return coachBox('c-' + mv.cls, clsIcon(mv.cls), T('v_' + mv.cls, { san: moveNoText(i) + ' ' + rec.san }), evalAfter(i), why ? '<p>' + esc(why) + '</p>' : '', acts);
   }
@@ -1376,7 +1405,7 @@
     var title = L.kind === 'best' ? T('lnBest', { san: mv.bestSan }) : T('lnFollow');
     var ev = L.kind === 'best' ? evalWhite(review.scores[L.ply], game.fens[L.ply]) : evalAfter(L.ply);
     var acts = B_HIDE();
-    if (L.kind === 'follow' && mv.best && mv.best !== rec.uci) acts += B_BEST();
+    if (L.kind === 'follow' && mv.best && mv.best !== rec.uci) acts += B_BEST(mv);
     if (!GOOD_CLS[mv.cls] || mv.cls === 'good') acts += B_RETRY();
     var base = L.kind === 'best' ? L.ply : L.ply + 1;
     var outcome = E.view >= E.records.length ? lineOutcome(st, rec.color, review.scores[base], game.fens[base]) : '';
@@ -1405,7 +1434,7 @@
       acts += cbtn('best', LINE_ICON, T('showFollow'), '', T('showShort'));
     }
     if (R.state === 'good' || R.state === 'wrong') acts += cbtn('again', RETRY_ICON, T('tryAgain'), '', T('againShort'));
-    if (R.state !== 'right' && R.state !== 'excellent' && mv.best) acts += B_BEST();
+    if (R.state !== 'right' && R.state !== 'excellent' && mv.best) acts += B_BEST(mv);
     acts += B_HIDE();
     return coachBox('retry r-' + R.state, icon, title, '', why ? '<p>' + esc(why) + '</p>' : '', acts);
   }
@@ -1488,6 +1517,7 @@
       stats[key] = s; save('stats', stats);
     }
     Sound.play(outcome === 1 ? 'win' : outcome === 0 ? 'draw' : (oppGame() && !spectating() ? 'lose' : 'win'));
+    if (oppGame() && !spectating()) haptic(outcome === 1 ? 'win' : outcome === 0 ? 'draw' : 'lose');
     noteSeries();
     renderAll(); persist();
     var g = game;
@@ -1593,7 +1623,8 @@
       if (rt != null) extra += '<span class="rt">' + rt + (d != null ? ' <b class="' + (d >= 0 ? 'up' : 'down') + '">' + (d >= 0 ? '+' : '−') + Math.abs(d) + '</b>' : '') + '</span>';
       if (online && !spectating() && color !== game.cfg.human && online.oppHere != null) extra += '<i class="conn' + (online.oppHere ? '' : ' off') + '" title="' + esc(online.oppHere ? T('connected') : T('disconnected')) + '"></i>';
     } else if (botGame()) {
-      if (color === game.cfg.human) { name = T('you'); sub = color === 0 ? T('white') : T('black'); }
+      // a signed-in player is themselves here, picture and name, like in an online game
+      if (color === game.cfg.human) { name = me && me.profile ? me.profile.username : T('you'); sub = color === 0 ? T('white') : T('black'); }
       else { name = botName(); sub = T('lv' + game.cfg.level); extra = '<span class="rt" title="Elo">' + Engine.LEVELS[game.cfg.level - 1].elo + '</span>'; botFace = true; }
     } else { name = color === 0 ? T('white') : T('black'); sub = ''; }
     var caps = '', diff = 0;
@@ -1609,6 +1640,7 @@
     el.innerHTML =
       (botFace && window.GCBots ? '<div class="avatar bot' + (thinking ? ' busy' : '') + '">' + GCBots.avatar(game.cfg.level - 1, lang) + '</div>'
         : onlineGame() && online && online.s ? '<div class="avatar"' + '>' + avatarHtml(color === 0 ? online.s.white_id : online.s.black_id, name, 'bar') + '</div>'
+        : botGame() && color === game.cfg.human && me && me.profile ? '<div class="avatar">' + avatarHtml(me.uid, name, 'bar') + '</div>'
         : '<div class="avatar"><i class="pc-ic ' + BoardView.cls((color << 3) | 6) + '"></i></div>') +
       '<div class="pmeta"><div class="pname"><span class="nm">' + esc(name) + '</span>' + extra +
       '<svg class="gstar' + (gAvail ? '' : ' used') + '" viewBox="0 0 100 100" aria-label="' + esc(T('golden')) + '"><g class="fill"><rect x="24" y="90" width="52" height="9" rx="4"/> <rect x="24" y="90" width="52" height="5" rx="3"/> <rect x="30" y="84" width="40" height="8" rx="3"/> <path d="M40 86 L41 70 L59 70 L60 86 Z"/> <path d="M43 86 L44 72 L56 72 L57 86 Z"/> <path d="M31 40 C25 35 25 27 30 25 C34 28 36 34 36 40 Z"/> <path d="M69 40 C75 35 75 27 70 25 C66 28 64 34 64 40 Z"/> <circle cx="50" cy="54" r="27"/> <circle cx="50" cy="56" r="21"/> <ellipse cx="50" cy="66" rx="14" ry="9"/> <path d="M40 67 C44 74 56 74 60 67" stroke-width="2.8" stroke-linecap="round"/> <circle cx="50" cy="60" r="7"/> <ellipse cx="47.4" cy="57.4" rx="2" ry="1.4" /> <ellipse cx="41" cy="49" rx="4.8" ry="5.2"/><ellipse cx="59" cy="49" rx="4.8" ry="5.2"/> <circle cx="41.6" cy="49.6" r="3.2"/><circle cx="59.6" cy="49.6" r="3.2"/> <circle cx="42.8" cy="48.2" r="1.1"/><circle cx="60.8" cy="48.2" r="1.1"/> <path d="M35.5 42.5 C38.5 39.5 43.5 39.5 46 41.5" stroke-width="2.3" stroke-linecap="round"/> <path d="M54 41.5 C56.5 39.5 61.5 39.5 64.5 42.5" stroke-width="2.3" stroke-linecap="round"/> <path d="M34 30 C26 24 14 20 6 24 C14 26 20 30 26 36 Z"/> <path d="M35 34 C45 31 48.5 20 50 2 C51.5 20 55 31 65 34 Z"/> <path d="M66 30 C74 24 86 20 94 24 C86 26 80 30 74 36 Z"/> <path d="M29 35 C40 26 60 26 71 35 L71 39 C60 31 40 31 29 39 Z"/> <circle cx="6" cy="24" r="3.2" stroke-width=".8"/> <circle cx="50" cy="3.5" r="3.2" stroke-width=".8"/> <circle cx="94" cy="24" r="3.2" stroke-width=".8"/></g></svg>' +
@@ -1758,6 +1790,7 @@
     clearTimeout(toastTimer); $('toast').className = 'toast';
     var veil = document.createElement('div'); veil.className = 'veil';
     var card = document.createElement('div'); card.className = 'sheetdlg'; card.setAttribute('role', 'dialog'); card.setAttribute('aria-modal', 'true');
+    card.appendChild(sheetHandle(card));
     veil.appendChild(card);
     veil.addEventListener('pointerdown', function (e) { if (e.target === veil) closeDialog(); });
     $('overlay-root').appendChild(veil);
@@ -1766,7 +1799,34 @@
     var f = card.querySelector('button.primary, button');
     if (f) try { f.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
   }
-  function closeDialog() { if (currentDialog) { var d = currentDialog; currentDialog = null; d.remove(); if (d.onClose) d.onClose(); } }
+  // the sheet leaves the way it came (a short animation); whoever closed it is told at once
+  function closeDialog() {
+    if (!currentDialog) return;
+    var d = currentDialog; currentDialog = null;
+    d.classList.add('out'); setTimeout(function () { d.remove(); }, 200);
+    if (d.onClose) d.onClose();
+  }
+  // the grabber at the top of a sheet (a dialog that rebuilds its card puts it back first)
+  function sheetHandle(card) { var handle = h('div', { class: 'sheet-handle' }, '<i></i>'); sheetDrag(card.parentNode || null, card, handle); return handle; }
+  // a phone sheet follows the finger from its grabber: let go low enough (or fast enough) and it closes
+  function sheetDrag(veil, card, handle) {
+    var y0 = 0, dy = 0, t0 = 0, on = false;
+    veil = veil || { classList: { contains: function () { return card.parentNode && card.parentNode.classList.contains('center'); } } };
+    handle.addEventListener('pointerdown', function (e) {
+      if (veil.classList.contains('center') || window.innerWidth > 520) return;
+      on = true; y0 = e.clientY; dy = 0; t0 = perf(); card.classList.add('drag'); card.classList.remove('snap');
+      try { handle.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      e.preventDefault();
+    });
+    handle.addEventListener('pointermove', function (e) { if (!on) return; dy = Math.max(0, e.clientY - y0); card.style.transform = 'translateY(' + dy + 'px)'; });
+    function end() {
+      if (!on) return; on = false; card.classList.remove('drag');
+      var v = dy / Math.max(1, perf() - t0); // px per ms
+      if (dy > Math.min(140, card.offsetHeight * .35) || v > .6) { card.style.transition = 'transform .18s ease-in'; card.style.transform = 'translateY(110%)'; if (currentDialog === card.parentNode) closeDialog(); }
+      else { card.classList.add('snap'); card.style.transform = ''; }
+    }
+    handle.addEventListener('pointerup', end); handle.addEventListener('pointercancel', end);
+  }
   function h(tag, attrs, html) {
     var el = document.createElement(tag);
     if (attrs) for (var k in attrs) { if (k === 'class') el.className = attrs[k]; else if (k === 'onclick') el.addEventListener('click', attrs[k]); else el.setAttribute(k, attrs[k]); }
@@ -1833,7 +1893,7 @@
     var res = game.result, pts = res === '1-0' ? ['1', '0'] : res === '0-1' ? ['0', '1'] : res === '1/2-1/2' ? ['½', '½'] : ['–', '–'];
     function side(c) {
       var mine = !spec && c === hum, bot = botGame() && c !== hum;
-      var nm = mine ? T('you') : sideLabel(c);
+      var nm = mine ? (me && me.profile ? me.profile.username : T('you')) : sideLabel(c);
       var uid = st ? (c === 0 ? st.white_id : st.black_id) : mine && me ? me.uid : null;
       var ava = bot && window.GCBots ? GCBots.avatar(game.cfg.level - 1, lang)
         : mine && !(me && me.profile) ? '<i class="pc-ic ' + BoardView.cls((c << 3) | 6) + '"></i>' // not signed in: the king of your colour
@@ -2029,6 +2089,7 @@
       row.appendChild(lab); row.appendChild(b); card.appendChild(row);
     }
     sw(T('sound'), 'sound', function () { Sound.setEnabled(settings.sound); if (settings.sound) { Sound.unlock(); Sound.play('move'); } }, 'set-sound');
+    if (hapticsAvailable()) sw(T('haptics'), 'haptics', function () { if (settings.haptics) haptic('found'); }, 'set-haptics');
     var fa = h('div', { class: 'field' }); fa.appendChild(h('div', { class: 'lbl' }, esc(T('animation'))));
     fa.appendChild(seg([{ v: 'fast', label: T('animFast'), id: 'anfast' }, { v: 'normal', label: T('animNormal'), id: 'annormal' }, { v: 'off', label: T('animOff'), id: 'anoff' }], settings.anim, function (v) { settings.anim = v; applySettings(); saveSettings(); }));
     card.appendChild(fa);
@@ -2135,7 +2196,8 @@
       renderClocks(now);
       if (game.clock && game.cfg.tc.base > 30000 && !spectating()) {
         var mine = oppGame() ? game.cfg.human : game.pos.side, left = game.timeLeft(mine, now);
-        if (left < 10000 && game.pos.side === mine && game.running() && !lowWarned) { lowWarned = true; Sound.play('lowtime'); }
+        // the soft warning comes once, the first time 20 seconds are left on my own turn
+        if (left < 20000 && game.pos.side === mine && game.running() && !lowWarned) { lowWarned = true; Sound.play('lowtime'); haptic('warn'); }
       }
       if (game.online) onlineTick(now);
     }
@@ -2273,6 +2335,18 @@
     return { on: on, platform: platform, redirect: 'goldenchess://auth', call: call, listen: listen, has: has, openUrl: openUrl };
   })();
 
+  // ---- haptics: a few special moments are felt, never every move — the opponent found, a Joker Move, a check
+  // against me, the end of a game, the 20-second warning (the phone's own engine in the app; vibration on the web)
+  var HAPTIC = { found: ['notification', 'SUCCESS', [30]], joker: ['impact', 'HEAVY', [18, 40, 30]], check: ['impact', 'LIGHT', [14]],
+    win: ['notification', 'SUCCESS', [30, 60, 30]], lose: ['notification', 'ERROR', [70]], draw: ['notification', 'WARNING', [20, 40, 20]], warn: ['notification', 'WARNING', [45]] };
+  function hapticsAvailable() { return (NATIVE.on && NATIVE.has('Haptics')) || (!!navigator.vibrate && matchMedia('(pointer: coarse)').matches); }
+  function haptic(kind) {
+    var m = HAPTIC[kind];
+    if (!m || settings.haptics === false) return;
+    if (NATIVE.on && NATIVE.has('Haptics')) { NATIVE.call('Haptics', m[0], m[0] === 'impact' ? { style: m[1] } : { type: m[1] }).catch(function () { /* no engine */ }); return; }
+    if (navigator.vibrate && matchMedia('(pointer: coarse)').matches) { try { navigator.vibrate(m[2]); } catch (e) { /* ignore */ } }
+  }
+
   // transport: Supabase (production) ...
   function SupaNet(cfg) {
     var self = this;
@@ -2386,6 +2460,9 @@
       return (r.count || 0) + 1;
     });
   };
+  // the leaderboard with the caller's place, the pool's size and (outside the top) their own row — needs the session
+  SupaNet.prototype.board = function (pool) { return this.call('top', { pool: pool }); };
+  MockNet.prototype.board = function (pool) { return this.call('top', { pool: pool }); };
   SupaNet.prototype.read = function (id) {
     return this.sb.from('games').select('*').eq('id', id).maybeSingle().then(function (r) { if (r.error) throw r.error; return r.data; });
   };
@@ -2534,7 +2611,15 @@
     if (L.kind === 'seek') net.call('cancel').catch(function () { /* ignore */ });
     if (L.kind === 'invite' && L.gameId) net.call('resign', { game: L.gameId }).catch(function () { /* ignore */ });
   }
-  function onPaired(id) { stopLobby(); if (currentDialog && currentDialog.dataset.kind === 'lobby') closeDialog(); openOnlineGame(id); }
+  function pollLobby(L, el) {
+    if (!net) return;
+    net.call('lobby').then(function (r) {
+      if (!r || r.online == null) return;
+      lobbyStats = r;
+      if (lobby === L && el.isConnected) el.textContent = lobbyLine(r);
+    }, function () { /* the line just stays */ });
+  }
+  function onPaired(id) { stopLobby(); if (currentDialog && currentDialog.dataset.kind === 'lobby') closeDialog(); haptic('found'); openOnlineGame(id); }
   // How long the search "takes" before a house player is seated when no one else is there: now and then at once,
   // mostly a few seconds, up to ten. A human looking for the same game within that time is paired first.
   function seekSpan() { return window.__gcSeekMs != null ? window.__gcSeekMs : Math.random() < 0.15 ? 300 + Math.random() * 600 : 2000 + Math.random() * 8000; }
@@ -2593,21 +2678,37 @@
     function fallback() { if (inputEl) { try { inputEl.focus(); inputEl.select(); } catch (e) { /* ignore */ } } }
     try { navigator.clipboard.writeText(text).then(function () { toast(okMsg); }, fallback); } catch (e) { fallback(); }
   }
+  // the last word from the server about who is around (shown at once when the dialog opens again)
+  var lobbyStats = null;
   function showLobbyDialog() {
     var L = lobby;
     openDialog(function (card) {
       currentDialog.dataset.kind = 'lobby';
       currentDialog.onClose = function () { if (lobby === L) cancelLobby(); };
-      var meta = tcLabel(L.tc) + ', ' + (L.rated ? T('rated') : T('casual')).toLowerCase();
+      var meta = tcLabel(L.tc) + ' \u00b7 ' + (L.rated ? T('rated') : T('casual')).toLowerCase();
       if (L.kind === 'seek') {
+        // centred on every screen: a card with the search, who is around, and a light line of what "we" are up to
+        currentDialog.classList.add('center'); card.classList.add('lobby');
+        card.appendChild(h('div', { class: 'lobby-ic' }, '<span class="ring"></span><span class="ring r2"></span>' + ICON.search));
         card.appendChild(h('div', { class: 'dlg-title' }, esc(T('searching'))));
         var sub = h('div', { class: 'dlg-sub', id: 'seek-sub' }); card.appendChild(sub);
         var bar = h('div', { class: 'seekbar fill', id: 'seek-bar' }, '<i></i>');
         card.appendChild(bar);
+        var live = h('div', { class: 'lobby-live', id: 'lobby-live' }, lobbyStats ? esc(lobbyLine(lobbyStats)) : '&nbsp;');
+        card.appendChild(live);
+        var moods = T('lobbyMoods'), mi = Math.floor(Math.random() * moods.length);
+        var mood = h('div', { class: 'lobby-mood', id: 'lobby-mood' }, esc(moods[mi] + '\u2026'));
+        card.appendChild(mood);
         // the bar fills over the search span (then keeps looking if no one could be seated)
         var fillTo = Math.max(0, L.span - (perf() - L.t0));
         requestAnimationFrame(function () { var i = bar.firstChild; i.style.transitionDuration = fillTo + 'ms'; i.style.width = '100%'; });
-        var upd = function () { if (lobby !== L) return; var sec = Math.floor((perf() - L.t0) / 1000); sub.textContent = meta + ', ' + Math.floor(sec / 60) + ':' + (sec % 60 < 10 ? '0' : '') + (sec % 60); };
+        var n = 0;
+        var upd = function () {
+          if (lobby !== L) return;
+          var sec = Math.floor((perf() - L.t0) / 1000); sub.textContent = meta + ' \u00b7 ' + Math.floor(sec / 60) + ':' + (sec % 60 < 10 ? '0' : '') + (sec % 60);
+          if (++n % 4 === 0) { mi = (mi + 1) % moods.length; mood.classList.add('swap'); setTimeout(function () { mood.textContent = moods[mi] + '\u2026'; mood.classList.remove('swap'); }, 180); }
+          if (n % 6 === 1) pollLobby(L, live);
+        };
         upd(); L.tick = setInterval(upd, 1000);
       } else {
         card.appendChild(h('div', { class: 'dlg-title' }, esc(T('invite'))));
@@ -2864,6 +2965,7 @@
     function render() {
       if (!alive || !card.isConnected) return;
       card.innerHTML = ''; again = null;
+      if (!o.page) card.appendChild(sheetHandle(card));
       var title = st.step === 'signed' ? (o.page ? T('signedInTitle') : T('account')) : st.step === 'code' ? T('codeTitle') : st.step === 'name' ? T('nameTitle') : st.step === 'password' ? T('signIn') : (o.page ? T('signInTitle') : T('signIn'));
       if (o.page) card.appendChild(h('div', { class: 'mark', 'aria-hidden': 'true' }, STAR_SVG));
       card.appendChild(h('div', { class: 'dlg-title' }, esc(title)));
@@ -3823,6 +3925,8 @@
     var prev = curView;
     curView = v; shellEl.dataset.view = v;
     VIEWS.forEach(function (x) { var el = viewEl(x); if (el) el.hidden = x !== v; });
+    // a short fade as the tab comes in (not for the game, whose board sits still)
+    if (prev !== null && prev !== v && v !== 'game') { var ve = viewEl(v); if (ve) { ve.classList.remove('view-in'); void ve.offsetWidth; ve.classList.add('view-in'); } }
     renderNav();
     if (prev !== null && prev !== v && currentDialog && currentDialog.dataset.kind !== 'lobby') closeDialog();
     if (prev === 'signin' && v !== 'signin' && signinFlow) { signinFlow.stop(); signinFlow = null; }
@@ -4081,11 +4185,16 @@
     inn.appendChild(h('h1', { class: 'page-h' }, esc(T('navRatings'))));
     var pool = ratingsPool || poolOfLabel(lastSetup.otc || '3+2');
     inn.appendChild(seg(['bullet', 'blitz', 'rapid'].map(function (p) { return { v: p, label: T(p), id: 'lb' + p }; }), pool, function (p) { ratingsPool = p; renderRatings(); }));
+    // my card: picture, name, the rating big, and the place in the pool with the share of players I am ahead of
     var my = h('div', { class: 'card my-card', id: 'my-rating' });
-    if (signedIn()) {
-      var r = me.ratings[pool];
-      my.innerHTML = '<div class="big">' + esc(ratingText(pool)) + '</div><div class="meta"><b>' + esc(T('yourRating')) + '</b><span>' +
-        esc(r && r.games ? gamesText(r.games) + ', ' + T('wdl', { w: r.wins, d: r.draws, l: r.losses }) : T('noGamesYet')) + '</span></div>';
+    var r = me && me.profile ? me.ratings[pool] : null;
+    if (me && me.profile) {
+      var nm = me.profile.username;
+      my.innerHTML = '<div class="my-top">' + avatarHtml(me.uid, nm, 'my-ava') + '<div class="my-who"><b>' + esc(nm) + '</b><span class="my-place" id="my-place">' +
+        esc(r && r.games ? T('yourPlace') + '\u2026' : T('unranked')) + '</span></div><div class="big">' + esc(ratingText(pool)) + '</div></div>' +
+        (r && r.games ? '<div class="my-wdl"><span class="w"><b>' + r.wins + '</b>' + esc(T('wins1')) + '</span><span class="d"><b>' + r.draws + '</b>' + esc(T('draws1')) + '</span><span class="l"><b>' + r.losses + '</b>' + esc(T('losses1')) + '</span></div>' : '');
+      // a guest: the rating lives on this device until they sign in
+      if (!signedIn()) { var sv = h('button', { type: 'button', class: 'linkbtn', id: 'btn-ratings-signin' }, esc(T('saveProgress'))); sv.addEventListener('click', function () { setPending({ kind: 'view', v: 'ratings' }); go('signin'); }); my.appendChild(sv); }
     } else {
       my.className += ' out';
       my.appendChild(h('div', { class: 'muted' }, esc(T('signInToRate'))));
@@ -4095,28 +4204,39 @@
     }
     inn.appendChild(my);
     var lbc = h('div', { class: 'card lb-card' }), list = h('div', { class: 'lb', id: 'lb-list' });
+    lbc.appendChild(h('div', { class: 'lb-head' }, '<span>' + esc(T('lbTop')) + '</span><span class="lb-head-r">' + esc(T('ratingH')) + '</span><span class="lb-head-g">' + esc(T('gamesH')) + '</span>'));
     lbc.appendChild(list); inn.appendChild(lbc);
-    list.innerHTML = '<div class="muted" style="padding:10px 4px">' + esc(T('connecting')) + '…</div>';
+    list.innerHTML = skeletonRows(8);
     var c = getClient();
-    (c ? c.top(pool) : Promise.reject(new Error('offline'))).then(function (rows) {
+    function rowHtml(x, n, mine) {
+      var medal = n <= 3 ? ' top top' + n : '';
+      return '<button type="button" class="lb-row' + (mine ? ' me' : '') + medal + '" data-uid="' + esc(x.uid || '') + '" data-name="' + esc(x.name) + '"><span class="lb-n"><i>' + n + '</i></span>' + avatarHtml(x.uid, x.name, 'lb-ava') +
+        '<span class="lb-name">' + esc(x.name) + (mine ? ' <em>' + esc(T('lbYou')) + '</em>' : '') + '</span><span class="lb-r">' + x.rating + '</span><span class="lb-g">' + x.games + '</span></button>';
+    }
+    function placeLine(rank, total) {
+      if (!rank || !total) return T('unranked');
+      var pct = Math.max(1, Math.round(rank / total * 100));
+      return T('placeOf', { n: rank, total: total }) + (total >= 10 && pct <= 50 ? ' \u00b7 ' + T('topPct', { p: pct }) : '');
+    }
+    (c ? (hasNetSession() ? ensureNet().then(function () { return c.board(pool); }) : c.top(pool).then(function (rows) { return { rows: rows, total: rows.length, rank: null, me: null }; })) : Promise.reject(new Error('offline'))).then(function (b) {
       if (!list.isConnected) return;
+      var rows = b.rows || [];
       if (!rows.length) { list.innerHTML = '<div class="muted" style="padding:10px 4px">' + esc(T('lbEmpty')) + '</div>'; return; }
-      noteAvatars(rows.map(function (x) { return { id: x.uid, avatar_v: x.avatar_v }; }));
-      list.innerHTML = rows.map(function (x, i) {
-        var mine = me && (x.uid ? x.uid === me.uid : me.profile && x.name === me.profile.username);
-        return '<button type="button" class="lb-row' + (mine ? ' me' : '') + '" data-uid="' + esc(x.uid || '') + '" data-name="' + esc(x.name) + '"><span class="lb-n">' + (i + 1) + '</span>' + avatarHtml(x.uid, x.name, 'lb-ava') + '<span class="lb-name">' + esc(x.name) + '</span><span class="lb-r">' + x.rating + '</span><span class="lb-g">' + esc(T('gamesN', { n: x.games })) + '</span></button>';
-      }).join('');
+      noteAvatars(rows.concat(b.me ? [b.me] : []).map(function (x) { return { id: x.uid, avatar_v: x.avatar_v }; }));
+      var html = rows.map(function (x, i) { return rowHtml(x, i + 1, me && x.uid === me.uid); }).join('');
+      // below the top: a gap, then my own row with my place
+      if (b.me && b.rank) html += '<div class="lb-gap"><i></i><i></i><i></i></div>' + rowHtml(b.me, b.rank, true);
+      list.innerHTML = html;
+      var pl = $('my-place'); if (pl) pl.textContent = placeLine(b.rank, b.total);
     }, function () { if (list.isConnected) list.innerHTML = '<div class="muted" style="padding:10px 4px">' + esc(T('netError')) + '</div>'; });
     list.addEventListener('click', function (e) { var row = e.target.closest('.lb-row'); if (row && row.dataset.uid) openPlayer(row.dataset.uid, row.dataset.name); });
-    // the player's own place in the pool (rated players only)
-    var rr = signedIn() && me.ratings[pool];
-    if (rr && rr.games && c) {
-      (NETCFG.mock != null ? c.rank(pool) : c.rank(pool, rr.rating)).then(function (n) {
-        if (!my.isConnected || !n) return;
-        var sp = my.querySelector('.meta span'); if (sp) sp.textContent += ' · ' + T('yourRank', { n: n });
-      }, function () { /* no rank */ });
-    }
-    if (!me && hasNetSession()) ensureNet().then(function () { if (curView === 'ratings' && signedIn() && !my.querySelector('.big')) renderRatings(); }, function () { /* offline */ });
+    if (!me && hasNetSession()) ensureNet().then(function () { if (curView === 'ratings' && me && !my.querySelector('.big')) renderRatings(); }, function () { /* offline */ });
+  }
+  // grey bars where a list is still loading (the page keeps its shape; the rows fade in over them)
+  function skeletonRows(n) {
+    var out = '';
+    for (var i = 0; i < n; i++) out += '<div class="sk-row" aria-hidden="true"><i class="sk sk-n"></i><i class="sk sk-ava"></i><i class="sk sk-name" style="width:' + (38 + ((i * 37) % 40)) + '%"></i><i class="sk sk-r"></i></div>';
+    return '<div class="sk-list">' + out + '</div>';
   }
 
   // ---- Profile: account, ratings, settings
@@ -4351,7 +4471,7 @@
     back.addEventListener('click', function () { go('profile'); });
     inn.appendChild(back);
     inn.appendChild(h('h1', { class: 'page-h' }, esc(T('games'))));
-    if (!hist.items) { inn.appendChild(h('div', { class: 'muted' }, esc(T('connecting')) + '…')); return; }
+    if (!hist.items) { inn.appendChild(h('div', { class: 'card' }, skeletonRows(6))); return; }
     var items = hist.items, opps = h2hOf(items), sums = load('reviewSums', {});
     if (opps.length) inn.appendChild(h('div', { class: 'gh-chips', id: 'gh-chips' }, chipsHtml(opps.slice(0, 12), true)));
     var oppMore = false;
@@ -4372,7 +4492,7 @@
     }
     var list = h('div', { class: 'gh-list', id: 'gh-list' }, items.map(function (it) { return histRow(it, sums); }).join(''));
     inn.appendChild(list);
-    if (!items.length) inn.appendChild(h('div', { class: 'muted gh-empty' }, esc(hist.loading ? T('connecting') + '…' : T('noGames'))));
+    if (!items.length) inn.appendChild(hist.loading ? h('div', { class: 'card' }, skeletonRows(6)) : h('div', { class: 'muted gh-empty' }, esc(T('noGames'))));
     if (hist.err) inn.appendChild(h('div', { class: 'err' }, esc(T('netError'))));
     if (hist.filter ? oppMore : hist.more) {
       var more = h('button', { type: 'button', class: 'secondary gh-more', id: 'btn-more-games' }, esc(T('showMore')));
@@ -4383,6 +4503,8 @@
   }
   // Profile: the last few games and the way to all of them
   function profileGames(inn) {
+    // still loading (a signed-in player): the card keeps its place with grey rows
+    if (!hist.items && hist.loading && signedIn()) { var sk = h('div', { class: 'card gh-card', id: 'profile-games' }); sk.appendChild(h('h2', null, esc(T('games')))); sk.innerHTML += skeletonRows(3); inn.appendChild(sk); return; }
     if (!hist.items || !hist.items.length) return;
     var card = h('div', { class: 'card gh-card', id: 'profile-games' });
     card.appendChild(h('h2', null, esc(T('games'))));
@@ -4487,7 +4609,7 @@
     head.innerHTML = '<div class="pl-avatar">' + avatarHtml(p.uid, name, 'ava-lg') + '</div><div class="pl-who"><h1 class="page-h">' + esc(name) + '</h1>' +
       (p.prof && p.prof.created_at ? '<div class="muted">' + esc(T('memberSince', { d: monthYear(p.prof.created_at) })) + '</div>' : '') + '</div>';
     inn.appendChild(head);
-    if (p.loading && !p.prof) { inn.appendChild(h('div', { class: 'muted' }, esc(T('connecting')) + '…')); return; }
+    if (p.loading && !p.prof) { inn.appendChild(h('div', { class: 'card' }, skeletonRows(4))); return; }
     if (p.err) { inn.appendChild(h('div', { class: 'err' }, esc(T('netError')))); return; }
     var rc = h('div', { class: 'card pl-ratings', id: 'pl-ratings' });
     rc.innerHTML = ['bullet', 'blitz', 'rapid'].map(function (pool) {
@@ -4501,6 +4623,7 @@
     gc.appendChild(h('h2', null, esc(T('recentGames'))));
     var items = (p.rows || []).map(function (g) { return histFromOnline(g, p.uid); });
     if (items.length) gc.appendChild(h('div', { class: 'gh-list' }, items.map(function (it) { return histRow(it, {}); }).join('')));
+    else if (p.loading) gc.innerHTML += skeletonRows(3);
     else gc.appendChild(h('div', { class: 'muted gh-empty' }, esc(T('noGamesYet'))));
     if (p.more) {
       var more = h('button', { type: 'button', class: 'secondary gh-more', id: 'btn-more-player' }, esc(T('showMore')));

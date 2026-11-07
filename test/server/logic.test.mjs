@@ -456,6 +456,11 @@ check('leaderboard (the house player among them)', r.rows.length === 3 && r.rows
 check('leaderboard rows carry the player id, and the caller their rank', r.rows.every((x) => x.uid) && (r.rows.some((x) => x.uid === A) ? r.rank === r.rows.findIndex((x) => x.uid === A) + 1 : r.rank === null), [r.rank, r.rows.map((x) => x.uid)]);
 r = await ok(C, { action: 'top', pool: 'bullet' });
 check('a player rated in the pool gets their place', r.rank >= 1 && r.rank <= r.rows.length + 10 && r.rows.some((x) => x.uid === C) === (r.rank <= r.rows.length), [r.rank, r.rows.length]);
+check('the pool\'s size comes with the board, and no own row while the caller is in the top', r.total === 3 && r.me === null, [r.total, r.me]);
+
+// who is around (the search dialog's line)
+r = await ok(A, { action: 'lobby' });
+check('lobby: online players, games on, seekers', r.online >= 1 && r.games >= 0 && r.seeking === 0, r);
 
 // glicko sanity
 const gw = glicko2(1500, 350, 0.06, 1500, 350, 1);

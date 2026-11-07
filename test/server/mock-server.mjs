@@ -245,6 +245,10 @@ const server = http.createServer(async (req, res) => {
     else if (b.op === 'profiles') out = [...db.profiles.values()].map(clone);
     else if (b.op === 'addhouse') out = { id: addHouse(b) };   // a house player: { name, level, target, style, online_from, online_hours }
     else if (b.op === 'addadmin') db.admins.add(b.uid);
+    else if (b.op === 'rate') {                                  // a rating row for a player (tests of the leaderboard): { uid, pool, rating, games, wins, draws, losses }
+      const t = new Date(now()).toISOString();
+      db.ratings.set(b.uid + '|' + b.pool, { user_id: b.uid, pool: b.pool, rating: +b.rating, rd: b.rd || 80, vol: 0.06, games: b.games || 1, wins: b.wins || 0, draws: b.draws || 0, losses: b.losses || 0, updated_at: t });
+    }
     else if (b.op === 'stats') {                                 // admin_stats() in memory (the shape the Profile card draws)
       if (!db.admins.has(b.token)) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'not_admin' })); return; }
       const t = now(), day = (x) => new Date(x).toISOString().slice(0, 10), over = [...db.games.values()].filter((g) => g.status === 'over');

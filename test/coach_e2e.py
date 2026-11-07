@@ -144,7 +144,8 @@ async def main():
             t = await pg.evaluate(coach)
             ok(f'{tag}: Russian: «Чёрные отвечают джокером Nb8★f4 с нападением на ферзя»', 'Чёрные отвечают джокером Nb8★f4 с нападением на ферзя' in t, t)
             labels = await pg.evaluate(f'[...document.querySelectorAll("{host} [data-act]")].map(b => b.getAttribute("aria-label") + "|" + [...b.querySelectorAll("span")].find(x => getComputedStyle(x).display !== "none").textContent)')
-            want = ['Показать продолжение|Показать', 'Лучший ход|Лучший', 'Повторить|Заново'] if tag == 'phone' else ['Показать продолжение|Показать продолжение', 'Лучший ход|Лучший ход', 'Повторить|Повторить']
+            # the best move's name sits on its button, so the row reads as a sentence
+            want = ['Что дальше|Дальше', 'Лучше: hxg4|hxg4', 'Найти самому|Найти'] if tag == 'phone' else ['Что дальше|Что дальше', 'Лучше: hxg4|Лучше: hxg4', 'Найти самому|Найти самому']
             ok(f'{tag}: Russian buttons (short ones on the phone)', labels[:3] == want, labels)
             await shot('7-ru')
             await pg.evaluate('__gc.settings.lang = "en"; localStorage.setItem("goldenchess.settings", JSON.stringify(__gc.settings))')

@@ -102,16 +102,42 @@ export function createPgRepo(sql) {
     async deleteSeek(uid) {
       await sql`delete from public.seeks where user_id = ${uid}`;
     },
+    // the app opened (hello): the player is around
+    async touchSeen(uid) {
+      if (!UUID.test(String(uid))) return;
+      try { await sql`update public.profiles set last_seen = now() where id = ${uid}`; } catch (e) { /* older schema */ }
+    },
+    // who is around right now: seen by the app in the last minutes, heartbeating in a game, or looking for a game
+    async lobby() {
+      const r = await sql`select
+        (select count(*) from public.seeks where updated_at > now() - interval '30 seconds') as seeking,
+        (select count(*) from public.games where status = 'playing' and updated_at > now() - interval '1 hour') as games,
+        (select count(distinct x.u) from (
+          select id as u from public.profiles where last_seen > now() - interval '5 minutes'
+          union select user_id from public.seen where at > now() - interval '5 minutes'
+          union select user_id from public.seeks where updated_at > now() - interval '30 seconds') x) as online`;
+      return { seeking: Number(r[0].seeking), games: Number(r[0].games), online: Number(r[0].online) };
+    },
     async top(pool, n) {
       return plain(await sql`select r.user_id as uid, p.username as name, p.avatar_v, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses
         from public.ratings r join public.profiles p on p.id = r.user_id where r.pool = ${pool} and r.games > 0 order by r.rating desc limit ${n}`);
     },
-    // the player's place in the pool (null when unrated there)
+    // the player's place in the pool and the pool's size (rank null when unrated there)
     async rankOf(uid, pool) {
       if (!UUID.test(String(uid))) return null;
       const r = await sql`select (select count(*) from public.ratings x where x.pool = ${pool} and x.games > 0 and x.rating > r.rating) + 1 as rank
         from public.ratings r where r.user_id = ${uid} and r.pool = ${pool} and r.games > 0`;
       return r.length ? Number(r[0].rank) : null;
+    },
+    async poolSize(pool) {
+      const r = await sql`select count(*) as n from public.ratings where pool = ${pool} and games > 0`;
+      return Number(r[0].n);
+    },
+    // one player's leaderboard row (null when unrated in the pool)
+    async rowOf(uid, pool) {
+      if (!UUID.test(String(uid))) return null;
+      return first(await sql`select to_jsonb(q) as j from (select r.user_id as uid, p.username as name, p.avatar_v, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses
+        from public.ratings r join public.profiles p on p.id = r.user_id where r.user_id = ${uid} and r.pool = ${pool} and r.games > 0) q`);
     },
   };
 }

@@ -97,8 +97,16 @@ var GCLearn = (function () {
     this.mb.show(this.pos, [], true);
     this.mb.view.setMarks([]); this.mb.view.setDots([]);
     this.mb.view.markGolden(this.d.glow != null ? this.d.glow : -1);
-    if (this.cap) this.cap.innerHTML = this.d.cap0 ? this.ctx.T(this.d.cap0) : '&nbsp;';
+    if (this.cap) setCap(this.cap, this.d.cap0 ? this.ctx.T(this.d.cap0) : '&nbsp;');
   };
+  // the caption fades out and comes back with the new text (the line itself keeps its place)
+  function setCap(el, html) {
+    if (el.innerHTML === html) return;
+    if (!el.innerHTML || el.innerHTML === '&nbsp;' || !el.isConnected) { el.innerHTML = html; return; }
+    el.classList.add('swap');
+    clearTimeout(el._swap);
+    el._swap = setTimeout(function () { el.innerHTML = html; el.classList.remove('swap'); }, 130);
+  }
   Demo.prototype.step = function () {
     var self = this, s = this.d.steps[this.i], v = this.mb.view;
     if (!s) {
@@ -122,7 +130,7 @@ var GCLearn = (function () {
       v.setMarks(marks); v.setDots([]);
       v.markGolden(this.pos.goldenAvailable(this.pos.side) ? this.pos.side : -1);
     }
-    if (this.cap && s.cap) this.cap.innerHTML = this.ctx.T(s.cap);
+    if (this.cap && s.cap) setCap(this.cap, this.ctx.T(s.cap));
     this.timer = setTimeout(function () { self.step(); }, s.wait || 1500);
   };
   Demo.prototype.run = function () { if (this.running) return; this.running = true; var self = this; this.timer = setTimeout(function () { self.step(); }, 1300); };
@@ -278,24 +286,39 @@ var GCLearn = (function () {
       var inn = el('div', 'page-in learn');
       host.appendChild(inn);
 
-      // what it is
+      // what it is: on a phone the hero is the first screen — title, a short lead, the board, the two ways in at the
+      // bottom — and the sections below snap into place one by one; on wide screens the text and the board sit side by side
       var hero = el('header', 'learn-hero');
-      var ht = el('div');
+      var ht = el('div', 'hero-text');
       ht.appendChild(el('h1', null, esc(T('learnTitle'))));
       ht.appendChild(el('p', 'lead', esc(T('learnLead'))));
+      hero.appendChild(ht);
+      var hb = el('div', 'demo-box'), cap = el('div', 'demo-cap');
+      var hd = new Demo(hb, DEMOS.hero, ctx, cap); hb.appendChild(cap);
+      hero.appendChild(hb);
       // the way in, right under the pitch: play, or try the puzzles below
       var heroActs = el('div', 'hero-acts');
       var play1 = el('button', 'start-btn learn-cta', esc(T('learnCta'))); play1.type = 'button'; play1.id = 'learn-play-top';
       play1.addEventListener('click', function () { ctx.go('bots'); });
-      var tryBtn = el('button', 'sbtn hero-try', esc(T('tryH'))); tryBtn.type = 'button'; tryBtn.id = 'learn-try';
+      var tryBtn = el('button', 'second-btn hero-try', esc(T('tryH'))); tryBtn.type = 'button'; tryBtn.id = 'learn-try';
       tryBtn.addEventListener('click', function () { var t = document.getElementById('try'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
       heroActs.appendChild(play1); heroActs.appendChild(tryBtn);
-      ht.appendChild(heroActs);
-      hero.appendChild(ht);
-      var hb = el('div', 'demo-box'), cap = el('div', 'demo-cap');
-      var hd = new Demo(hb, DEMOS.hero, ctx, cap); hb.appendChild(cap);
-      hero.appendChild(hb); inn.appendChild(hero);
+      hero.appendChild(heroActs);
+      inn.appendChild(hero);
       demos.push(hd);
+      // the hero fills the screen on phones: the board takes what is left between the text and the buttons
+      function fitHero() {
+        if (!inn.isConnected) return;
+        var narrow = window.innerWidth < 900;
+        inn.classList.toggle('screens', narrow); host.classList.toggle('snap', narrow);
+        if (!narrow) { hb.style.removeProperty('--hero-board'); hero.style.minHeight = ''; return; }
+        var H = host.clientHeight - 18 - 8; // the page's top padding and a breath at the bottom
+        hero.style.minHeight = H + 'px';
+        var left = H - ht.offsetHeight - heroActs.offsetHeight - cap.offsetHeight - 14 * 3;
+        hb.style.setProperty('--hero-board', Math.max(200, Math.min(hb.clientWidth || 9999, left)) + 'px');
+      }
+      fitHero(); requestAnimationFrame(fitHero);
+      if (typeof ResizeObserver !== 'undefined') { var hro = new ResizeObserver(function () { fitHero(); }); hro.observe(host); }
 
       // the rule
       var rs = section(T('ruleH')), grid = el('div', 'rule-grid');
