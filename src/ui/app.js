@@ -125,7 +125,10 @@
       u3N: '9 of 10', u3T: 'games where both sides use it, most often around move 20',
       u4N: '0', u4T: 'new pieces to learn: everything you know about chess still works',
       vs960: 'Chess960 shuffles the starting position so memorized openings stop working. Joker Chess keeps the classic board and adds a threat that hangs over the whole game.',
-      tryH: 'Try it', tryLead: 'In each position one Joker Move does it. Tap a glowing piece, then a joker dot.',
+      tryH: 'Try it', tryLead: 'In each position a Joker Move turns the game. Easy first, harder further on. Tap a glowing piece, then a joker dot.',
+      puzzleN: 'Puzzle {n}', solvedOf: '{n} of {total} solved', lvlEasy: 'Easy', lvlMedium: 'Medium', lvlHard: 'Hard',
+      pzWhite: 'White to move. Find the Joker Move.', pzBlack: 'Black to move. Find the Joker Move.', pzHint: 'The ringed piece makes the Joker Move.',
+      pzGood: 'Found it. This Joker Move turns the game.', pzMate: 'Found it. Mate in {n} follows.',
       p1Prompt: 'Black checks from d1. In normal chess this is mate. Find the Joker Move that saves you.',
       p1Good: 'Saved. The block on f1 is protected by your king, and it hits the queen on d1.',
       p1Hint: 'Put a piece between the queen and your king, on a square your king protects.',
@@ -288,7 +291,10 @@
       u3N: '9 из 10', u3T: 'партий, где его используют обе стороны, чаще всего около 20-го хода',
       u4N: '0', u4T: 'новых фигур: всё, что вы знаете о шахматах, продолжает работать',
       vs960: 'Шахматы Фишера (960) перемешивают стартовую расстановку, чтобы заученные дебюты перестали работать. Joker Chess оставляет классическую доску и добавляет угрозу, которая висит над всей партией.',
-      tryH: 'Попробуйте', tryLead: 'В каждой позиции всё решает один джокер. Коснитесь светящейся фигуры, затем золотой точки.',
+      tryH: 'Попробуйте', tryLead: 'В каждой позиции партию переворачивает джокер. Сначала простые, дальше сложнее. Коснитесь светящейся фигуры, затем золотой точки.',
+      puzzleN: 'Задача {n}', solvedOf: 'Решено {n} из {total}', lvlEasy: 'Легко', lvlMedium: 'Средне', lvlHard: 'Сложно',
+      pzWhite: 'Ход белых. Найдите джокер.', pzBlack: 'Ход чёрных. Найдите джокер.', pzHint: 'Джокером ходит фигура в рамке.',
+      pzGood: 'Есть! Этот джокер переворачивает партию.', pzMate: 'Есть! Дальше мат в {n}.',
       p1Prompt: 'Чёрные дают шах ферзём с d1. В обычных шахматах это мат. Найдите джокер, который спасает.',
       p1Good: 'Спасены. Фигура на f1 под защитой короля и сама бьёт ферзя на d1.',
       p1Hint: 'Поставьте фигуру между ферзём и королём — на поле, которое защищает король.',
@@ -4813,6 +4819,22 @@
   // ------------------------------------------------------------------ the launch intro
   // The app only: it takes over from the native splash (same picture). The website has no intro. A tap ends it early;
   // reduced motion skips it.
+  // A tab whose content (almost) fits the screen doesn't scroll at all: no few-pixel wobble under the finger.
+  // Watched as the content changes size (a page re-rendered, a list loaded, the window resized).
+  function fitPages() {
+    if (typeof ResizeObserver === 'undefined') return;
+    function fit(pg) {
+      var fits = pg.scrollHeight - pg.clientHeight <= 8 && !pg.classList.contains('snap');
+      if (fits && pg.scrollTop) pg.scrollTop = 0;
+      pg.classList.toggle('fits', fits);
+    }
+    var ro = new ResizeObserver(function (ents) { ents.forEach(function (en) { var pg = en.target.classList.contains('page') ? en.target : en.target.parentNode; if (pg && pg.classList && pg.classList.contains('page')) fit(pg); }); });
+    var mo = new MutationObserver(function (muts) { muts.forEach(function (m) { [].forEach.call(m.addedNodes, function (c) { if (c.nodeType === 1) ro.observe(c); }); fit(m.target); }); });
+    document.querySelectorAll('.page').forEach(function (pg) {
+      ro.observe(pg); [].forEach.call(pg.children, function (c) { ro.observe(c); });
+      mo.observe(pg, { childList: true });
+    });
+  }
   function intro() {
     var el = $('intro'); if (!el) return;
     var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -4828,7 +4850,7 @@
 
   // ------------------------------------------------------------------ boot
   function boot(hotData) {
-    applySettings(); applyLang(); nativeInit(); intro();
+    applySettings(); applyLang(); nativeInit(); intro(); fitPages();
     var saved = (hotData && hotData.game) || load('game', null), g = saved ? Game.restore(saved) : null;
     if (g) {
       game = g; view = game.records.length;

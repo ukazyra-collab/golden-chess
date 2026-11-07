@@ -464,6 +464,8 @@ var Engine = (function (GC) {
 
     var rootAll = pos.legalMoves(true);
     if (opts.noGoldenRoot) { var ng = rootAll.filter(function (m) { return !(m & F_GOLDEN); }); if (ng.length) rootAll = ng; }
+    // (tools: the puzzle maker asks for the best move other than these)
+    if (opts.excludeRoot && opts.excludeRoot.length) { var ex = rootAll.filter(function (m) { return opts.excludeRoot.indexOf(GC.moveToUci(m)) < 0; }); if (ex.length) rootAll = ex; }
     if (!rootAll.length) return { move: 0, uci: null, score: pos.inCheck() ? -MATE : 0, depth: 0, nodes: 0, pv: [] };
     var root = rootAll.map(function (m) { return { m: m, s: -INF, raw: -INF, gold: !!(m & F_GOLDEN) }; });
     var exactScores = !opts.analysis && lv.exact;

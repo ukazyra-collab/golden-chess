@@ -75,7 +75,11 @@ svg { display: block; }
 .view.view-in { animation: viewIn .2s ease-out both; }
 @keyframes viewIn { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 @media (prefers-reduced-motion: reduce) { .view.view-in { animation: none; } }
-.page { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+/* an app, not a web page: the page itself never bounces; a tab scrolls only when its content is taller than the screen,
+   and stops dead at its ends (no rubber band past them); one that (almost) fits doesn't scroll at all (.fits, see app.js) */
+html { overscroll-behavior: none; overflow: hidden; }
+.page { overflow-y: auto; overscroll-behavior: none; }
+.page.fits { overflow-y: hidden; }
 .page-in { box-sizing: border-box; width: 100%; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px;
   padding-block: 18px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .tabbar { flex: none; display: flex; background: var(--bar); border-top: 1px solid #3a413e;
@@ -201,6 +205,7 @@ svg { display: block; }
 .hl-pre, .hl-pre-from { background: var(--hl-pre); } /* the piece that will move */
 .hl-pre-to { background: var(--hl-pre-to); box-shadow: inset 0 0 0 3px var(--hl-pre); } /* the square it goes to */
 .hl-pre-gold { background: var(--hl-gold); box-shadow: inset 0 0 0 3px var(--hl-pre); }
+.hl-hint { box-shadow: inset 0 0 0 4px var(--act); }
 .hl-gold { background: var(--hl-gold); box-shadow: inset 0 0 0 2px rgba(247, 217, 143, .55); }
 .hl-check { background: radial-gradient(circle, rgba(255, 70, 50, .95) 0%, rgba(230, 50, 40, .55) 32%, rgba(200, 30, 30, 0) 70%); }
 .hl-hover { box-shadow: inset 0 0 0 4px rgba(255, 255, 255, .6); }
@@ -1068,10 +1073,10 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 .usp span { font-size: 13px; color: var(--muted); line-height: 1.45; }
 .vs960 { border-left: 3px solid var(--brand); padding: 4px 0 4px 14px; color: #e2dccf; font-size: 15px; }
 .try-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.try-tabs { display: flex; gap: 6px; }
-.try-tab { height: 40px; min-width: 44px; padding: 0 12px; border-radius: 11px; background: var(--raise); font-weight: 800; font-variant-numeric: tabular-nums; }
-.try-tab[aria-pressed="true"] { background: var(--bone); color: #1f2422; }
-.try-tab.done { box-shadow: inset 0 -3px 0 var(--ok); }
+.try-title { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; min-height: 32px; }
+.try-lvl { font-size: 12.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--raise); color: var(--muted); }
+.try-lvl.l1 { color: var(--ok); } .try-lvl.l2 { color: var(--act); } .try-lvl.l3 { color: #f0a59b; }
+.try-count { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .try-body { display: grid; gap: 14px; align-items: start; }
 @media (min-width: 760px) { .try-body { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 22px; } }
 .try-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }

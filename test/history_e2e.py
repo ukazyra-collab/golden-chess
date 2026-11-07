@@ -77,6 +77,7 @@ async def main():
                 await wait_for(other, f'__gc.game.records.length === {n + 1} && !__gc.online.pending', 5000)
                 await wait_for(pg, f'__gc.game.records.length === {n + 1} && !__gc.online.pending', 5000)
             async def pair(A, B):
+                admin('forgetgames')  # the same two again: the search keeps players who have just met apart for 15 minutes
                 for pg in (A, B):
                     await pg.evaluate('__gc.closeDialog(); __gc.go("play")')
                     await wait_for(pg, '!!document.getElementById("btn-start")')

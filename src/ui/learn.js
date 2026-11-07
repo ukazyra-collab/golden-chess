@@ -45,16 +45,18 @@ var GCLearn = (function () {
   REEL.forEach(function (d, i) { d.next = REEL[(i + 1) % REEL.length]; });
   // where a rook may teleport: gold dots; empty squares it may not use (they would give check): red crosses
   var RULE_DIAGRAM = { fen: '4k3/8/2n5/8/8/8/5PPP/R5K1 w - - 0 1 G', sel: 'a1' };
+  // the three first ones explain themselves (they teach the move); the made-up ones after them (src/puzzles.js, made by
+  // the engine: tools/puzzles) only say whose move it is, easy to hard
   var PUZZLES = [
-    { fen: '2r3k1/RQ3ppp/8/8/8/8/5PPP/3q2K1 w - - 0 1 G', last: ['d5', 'd1'], prompt: 'p1Prompt', good: 'p1Good', hint: 'p1Hint',
+    { id: 'i1', lvl: 1, fen: '2r3k1/RQ3ppp/8/8/8/8/5PPP/3q2K1 w - - 0 1 G', last: ['d5', 'd1'], prompt: 'p1Prompt', good: 'p1Good', hint: 'p1Hint',
       accept: { 'a7f1*': [], 'b7f1*': [] } },
-    { fen: 'r4r1k/pb3p1p/1p4p1/4q3/8/8/PP3PPP/R1BQ1RK1 w - - 0 1 G', prompt: 'p2Prompt', good: 'p2Good', hint: 'p2Hint',
+    { id: 'i2', lvl: 1, fen: 'r4r1k/pb3p1p/1p4p1/4q3/8/8/PP3PPP/R1BQ1RK1 w - - 0 1 G', prompt: 'p2Prompt', good: 'p2Good', hint: 'p2Hint',
       accept: { 'c1d4*': ['e5d4', 'd1d4', 'h8g8'], 'c1c3*': ['e5c3', 'b2c3'] } },
-    { fen: '6N1/k7/6K1/7P/8/8/2p5/8 w - - 0 1 G', prompt: 'p3Prompt', good: 'p3Good', hint: 'p3Hint',
+    { id: 'i3', lvl: 2, fen: '6N1/k7/6K1/7P/8/8/2p5/8 w - - 0 1 G', prompt: 'p3Prompt', good: 'p3Good', hint: 'p3Hint',
       accept: { 'g8c1*': ['a7b7', 'h5h6', 'b7c6', 'h6h7', 'c6d5', 'h7h8q'], 'g8e2*': ['a7b6', 'h5h6', 'b6c5', 'h6h7', 'c5c4', 'h7h8q'],
         'g8a2*': ['a7b6', 'h5h6', 'b6c5', 'h6h7', 'c5d5', 'h7h8q'], 'g8d3*': ['a7b6', 'h5h6', 'b6b5', 'h6h7', 'b5c4', 'h7h8q'],
         'g8b3*': ['a7b6', 'h5h6', 'b6b5', 'b3c1', 'b5c4', 'h6h7'] } }
-  ];
+  ].concat(typeof JOKER_PUZZLES !== 'undefined' ? JOKER_PUZZLES : []);
 
   function speedOf(ctx) { return ctx.settings.anim === 'off' ? 0 : ctx.settings.anim === 'fast' ? 0.6 : 1; }
   function goldenTargets(pos, from) {
@@ -158,6 +160,7 @@ var GCLearn = (function () {
     this.clearTimers();
     this.pos = new GC.Position(this.p.fen); this.selected = -1; this.locked = false; this.solved = false;
     this.mb.view.speed = speedOf(this.ctx);
+    this.mb.view.setOrientation(this.pos.side); // the side to move at the bottom
     this.mb.show(this.pos, [], true);
     this.mb.el.classList.add('armed');
     this.mb.view.markGolden(this.pos.side);
@@ -167,8 +170,10 @@ var GCLearn = (function () {
     var marks = [];
     if (this.p.last) marks.push({ sq: sq(this.p.last[0]), cls: 'hl-last' }, { sq: sq(this.p.last[1]), cls: 'hl-last' });
     if (this.pos.inCheck()) marks.push({ sq: this.pos.kings[this.pos.side], cls: 'hl-check' });
+    if (this.hinted && !this.solved) marks.push({ sq: sq(Object.keys(this.p.accept)[0].slice(0, 2)), cls: 'hl-hint' });
     return marks;
   };
+  Puzzle.prototype.hint = function () { this.hinted = true; this.paint(); };
   Puzzle.prototype.paint = function () {
     var marks = this.baseMarks(), dots = [];
     if (this.selected >= 0) {
@@ -206,7 +211,7 @@ var GCLearn = (function () {
     var cont = this.p.accept[uci];
     if (cont) {
       this.solved = true;
-      this.ui.status(T(this.p.good), 'good');
+      this.ui.status(this.ui.goodText(this.p), 'good');
       var t = 900;
       cont.forEach(function (u) {
         self.later(function () {
@@ -223,7 +228,7 @@ var GCLearn = (function () {
       });
       this.later(function () { self.ui.solved(); }, Math.max(600, t - 500));
     } else {
-      this.ui.status(T('badMove'), 'bad');
+      this.ui.status(this.ctx.T('badMove'), 'bad');
       this.later(function () {
         self.pos.unmakeMove();
         self.mb.show(self.pos, [{ from: to, to: from, golden: true }]);
@@ -247,7 +252,17 @@ var GCLearn = (function () {
     var demos = [], playDemo = null, view = '', io = null, puzzle = null, pIndex = 0;
     var done = {};
     try { done = JSON.parse(localStorage.getItem('goldenchess.puzzles') || '{}') || {}; } catch (e) { done = {}; }
+    // solved puzzles by id (the first version kept the three of then by their place: 0, 1, 2)
+    ['0', '1', '2'].forEach(function (k, i) { if (done[k]) { done['i' + (i + 1)] = 1; delete done[k]; } });
     function saveDone() { try { localStorage.setItem('goldenchess.puzzles', JSON.stringify(done)); } catch (e) { /* ignore */ } }
+    // where the player is: the puzzle open last time, else the first one not solved yet
+    (function () {
+      var at = -1;
+      try { var id = localStorage.getItem('goldenchess.puzzleAt'); for (var k = 0; k < PUZZLES.length; k++) if (PUZZLES[k].id === id) at = k; } catch (e) { /* ignore */ }
+      if (at < 0) for (var j = 0; j < PUZZLES.length; j++) if (!done[PUZZLES[j].id]) { at = j; break; }
+      pIndex = Math.max(0, at);
+    })();
+    function savePlace() { try { localStorage.setItem('goldenchess.puzzleAt', PUZZLES[pIndex].id); } catch (e) { /* ignore */ } }
     function watch(d) {
       if (!io && typeof IntersectionObserver !== 'undefined') {
         io = new IntersectionObserver(function (entries) {
@@ -345,49 +360,57 @@ var GCLearn = (function () {
       var ts = section(T('tryH'));
       ts.id = 'try';
       ts.appendChild(el('p', 'muted', esc(T('tryLead'))));
-      var head = el('div', 'try-head'), tabs = el('div', 'try-tabs');
-      head.appendChild(tabs); ts.appendChild(head);
+      // which puzzle, how hard, how many solved: one line (there are too many for a row of numbers)
+      var head = el('div', 'try-head'), tTitle = el('div', 'try-title'), tCount = el('div', 'try-count');
+      head.appendChild(tTitle); head.appendChild(tCount); ts.appendChild(head);
       var body = el('div', 'try-body'), bhost = el('div'), side = el('div', 'try-side');
       var prompt = el('div', 'try-prompt'), status = el('div', 'try-status'), acts = el('div', 'try-actions');
       side.appendChild(prompt); side.appendChild(status); side.appendChild(acts);
       body.appendChild(bhost); body.appendChild(side); ts.appendChild(body);
       inn.appendChild(ts);
       function btn(label, cls, fn, id) { var b = el('button', 'sbtn' + (cls ? ' ' + cls : ''), esc(label)); b.type = 'button'; if (id) b.id = id; b.addEventListener('click', fn); return b; }
-      function drawTabs() {
-        tabs.innerHTML = '';
-        PUZZLES.forEach(function (_, i) {
-          var b = el('button', 'try-tab' + (done[i] ? ' done' : ''), String(i + 1));
-          b.type = 'button'; b.id = 'try-tab-' + (i + 1); b.setAttribute('aria-pressed', String(i === pIndex));
-          b.setAttribute('aria-label', String(i + 1));
-          b.addEventListener('click', function () { open(i); });
-          tabs.appendChild(b);
-        });
+      var LVL = ['', 'lvlEasy', 'lvlMedium', 'lvlHard'];
+      function solvedCount() { return PUZZLES.filter(function (p) { return done[p.id]; }).length; }
+      function drawHead() {
+        var p = PUZZLES[pIndex];
+        tTitle.innerHTML = esc(T('puzzleN', { n: pIndex + 1 })) + '<span class="try-lvl l' + (p.lvl || 1) + '">' + esc(T(LVL[p.lvl || 1])) + '</span>';
+        tCount.textContent = T('solvedOf', { n: solvedCount(), total: PUZZLES.length });
+      }
+      function nextIndex() {
+        for (var k = 1; k <= PUZZLES.length; k++) { var j = (pIndex + k) % PUZZLES.length; if (!done[PUZZLES[j].id]) return j; }
+        return (pIndex + 1) % PUZZLES.length;
       }
       function actions(kind) {
         acts.innerHTML = '';
         if (kind === 'solved') {
-          if (pIndex < PUZZLES.length - 1) acts.appendChild(btn(T('nextPuzzle'), 'hot', function () { open(pIndex + 1); }, 'try-next'));
-          else { status.textContent = T(PUZZLES[pIndex].good) + ' ' + T('allSolved'); acts.appendChild(btn(T('learnCta'), 'hot', function () { ctx.go('bots'); }, 'try-play')); }
+          if (solvedCount() < PUZZLES.length) acts.appendChild(btn(T('nextPuzzle'), 'hot', function () { open(nextIndex()); }, 'try-next'));
+          else { status.textContent = ui.goodText(PUZZLES[pIndex]) + ' ' + T('allSolved'); acts.appendChild(btn(T('learnCta'), 'hot', function () { ctx.go('bots'); }, 'try-play')); }
           acts.appendChild(btn(T('tryAgain'), '', function () { open(pIndex); }, 'try-again'));
           return;
         }
-        acts.appendChild(btn(T('puzzleHint'), '', function () { status.className = 'try-status'; status.textContent = T(PUZZLES[pIndex].hint); }, 'try-hint'));
+        acts.appendChild(btn(T('puzzleHint'), '', function () {
+          var p = PUZZLES[pIndex];
+          status.className = 'try-status'; status.textContent = p.hint ? T(p.hint) : T('pzHint');
+          if (!p.hint) puzzle.hint();
+        }, 'try-hint'));
         acts.appendChild(btn(T('showAnswer'), '', function () { puzzle.answer(); }, 'try-answer'));
       }
       var ui = {
         status: function (text, cls) { status.className = 'try-status' + (cls ? ' ' + cls : ''); status.textContent = text; },
-        solved: function () { done[pIndex] = 1; saveDone(); drawTabs(); actions('solved'); },
+        goodText: function (p) { return p.good ? T(p.good) : p.mate ? T('pzMate', { n: p.mate }) : T('pzGood'); },
+        solved: function () { done[PUZZLES[pIndex].id] = 1; saveDone(); drawHead(); actions('solved'); },
         wrong: function () { /* keep the message until the next try */ }
       };
       function open(i) {
-        pIndex = i;
+        pIndex = i; savePlace();
         if (puzzle) puzzle.clearTimers();
         bhost.innerHTML = '';
-        puzzle = new Puzzle(bhost, PUZZLES[i], ctx, ui);
+        var p = PUZZLES[i];
+        puzzle = new Puzzle(bhost, p, ctx, ui);
         puzzle.mb.wrap.classList.add('try-board'); puzzle.mb.wrap.id = 'try-board';
-        prompt.textContent = T(PUZZLES[i].prompt);
+        prompt.textContent = p.prompt ? T(p.prompt) : T(puzzle.pos.side ? 'pzBlack' : 'pzWhite');
         ui.status('', '');
-        drawTabs(); actions('open');
+        drawHead(); actions('open');
       }
       open(Math.min(pIndex, PUZZLES.length - 1));
 

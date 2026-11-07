@@ -91,6 +91,7 @@ async def main():
                 await pg.fill('#acct-name', name); await pg.click('#btn-name')
                 return await wait_for(pg, '__gc.me && __gc.me.profile && __gc.me.profile.username === %s' % json.dumps(name), 5000)
             async def pair(A, B):
+                admin('forgetgames')  # the same two again: the search keeps players who have just met apart for 15 minutes
                 for pg in (A, B):
                     await pg.evaluate('__gc.closeDialog(); __gc.go("play")')
                     await wait_for(pg, '!!document.getElementById("btn-start")')
