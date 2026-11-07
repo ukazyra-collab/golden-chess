@@ -14,8 +14,8 @@ const PENDING = new URL('../../supabase/pending/', import.meta.url);
 const SUPABASE_STUBS = `
   create role anon; create role authenticated; create role service_role;
   create schema auth;
-  create table auth.users (id uuid primary key);
-  create table auth.identities (user_id uuid, provider text);
+  create table auth.users (id uuid primary key, email text, email_confirmed_at timestamptz, created_at timestamptz default now(), raw_app_meta_data jsonb default '{}');
+  create table auth.identities (id uuid primary key default gen_random_uuid(), provider_id text, user_id uuid references auth.users(id) on delete cascade, provider text, identity_data jsonb default '{}');
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   create schema realtime;
   create table realtime.messages (id bigserial primary key, topic text, extension text, payload jsonb, event text, private boolean);

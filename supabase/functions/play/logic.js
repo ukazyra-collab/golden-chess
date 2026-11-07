@@ -266,6 +266,20 @@ export function createLogic(opts) {
     return { waiting: true, now: now() };
   };
 
+  // one person, two accounts: the caller signed in to both just now (their session, and the sign-in method they were
+  // connecting, which turned out to have an account of its own). The HTTP layer has checked the second account's
+  // token and passes its id as b.__other; the account with more games stays, the other one is merged into it.
+  A.merge = async (uid, b, caller) => {
+    const other = typeof b.__other === 'string' ? b.__other : null;
+    if (!other) throw new Fail('unproven');
+    if (caller && caller.guest === true) throw new Fail('guest');
+    if (other === uid) return { keep: uid };
+    if (!repo.mergeAccounts) throw new Fail('unsupported');
+    const r = await repo.mergeAccounts(uid, other);
+    if (!r || r.error) throw new Fail((r && r.error) || 'merge_failed');
+    return { keep: r.keep, gone: r.gone };
+  };
+
   A.cancel = async (uid) => { await repo.deleteSeek(uid); return { ok: true }; };
 
   // nobody came while the player was searching: seat a house player (a person searching for the same game is paired

@@ -114,6 +114,30 @@ export function createMemoryRepo(now) {
     async touch(gameId, uid, at) { db.seen.set(gameId + '|' + uid, { game_id: gameId, user_id: uid, at }); },
     async isAdmin(uid) { return db.admins.has(uid); },
     async abortWaiting(uid) { for (const g of db.games.values()) if (g.host_id === uid && g.status === 'waiting') Object.assign(g, { status: 'aborted', result: '*', reason: 'abort' }); },
+    // as gc_merge_accounts (the sign-in side lives in the test server's stand-in for Auth)
+    async mergeAccounts(a, b) {
+      if (!a || !b || a === b) return { error: 'same_account' };
+      if (!db.profiles.has(a) || !db.profiles.has(b)) return { error: 'no_account' };
+      const games = [...db.games.values()];
+      if (games.some((g) => g.status === 'playing' && [a, b].some((u) => g.white_id === u || g.black_id === u))) return { error: 'live_game' };
+      const n = (u) => games.filter((g) => g.status === 'over' && (g.white_id === u || g.black_id === u)).length;
+      const [ga, gb] = [n(a), n(b)];
+      const older = (db.profiles.get(a).created_at || '') <= (db.profiles.get(b).created_at || '');
+      const [keep, gone] = ga > gb || (ga === gb && older) ? [a, b] : [b, a];
+      for (const g of games) for (const k of ['white_id', 'black_id', 'host_id']) if (g[k] === gone) g[k] = keep;
+      for (const [key, r] of [...db.ratings.entries()]) {
+        if (r.user_id !== gone) continue;
+        const kk = keep + '|' + r.pool, mine = db.ratings.get(kk);
+        if (!mine || r.games > mine.games) db.ratings.set(kk, Object.assign({}, r, { user_id: keep }));
+        db.ratings.delete(key);
+      }
+      if (db.admins.has(gone)) db.admins.add(keep);
+      db.admins.delete(gone);
+      const gp = db.profiles.get(gone), kp = db.profiles.get(keep);
+      db.profiles.delete(gone); db.seeks.delete(gone); db.house.delete(gone);
+      if (gp.name_chosen && !kp.name_chosen && ![...db.profiles.values()].some((p) => p.username.toLowerCase() === gp.username.toLowerCase())) { kp.username = gp.username; kp.name_chosen = true; }
+      return { keep, gone };
+    },
     async deleteSeek(uid) { db.seeks.delete(uid); },
     async top(pool, n) {
       return [...db.ratings.values()].filter((r) => r.pool === pool && r.games > 0).sort((a, b) => b.rating - a.rating).slice(0, n)

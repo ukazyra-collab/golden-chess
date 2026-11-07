@@ -18,12 +18,13 @@ const C = PG ? 'cccccccc-0000-4000-8000-000000000003' : 'carol';
 const D = PG ? 'dddddddd-0000-4000-8000-000000000004' : 'dave';
 const H = PG ? 'eeeeeeee-0000-4000-8000-000000000005' : 'house1';
 const [E, F, G] = PG ? ['ffffffff-0000-4000-8000-000000000006', 'ffffffff-0000-4000-8000-000000000007', 'ffffffff-0000-4000-8000-000000000008'] : ['erin', 'frank', 'grace'];
+const [M1, M2, M3] = PG ? ['99999999-0000-4000-8000-000000000011', '99999999-0000-4000-8000-000000000012', '99999999-0000-4000-8000-000000000013'] : ['mona', 'milo', 'mira'];
 let repo, inspect, cleanup = async () => {}, addHouse, pg;
 // test knobs for matchmaking: when a player last opened the app (null: not lately), how long a search has run, a rating
 let setSeen, quietAll, ageSeek, setRating;
 if (PG) {
   const { setupPg } = await import('./pg-harness.mjs');
-  ({ repo, inspect, cleanup, pg } = await setupPg([A, B, C, D, H, E, F, G]));
+  ({ repo, inspect, cleanup, pg } = await setupPg([A, B, C, D, H, E, F, G, M1, M2, M3]));
   setSeen = (uid, on) => pg.query('update public.profiles set last_seen = ' + (on ? 'now()' : 'null') + ' where id = $1', [uid]);
   quietAll = () => pg.query('update public.profiles set last_seen = null');
   ageSeek = (uid, ms) => pg.query('update public.seeks set since = since - make_interval(secs => $2) where user_id = $1', [uid, ms / 1000]);
@@ -509,6 +510,46 @@ if (PG) {
   await quietAll();
 }
 
+// ---- one person, two accounts: merged into the one with more games
+{
+  for (const u of [M1, M2, M3]) await ok(u, { action: 'hello' });
+  if (PG) {
+    await pg.query("update auth.users set email = 'zz1@privaterelay.appleid.com', created_at = now() - interval '1 day' where id = $1", [M1]);
+    await pg.query("insert into auth.identities (provider, provider_id, user_id, identity_data) values ('apple', 'apple-sub-1', $1, '{\"email\":\"zz1@privaterelay.appleid.com\"}')", [M1]);
+    await pg.query("update auth.users set email = 'milo@example.com' where id = $1", [M2]);
+    await pg.query("insert into auth.identities (provider, provider_id, user_id, identity_data) values ('email', $2, $1, '{\"email\":\"milo@example.com\"}'), ('google', 'g-sub-2', $1, '{\"email\":\"milo@example.com\"}')", [M2, M2]);
+  }
+  r = await call(M1, { action: 'merge' });
+  check('merge: without the other account proven, refused', r.body.error === 'unproven', r.body);
+  await ok(M2, { action: 'rename', name: 'MiloReal' });
+  // M2 plays a game (and so has more): it is the one that stays
+  await setRating(M2, 'blitz', 1500); await setRating(M3, 'blitz', 1500); await quietAll();
+  await ok(M2, { action: 'seek', tc: '3+2' });
+  r = await ok(M3, { action: 'seek', tc: '3+2' });
+  const mg = r.game;
+  r = await call(M1, { action: 'merge', __other: M2 });
+  check('merge: not while either account is in a live game', r.body.error === 'live_game', r.body);
+  await ok(mg.white_id, { action: 'move', game: mg.id, uci: 'e2e4', ply: 0 }); await ok(mg.black_id, { action: 'move', game: mg.id, uci: 'e7e5', ply: 1 });
+  await ok(M3, { action: 'resign', game: mg.id });
+  await setRating(M1, 'rapid', 1720);
+  r = await call(M1, { action: 'merge', __other: M2 });
+  check('merge: the account with more games stays', r.status === 200 && r.body.keep === M2 && r.body.gone === M1, r.body);
+  const profs2 = await inspect.profiles();
+  check('merge: the other profile is gone', !profs2.some((p) => p.id === M1) && profs2.some((p) => p.id === M2 && p.username === 'MiloReal'), profs2.filter((p) => [M1, M2].includes(p.id)));
+  const rts = (await inspect.ratings()).filter((x) => [M1, M2].includes(x.user_id));
+  check('merge: ratings came over (a pool only the other one had)', rts.some((x) => x.user_id === M2 && x.pool === 'rapid' && Math.round(x.rating) === 1720) && !rts.some((x) => x.user_id === M1), rts);
+  const g2 = await inspect.game(mg.id);
+  check('merge: the games stay with the kept account', g2 && [g2.white_id, g2.black_id].includes(M2), g2 && [g2.white_id, g2.black_id]);
+  if (PG) {
+    const ids = (await pg.query('select provider, user_id from auth.identities where user_id in ($1, $2) order by provider', [M1, M2])).rows;
+    check('merge: Apple now signs in to the kept account, its email and Google stay', ids.length === 3 && ids.every((x) => x.user_id === M2) && ids.map((x) => x.provider).join() === 'apple,email,google', ids);
+    const us = (await pg.query('select id, email, raw_app_meta_data from auth.users where id in ($1, $2)', [M1, M2])).rows;
+    check('merge: the other sign-in account is deleted, the kept email is the real one', us.length === 1 && us[0].id === M2 && us[0].email === 'milo@example.com' && us[0].raw_app_meta_data.providers.length === 3, us);
+  }
+  r = await call(M2, { action: 'merge', __other: M2 });
+  check('merge: the same account twice changes nothing', r.status === 200 && r.body.keep === M2, r.body);
+}
+
 // leaderboard
 r = await ok(A, { action: 'top', pool: 'bullet' });
 check('leaderboard (the house player among them)', r.rows.length === 3 && r.rows[0].rating >= r.rows[1].rating && r.rows.some((x) => x.name === 'abc256'), r.rows);
@@ -518,6 +559,7 @@ check('a player rated in the pool gets their place', r.rank >= 1 && r.rank <= r.
 check('the pool\'s size comes with the board, and no own row while the caller is in the top', r.total === 3 && r.me === null, [r.total, r.me]);
 
 // who is around (the search dialog's line)
+await ok(A, { action: 'hello' }); // A has the app open
 r = await ok(A, { action: 'lobby' });
 check('lobby: online players, games on, seekers', r.online >= 1 && r.games >= 0 && r.seeking === 0, r);
 

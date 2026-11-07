@@ -99,6 +99,17 @@ export function createPgRepo(sql) {
     async abortWaiting(uid) {
       await sql`update public.games set status = 'aborted', result = '*', reason = 'abort' where host_id = ${uid} and status = 'waiting'`;
     },
+    // two accounts of one person become one (both proven by the caller): see gc_merge_accounts
+    async mergeAccounts(a, b) {
+      try {
+        const r = await sql`select public.gc_merge_accounts(${a}::uuid, ${b}::uuid) as j`;
+        return r[0].j;
+      } catch (e) {
+        const m = /live_game|same_account|no_account/.exec(String(e && e.message));
+        if (m) return { error: m[0] };
+        throw e;
+      }
+    },
     async deleteSeek(uid) {
       await sql`delete from public.seeks where user_id = ${uid}`;
     },

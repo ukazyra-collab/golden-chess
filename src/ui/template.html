@@ -732,6 +732,14 @@ svg { display: block; }
 .acct-input.code { height: 58px; font-size: 26px; font-weight: 800; letter-spacing: .3em; text-indent: .3em; text-align: center; font-variant-numeric: tabular-nums; }
 .acct-who { font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
 .acct-who b { font-weight: 800; }
+.acct-methods { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--line); border-radius: 14px; padding: 4px 14px; }
+.acct-methods .am-title { font-size: 12.5px; color: var(--muted); padding: 10px 0 4px; }
+.am-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; border-top: 1px solid var(--line); }
+.am-title + .am-row { border-top: 0; }
+.am-name { display: flex; flex-direction: column; font-size: 15px; font-weight: 700; min-width: 0; }
+.am-mail { font-size: 12.5px; font-weight: 500; color: var(--muted); overflow-wrap: anywhere; }
+.am-on { font-size: 13px; color: var(--brand-hi); white-space: nowrap; }
+.am-connect { align-self: center; font-size: 14px; font-weight: 700; color: var(--act); white-space: nowrap; min-height: 44px; padding: 0 2px; }
 .acct-or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12.5px; }
 .acct-or::before, .acct-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .acct-line { font-size: 13px; flex-wrap: nowrap; justify-content: space-between; }

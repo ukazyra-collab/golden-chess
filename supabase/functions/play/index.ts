@@ -145,6 +145,10 @@ Deno.serve(async (req) => {
   const tBody = performance.now() - t0;
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '') || (typeof body.token === 'string' ? body.token : '');
   delete body.token; delete body.via;
+  // merge: the second account's own access token proves the caller holds it too (only its checked id goes on)
+  const otherToken = typeof body.other === 'string' ? body.other : '';
+  delete body.other; delete body.__other;
+  if (body.action === 'merge' && otherToken) { try { body.__other = (await userId(otherToken)).sub; } catch { /* unproven: refused below */ } }
   let tAuth = 0, how = 'none';
   const ta = performance.now();
   const authP = userId(token).then((r) => { how = r.how; return { sub: r.sub, guest: r.guest }; }).finally(() => { tAuth = performance.now() - ta; });

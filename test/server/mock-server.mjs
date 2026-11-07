@@ -47,7 +47,7 @@ const logic = createLogic({ repo, broadcast, GC, now });
 // ---- "Supabase Auth": a guest links an email (same account), or an email signs in (existing or new account).
 // Same answers as the real service: 422 email_exists / otp_disabled, 403 otp_expired, 429 when a code is
 // requested again within a minute.
-const accounts = { emailOf: new Map(), uidOf: new Map(), pending: new Map(), lastSent: new Map(), outbox: [] };
+const accounts = { ids: new Map(), emailOf: new Map(), uidOf: new Map(), pending: new Map(), lastSent: new Map(), outbox: [] };
 const OTP_TTL = 10 * 60000, RESEND_MS = 60000;
 const REVIEW = { email: 'review@kozyramedia.com', password: 'review-test-pass' }; // the stores' review account (test only)
 function sendCode(email, uid, type) {
@@ -62,13 +62,27 @@ function sendCode(email, uid, type) {
 function authOp(b) {
   const uid = typeof b.token === 'string' && b.token ? b.token : null;
   if (!uid) return { status: 401, body: { error: 'no_authorization' } };
-  if (b.op === 'whoami') { const e = accounts.emailOf.get(uid) || null; return { status: 200, body: { uid, email: e, guest: !e } }; }
+  if (b.op === 'whoami') {
+    const e = accounts.emailOf.get(uid) || null;
+    const methods = [...accounts.ids.entries()].filter(([, u]) => u === uid).map(([k]) => ({ provider: k.split(':')[0], email: k.slice(k.indexOf(':') + 1) }));
+    return { status: 200, body: { uid, email: e, guest: !e, methods } };
+  }
   if (b.op === 'idtoken') { // signInWithIdToken / linkIdentity: a test token "<provider>:<email>" stands for the provider's ID token
     const m = /^(apple|google):(.+)$/.exec(String(b.idtoken || ''));
     if (!m || m[1] !== b.provider) return { status: 400, body: { error: 'bad_id_token' } };
-    const em = m[2].toLowerCase(); let id = accounts.uidOf.get(em);
-    if (!id) { id = uid; accounts.emailOf.set(id, em); accounts.uidOf.set(em, id); }
-    return { status: 200, body: { uid: id, email: em } };
+    // as Supabase: the provider's own account first, else (linking off) the account with that email
+    const em = m[2].toLowerCase(), key = m[1] + ':' + em;
+    let id = accounts.ids.get(key) || (b.link ? null : accounts.uidOf.get(em));
+    if (b.link) {
+      if (id && id !== uid) return { status: 422, body: { error: 'identity_already_exists' } };
+      const ownerOfEmail = accounts.uidOf.get(em);
+      if (ownerOfEmail && ownerOfEmail !== uid) return { status: 422, body: { error: 'email_exists' } };
+      id = uid;
+    } else if (!id) id = accounts.emailOf.has(uid) ? 'u' + crypto.randomUUID().slice(0, 8) : uid; // a signed-in player signing in elsewhere: a new account
+    if (!accounts.emailOf.has(id)) accounts.emailOf.set(id, em);
+    if (!accounts.uidOf.has(em)) accounts.uidOf.set(em, id);
+    accounts.ids.set(key, id);
+    return { status: 200, body: { uid: id, email: accounts.emailOf.get(id) } };
   }
   const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : '';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { status: 400, body: { error: 'validation_failed' } };
@@ -84,17 +98,26 @@ function authOp(b) {
   if (b.op === 'password') { // signInWithPassword({ email, password }): only the stores' review account has one
     if (email !== REVIEW.email || b.password !== REVIEW.password) return { status: 400, body: { error: 'invalid_credentials' } };
     let id = owner;
-    if (!id) { id = 'u' + crypto.randomUUID().slice(0, 8); accounts.emailOf.set(id, email); accounts.uidOf.set(email, id); }
+    if (!id) { id = 'u' + crypto.randomUUID().slice(0, 8); accounts.emailOf.set(id, email); accounts.uidOf.set(email, id); accounts.ids.set('email:' + email, id); }
     return { status: 200, body: { uid: id, email } };
   }
   if (b.op === 'verify') { // verifyOtp({ email, token, type })
     const p = accounts.pending.get(email), type = b.type === 'email_change' ? 'email_change' : 'email';
     if (!p || p.code !== String(b.code) || p.type !== type || now() - p.at > OTP_TTL || (type === 'email_change' && p.uid !== uid)) return { status: 403, body: { error: 'otp_expired' } };
     accounts.pending.delete(email);
-    accounts.emailOf.set(p.uid, email); accounts.uidOf.set(email, p.uid);
+    accounts.emailOf.set(p.uid, email); accounts.uidOf.set(email, p.uid); accounts.ids.set('email:' + email, p.uid);
     return { status: 200, body: { uid: p.uid, email } };
   }
   return { status: 400, body: { error: 'bad_op' } };
+}
+// as gc_merge_accounts on the sign-in side: the methods move over; the email too if the kept account has no real one
+function mergeAuth(keep, gone) {
+  const relay = (e) => !e || /privaterelay\.appleid\.com$/i.test(e);
+  for (const [k, u] of accounts.ids) if (u === gone) { if (k.startsWith('email:') && !relay(accounts.emailOf.get(keep))) accounts.ids.delete(k); else accounts.ids.set(k, keep); }
+  const ge = accounts.emailOf.get(gone);
+  if (ge && !relay(ge) && relay(accounts.emailOf.get(keep))) accounts.emailOf.set(keep, ge);
+  for (const [e, u] of accounts.uidOf) if (u === gone) accounts.uidOf.set(e, keep);
+  accounts.emailOf.delete(gone);
 }
 const page = () => fs.readFileSync(path.join(ROOT, 'dist/mock/index.html'));
 
@@ -126,10 +149,14 @@ const server = http.createServer(async (req, res) => {
     // same contract as the edge function: token in the Authorization header or in the body
     const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || (typeof body.token === 'string' ? body.token : '');
     delete body.token; delete body.via;
+    // merge: the second account's token (here: its id) proves the caller holds it too
+    const other = typeof body.other === 'string' ? body.other : ''; delete body.other; delete body.__other;
+    if (body.action === 'merge' && other) body.__other = other;
     const auth = token ? Promise.resolve({ sub: token, guest: !accounts.emailOf.has(token) }) : Promise.reject({ code: 'auth' });
     const delay = +(process.env.MOCK_LATENCY || 0) + extraLatency;
     if (delay) await new Promise((r) => setTimeout(r, delay / 2));
     const { status, body: out } = await logic.handle(auth, body);
+    if (body.action === 'merge' && out && out.gone) mergeAuth(out.keep, out.gone);
     if (delay) await new Promise((r) => setTimeout(r, delay / 2));
     res.writeHead(status, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(out));

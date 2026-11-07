@@ -731,6 +731,14 @@ svg { display: block; }
 .acct-input.code { height: 58px; font-size: 26px; font-weight: 800; letter-spacing: .3em; text-indent: .3em; text-align: center; font-variant-numeric: tabular-nums; }
 .acct-who { font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
 .acct-who b { font-weight: 800; }
+.acct-methods { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--line); border-radius: 14px; padding: 4px 14px; }
+.acct-methods .am-title { font-size: 12.5px; color: var(--muted); padding: 10px 0 4px; }
+.am-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; border-top: 1px solid var(--line); }
+.am-title + .am-row { border-top: 0; }
+.am-name { display: flex; flex-direction: column; font-size: 15px; font-weight: 700; min-width: 0; }
+.am-mail { font-size: 12.5px; font-weight: 500; color: var(--muted); overflow-wrap: anywhere; }
+.am-on { font-size: 13px; color: var(--brand-hi); white-space: nowrap; }
+.am-connect { align-self: center; font-size: 14px; font-weight: 700; color: var(--act); white-space: nowrap; min-height: 44px; padding: 0 2px; }
 .acct-or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12.5px; }
 .acct-or::before, .acct-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .acct-line { font-size: 13px; flex-wrap: nowrap; justify-content: space-between; }
@@ -5352,6 +5360,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       codeTitle: 'Enter the code', codeSub: 'We sent a code to {email}. Type it here, or open the link from the email on this device.',
       existingNote: 'This email already has an account. You\u2019ll switch to it; this guest\u2019s games and rating stay behind.',
       confirm: 'Confirm', checking: 'Checking', resend: 'Send again', resendIn: 'Send again in {s} s', otherEmail: 'Use a different email',
+      methodsTitle: 'Ways to sign in', mEmail: 'Email', mGoogle: 'Google', mApple: 'Apple', mHidden: 'hidden email', mConnect: 'Connect', mOn: 'Connected',
+      methodLinked: '{p} connected: it signs in to this account now', accountsMerged: 'Two accounts are one now: games and rating are together', mergeLive: 'Finish the game first, then connect',
       signedInAs: 'Signed in as {email}', signedSub: 'Your name, rating and games are saved to this account. Sign in with this email on any device.',
       signOut: 'Sign out', signedOutToast: 'Signed out. You\u2019re playing as a new guest.', progressSaved: 'Progress saved',
       pwSub: 'The password for {email}', pwLabel: 'Password', pwWrong: 'Wrong password',
@@ -5516,6 +5526,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       codeTitle: 'Введите код', codeSub: 'Код отправлен на {email}. Введите его здесь или откройте ссылку из письма на этом устройстве.',
       existingNote: 'У этой почты уже есть аккаунт. Вы перейдёте в него, а партии и рейтинг этого гостя останутся у гостя.',
       confirm: 'Подтвердить', checking: 'Проверяем', resend: 'Отправить ещё раз', resendIn: 'Ещё раз через {s} с', otherEmail: 'Другая почта',
+      methodsTitle: 'Способы входа', mEmail: 'Почта', mGoogle: 'Google', mApple: 'Apple', mHidden: 'скрытая почта', mConnect: 'Подключить', mOn: 'Подключено',
+      methodLinked: '{p} подключён: теперь он входит в этот аккаунт', accountsMerged: 'Два аккаунта стали одним: партии и рейтинг вместе', mergeLive: 'Сначала доиграйте партию, потом подключайте',
       signedInAs: 'Вы вошли как {email}', signedSub: 'Имя, рейтинг и партии сохранены в аккаунте. Входите с этой почтой на любом устройстве.',
       signOut: 'Выйти', signedOutToast: 'Вы вышли. Теперь вы играете как новый гость.', progressSaved: 'Прогресс сохранён',
       pwSub: 'Пароль для {email}', pwLabel: 'Пароль', pwWrong: 'Неверный пароль',
@@ -7689,6 +7701,35 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     var o = { provider: provider, token: token, nonce: nonce };
     return (link ? this.sb.auth.linkIdentity(o) : this.sb.auth.signInWithIdToken(o)).then(authFail);
   };
+  // the ways this account signs in (Apple, Google, email), with the address each one gives
+  SupaNet.prototype.methods = function () {
+    return this.sb.auth.getUser().then(authFail).then(function (d) {
+      var u = d && d.user;
+      return ((u && u.identities) || []).map(function (i) { return { provider: i.provider, email: (i.identity_data && i.identity_data.email) || i.email || '' }; });
+    });
+  };
+  // a signed-in player connects Google or Apple to their account. If that Google / Apple account already has a player of
+  // its own, it is the same person twice: they sign in to it too (that proves it), the server makes one account of the
+  // two (the one with more games stays) and the session goes on as that one. answers { linked } or { merged, keep }
+  SupaNet.prototype.connectId = function (provider, token, nonce) {
+    var sb = this.sb, self = this, o = { provider: provider, token: token, nonce: nonce }, mine = null;
+    function back(e) { return sb.auth.setSession({ access_token: mine.access_token, refresh_token: mine.refresh_token }).then(function () { throw e; }, function () { throw e; }); }
+    return sb.auth.refreshSession().then(authFail).then(function (d) {
+      mine = d && d.session;
+      if (!mine) { var e0 = new Error('auth'); e0.code = 'auth'; throw e0; }
+      return sb.auth.linkIdentity(o).then(authFail).then(function () { return { linked: true }; }, function (e) {
+        if (!methodTaken(e)) throw e;
+        return sb.auth.signInWithIdToken(o).then(authFail).then(function (d2) {
+          var theirs = d2 && d2.session;
+          return postJson(self.cfg.url + '/functions/v1/' + (self.cfg.fn || 'play') + '?forceFunctionRegion=' + encodeURIComponent(self.cfg.region || 'eu-central-1'),
+            { action: 'merge', token: mine.access_token, other: theirs.access_token }).then(function (r) {
+            if (r.keep === mine.user.id) return sb.auth.setSession({ access_token: mine.access_token, refresh_token: mine.refresh_token }).then(authFail).then(function () { return { merged: true, keep: r.keep }; });
+            return { merged: true, keep: r.keep };
+          });
+        }).catch(back);
+      });
+    });
+  };
   // the owner's statistics (admin_stats() in the database answers only the accounts in `admins`)
   SupaNet.prototype.adminStats = function () { return this.sb.rpc('admin_stats').then(function (r) { if (r.error) throw r.error; return r.data; }); };
   // Apple says the name only the first time: it goes on the account (offered when the player picks their name)
@@ -7803,12 +7844,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     try { localStorage.setItem('goldenchess.mockuid' + profileSuffix, this.uid); } catch (e) { /* ignore */ }
     return Promise.resolve();
   };
-  MockNet.prototype.idToken = function (provider, token) {
+  MockNet.prototype.idToken = function (provider, token, nonce, link) {
     // the test server: a token "apple:<email>" signs in as that email (see test/server/mock-server.mjs)
     var self = this;
-    return this.authCall({ op: 'idtoken', provider: provider, idtoken: token }).then(function (r) { if (r && r.uid) self.uid = r.uid; return r; });
+    return this.authCall({ op: 'idtoken', provider: provider, idtoken: token, link: !!link }).then(function (r) { if (r && r.uid) self.uid = r.uid; return r; });
   };
   MockNet.prototype.setFullName = function () { return Promise.resolve(); };
+  MockNet.prototype.methods = function () { return this.authCall({ op: 'whoami' }).then(function (r) { return r.methods || []; }); };
+  MockNet.prototype.connectId = function (provider, token) {
+    var self = this, mine = this.uid;
+    function as(uid) { self.uid = uid; try { localStorage.setItem('goldenchess.mockuid' + profileSuffix, uid); } catch (e) { /* ignore */ } }
+    return this.authCall({ op: 'idtoken', provider: provider, idtoken: token, link: true }).then(function () { return { linked: true }; }, function (e) {
+      if (!methodTaken(e)) throw e;
+      return self.authCall({ op: 'idtoken', provider: provider, idtoken: token }).then(function (r) {
+        return postJson(self.base + '/play', { action: 'merge', token: mine, other: r.uid }).then(function (m) { as(m.keep); return { merged: true, keep: m.keep }; });
+      });
+    });
+  };
   MockNet.prototype.adminStats = function () { return postJson(this.base + '/admin', { op: 'stats', token: this.uid }); };
   MockNet.prototype.deleteAccount = function () { return postJson(this.base + '/delete', { token: this.uid }); };
   MockNet.prototype.history = function (uid, before, opp) { return postJson(this.base + '/history', { token: uid, before: before || null, opp: opp || null, limit: HIST_PAGE }).then(function (r) { return r.games || []; }); };
@@ -8287,6 +8339,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       if (st.step === 'signed') {
         card.appendChild(h('div', { class: 'acct-who', id: 'acct-who' }, boldVar('signedInAs', 'email', (st.acct && st.acct.email) || '')));
         if (!o.page) card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('signedSub'))));
+        if (!o.page) methodsBlock(card);
         if (err) card.appendChild(err);
         if (o.page) { card.appendChild(btn('primary', T('cont'), o.onDone, 'btn-acct-done')); return; }
         var so = btn('secondary danger', T('signOut'), signOut, 'btn-signout'); so.disabled = st.busy;
@@ -8429,6 +8482,28 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
         render();
       });
     }
+    // the ways to sign in to this account: what is connected, and Google / Apple to connect (one person, one account)
+    function methodsBlock(into) {
+      var box = h('div', { class: 'acct-methods', id: 'acct-methods' });
+      box.appendChild(h('div', { class: 'am-title' }, esc(T('methodsTitle'))));
+      into.appendChild(box);
+      function rows(list) {
+        box.querySelectorAll('.am-row').forEach(function (r) { r.remove(); });
+        var by = {};
+        (list || []).forEach(function (m) { (by[m.provider] = by[m.provider] || []).push(m.email || ''); });
+        [['email', 'mEmail', null], ['google', 'mGoogle', googleShown() ? google : null], ['apple', 'mApple', appleShown() ? apple : null]].forEach(function (x) {
+          var on = by[x[0]], can = x[2];
+          if (!on && !can) return;
+          var mail = on ? on.map(function (e) { return /privaterelay\.appleid\.com$/i.test(e) ? T('mHidden') : e; }).filter(Boolean).join(', ') : '';
+          var r = h('div', { class: 'am-row', id: 'am-' + x[0] }, '<span class="am-name">' + esc(T(x[1])) + (mail ? '<span class="am-mail">' + esc(mail) + '</span>' : '') + '</span>');
+          if (on) r.appendChild(h('span', { class: 'am-on' }, esc(T('mOn'))));
+          else { var b = btn('linkbtn am-connect', T('mConnect'), function () { st.connect = true; can(); }, 'btn-connect-' + x[0]); b.disabled = st.busy; r.appendChild(b); }
+          box.appendChild(r);
+        });
+      }
+      rows(st.methods);
+      ensureNet().then(function () { return net.methods(); }).then(function (list) { st.methods = list; if (box.isConnected) rows(list); }, function () { /* ignore */ });
+    }
     function signOut() {
       if (liveOnlineGame()) { st.err = T('finishFirst'); render(); return; }
       st.busy = true; render();
@@ -8437,7 +8512,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     function apple() {
       if (st.busy) return;
       st.busy = true; st.err = ''; render();
-      appleSignIn().then(function () { if (alive) { st.busy = false; render(); } }, function (e) {
+      var connect = !!st.connect; st.connect = false;
+      appleSignIn(connect).then(function () { if (alive) { st.busy = false; render(); } }, function (e) {
         // the sheet closed without signing in (cancelled): nothing to say
         st.busy = false; st.err = /cancel|1001|AuthorizationError/i.test(String(e && (e.code || e.message))) ? '' : authMsg(e); render();
       });
@@ -8447,7 +8523,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       st.busy = true; st.err = ''; render();
       // Google's sign-in page (the page leaves for it here; in the app the system browser opens over the page) answers
       // through google.html; providerIdToken then links Google to this guest or signs in (see googleRedirect)
-      ensureNet().then(googleRedirect)
+      var connect = !!st.connect; st.connect = false;
+      ensureNet().then(function () { return googleRedirect(connect); })
         .then(function () { if (NATIVE.on && alive) { st.busy = false; render(); } }, function (e) { st.busy = false; st.err = authMsg(e); render(); });
     }
     return { stop: function () { alive = false; clearInterval(timer); } };
@@ -8574,7 +8651,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   function appleShown() { return !!(NETCFG && NETCFG.appleAuth) && NATIVE.on && NATIVE.platform === 'ios' && NATIVE.has('SignInWithApple'); }
   function googleShown() { return !!(NETCFG && NETCFG.googleAuth) && (!(NATIVE.on && NATIVE.platform === 'ios') || appleShown()); }
   // the Apple sheet (native): Apple signs an ID token with our hashed nonce; Supabase gets the raw one, as with Google
-  function appleSignIn() {
+  function appleSignIn(connect) {
     var raw = randHex(16);
     return sha256hex(raw).then(function (hashed) {
       return NATIVE.call('SignInWithApple', 'authorize', { clientId: 'com.kozyramedia.goldenchess', redirectURI: 'https://golden-chess.com/', scopes: 'email name', state: randHex(8), nonce: hashed });
@@ -8582,7 +8659,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       var a = r && r.response;
       if (!a || !a.identityToken) { var e = new Error('cancelled'); e.code = 'cancelled'; throw e; }
       var name = [a.givenName, a.familyName].filter(Boolean).join(' ');
-      providerIdToken('apple', a.identityToken, raw, name || '');
+      providerIdToken('apple', a.identityToken, raw, name || '', connect);
     });
   }
   function googleOn() { return !!(NETCFG && NETCFG.googleAuth && NETCFG.googleClientId && NETCFG.mock == null) && !!(window.crypto && crypto.subtle && window.TextEncoder); }
@@ -8621,10 +8698,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   function gsiCredential(resp) { if (resp && resp.credential && gsi) providerIdToken('google', resp.credential, gsi.nonce); }
   // our button (the app; the website without Google's script): Google's sign-in page, answering to google.html.
   // The state says where the answer goes on (a: the app, w: this site, after the dot the ?p= profile); the nonce stays here.
-  function googleRedirect() {
+  function googleRedirect(connect) {
     if (!googleOn()) return Promise.reject(new Error('unsupported'));
     var raw = randHex(16), st = (NATIVE.on ? 'a' : 'w') + randHex(8) + (profileSuffix ? '.' + profileSuffix : '');
-    save('gFlow', { nonce: raw, state: st, at: Date.now() });
+    save('gFlow', { nonce: raw, state: st, at: Date.now(), connect: !!connect });
     return sha256hex(raw).then(function (hashed) {
       var u = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=' + encodeURIComponent(NETCFG.googleClientId) +
         '&redirect_uri=' + encodeURIComponent(NETCFG.googleReturn) + '&response_type=id_token&scope=' + encodeURIComponent('openid email profile') +
@@ -8639,16 +8716,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     if (!f || f.state !== st || Date.now() - f.at > 30 * 60000) { toast(T('signInFailed')); return; }
     save('gFlow', null);
     if (err || !tok) { if (err !== 'access_denied') toast(T('signInFailed')); return; }
-    providerIdToken('google', tok, f.nonce);
+    providerIdToken('google', tok, f.nonce, '', !!f.connect);
   }
+  // the provider account (or its email) already belongs to another player
+  function methodTaken(e) { return /email_exists|identity_already_exists/.test(String(e && e.code)) || /already (been )?(registered|linked)/i.test(String(e && e.message)); }
   // Google or Apple answered with an ID token: a guest gets the provider on the same account (rating and games stay);
   // if that provider account (or its email) already has a player, sign in to that player instead, as with an email code
-  function providerIdToken(provider, tok, nonce, fullName) {
+  function providerIdToken(provider, tok, nonce, fullName, connect) {
     toast(T('connecting') + '…');
+    if (connect) { connectMethod(provider, tok, nonce); return; }
     ensureNet().then(function () { return net.account(); }).then(function (a) {
       if (a && a.guest) {
         return net.idToken(provider, tok, nonce, true).then(function () { return 'same'; }, function (e) {
-          if (!/email_exists|identity_already_exists/.test(String(e && e.code)) && !/already (been )?(registered|linked)/i.test(String(e && e.message))) throw e;
+          if (!methodTaken(e)) throw e;
           if (liveOnlineGame()) { var f = new Error('finish'); f.code = 'finish'; throw f; }
           return net.idToken(provider, tok, nonce, false).then(function () { return 'other'; });
         });
@@ -8668,6 +8748,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
         signedInNext();
       });
     }).catch(function (e) { toast(e && e.code === 'finish' ? T('finishFirst') : T('signInFailed')); });
+  }
+  // a signed-in player connects Google / Apple from the account sheet: linked to this account, or (the same person's
+  // other account) the two made one; a different account kept: start over as that one
+  function connectMethod(provider, tok, nonce) {
+    var was = me && me.uid;
+    ensureNet().then(function () {
+      if (liveOnlineGame()) { var f = new Error('live_game'); f.code = 'live_game'; throw f; }
+      return net.connectId(provider, tok, nonce);
+    }).then(function (r) {
+      if (r.merged && r.keep !== was) { save('online', null); save('notice', 'merged'); setUrl(null); location.reload(); return; }
+      return refreshMe().then(function () {
+        toast(r.merged ? T('accountsMerged') : T('methodLinked', { p: provider === 'apple' ? 'Apple' : 'Google' }));
+        if (currentDialog && currentDialog.dataset.kind === 'account') { closeDialog(); showAccount(); }
+        renderAll();
+        if (curView !== 'game' && curView !== 'signin') refreshView();
+      });
+    }).catch(function (e) {
+      var live = e && (e.code === 'live_game' || (e.data && e.data.error === 'live_game') || /live_game/.test(String(e.message)));
+      toast(live ? T('mergeLive') : T('signInFailed'));
+    });
   }
   // Back from the link in a sign-in email: supabase-js has already taken the session (or the error) from the
   // address. Tidy the address and say what happened.
@@ -9970,6 +10070,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       ensureNet().then(function () {
         if (note === 'signedOut') toast(T('signedOutToast'));
         else if (note === 'deleted') toast(T('deletedToast'));
+        else if (note === 'merged') toast(T('accountsMerged'));
         else {
           toast(signedIn() ? T('signedInAs', { email: me.email || '' }) : T('signInFailed'));
           if (signedIn()) signedInNext();

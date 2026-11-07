@@ -62,9 +62,12 @@ window.supabase = { createClient: function (url, key, opts) {
     auth: {
       onAuthStateChange: function (cb) { lis.push(cb); return { data: { subscription: { unsubscribe: function () {} } } }; },
       getSession: function () { return ok({ session: sess() }); },
+      getUser: function () { var u = getU(); var ids = []; try { ids = JSON.parse(localStorage.getItem('test.idents') || '[]'); } catch (e) { /* none */ } return ok({ user: u ? Object.assign({}, u, { identities: ids }) : null }); },
+      refreshSession: function () { calls.push(['refreshSession']); var s = sess(); if (s) s.refresh_token = 'ref-' + s.user.id; return ok({ session: s, user: s && s.user }); },
       signInAnonymously: function () { setU({ id: 'u1', email: null, is_anonymous: true }); return ok({ session: sess() }); },
       linkIdentity: function (o) {
         calls.push(['linkIdentity', o]);
+        if (o.token && localStorage.getItem('test.idTaken')) return Promise.resolve({ data: { user: null, session: null }, error: { message: 'Identity is already linked to another user', code: 'identity_already_exists', status: 422 } });
         if (o.token) {  // Google's button on the website: the ID token links Google to this guest
           if (localStorage.getItem('test.linkTaken')) return Promise.resolve({ data: { user: null, session: null }, error: { message: 'A user with this email address has already been registered', code: 'email_exists', status: 400 } });
           var g = Object.assign({}, getU(), { is_anonymous: false, email: 'gina@example.com', user_metadata: { full_name: 'Gina Google' } });
@@ -111,6 +114,7 @@ def site_html():
 
 results = []
 renames = []
+merges = []
 GOOGLE_HTML = open(os.path.join(ROOT, 'google.html')).read()
 sha256 = lambda x: hashlib.sha256(x.encode()).hexdigest()
 def check(name, ok, extra=''):
@@ -149,6 +153,9 @@ async def setup(ctx, html, native=True, gsi=None):
             p.update(username=' '.join(str(body.get('name', '')).split()), name_chosen=True); renames.append(p['username'])
             out = {'profile': dict(p)}
         elif a == 'challenge': out = {'game': {'id': 'g1', 'status': 'waiting'}}
+        elif a == 'merge':
+            merges.append(body); keep = str(body.get('token', '')).replace('tok-', '')
+            out = {'keep': keep, 'gone': str(body.get('other', '')).replace('tok-', '')}
         else: out = {}
         await r.fulfill(status=200, body=json.dumps(out), content_type='application/json', headers={'Access-Control-Allow-Origin': '*'})
     await pg.route(FN + '**', fn_route)
@@ -355,6 +362,31 @@ async def main():
         check('iphone+apple: a guest links Apple with the ID token; Supabase gets the raw nonce', ok and li and li[0]['token'] == 'fake.apple.jwt' and hashlib.sha256(li[0]['nonce'].encode()).hexdigest() == call[2]['nonce'], li)
         ok = await wait_for(pg, '__sbCalls.some(function (c) { return c[0] === "updateUser" && c[1].data && c[1].data.full_name === "Ann Apple"; })')
         check('iphone+apple: the name Apple gives once is kept on the account', ok, await pg.evaluate('__sbCalls.filter(function (c) { return c[0] === "updateUser"; })'))
+        await ctx.close()
+        # ---- iPhone, signed in by email: "Ways to sign in" connects Apple; that Apple ID has its own account, so the
+        # player signs in to it too, the play function makes one account of the two, the session goes on as the kept one
+        ctx = await br.new_context(**phone)
+        pg, errs = await setup(ctx, html)
+        await pg.add_init_script("""localStorage.setItem("test.platform", "ios"); localStorage.setItem("test.plugins", "SignInWithApple");
+          if (!localStorage.getItem("test.user")) { localStorage.setItem("test.user", JSON.stringify({ id: "u1", email: "me@example.com", is_anonymous: false })); localStorage.setItem("goldenchess.auth", "1"); }
+          localStorage.setItem("test.idents", JSON.stringify([{ provider: "email", identity_data: { email: "me@example.com" } }, { provider: "google", identity_data: { email: "me@example.com" } }]));
+          localStorage.setItem("test.idTaken", "1");""")
+        await pg.goto(SITE + '#profile'); await pg.wait_for_timeout(900)
+        await pg.evaluate('__gc.closeDialog()'); await pg.wait_for_timeout(400)
+        await pg.evaluate('__gc.showAccount()'); await pg.wait_for_timeout(500)
+        ok = await wait_for(pg, '!!document.getElementById("am-apple") && !!document.getElementById("btn-connect-apple")')
+        rows = await pg.evaluate('[...document.querySelectorAll("#acct-methods .am-row")].map(r => r.id + ":" + r.textContent)')
+        check('connect: the account lists its ways to sign in, Apple to connect', ok and any(r.startswith('am-email:') and 'me@example.com' in r for r in rows) and any(r.startswith('am-google:') for r in rows), rows)
+        await pg.screenshot(path=os.path.join(ROOT, 'test/shots/ios-account-methods.png'))
+        await pg.click('#btn-connect-apple')
+        ok = await wait_for(pg, '__sbCalls.some(function (c) { return c[0] === "signInWithIdToken" && c[1].provider === "apple"; })')
+        check('connect: Apple taken by another account: linking is tried first, then that account signs in too', ok and await pg.evaluate('__sbCalls.findIndex(c => c[0] === "linkIdentity" && c[1].provider === "apple") < __sbCalls.findIndex(c => c[0] === "signInWithIdToken")'))
+        ok = await wait_for(pg, '/accounts are one|аккаунта стали одним/i.test(document.getElementById("toast").textContent)', 6000)
+        check('connect: the play function is asked to merge with both accounts\' tokens', merges and merges[-1].get('token') == 'tok-u1' and merges[-1].get('other') == 'tok-u3', merges)
+        ss = await pg.evaluate('__sbCalls.filter(c => c[0] === "setSession").map(c => c[1])')
+        check('connect: the kept account\'s session is back', ss and ss[-1].get('access_token') == 'tok-u1' and ss[-1].get('refresh_token') == 'ref-u1', ss)
+        check('connect: says the two accounts are one', ok, await pg.evaluate('document.getElementById("toast").textContent'))
+        check('connect: no console errors', not [e for e in errs if 'Failed to load resource' not in e], errs[:5])
         await ctx.close()
         # cancelled sheet (a fresh guest): nothing to say, the form stays
         ctx = await br.new_context(**phone)
