@@ -289,7 +289,7 @@ async def main():
             await D.click('#btn-cancel-lobby'); await D.wait_for_timeout(200)
             await D.click('#acct-chip'); await sign_in(D, 'dina@example.com', 'Dina')
             await wait_for(D, '__gc.curView === "play" && !__gc.dialogOpen', 5000); await D.click('#btn-start')
-            ok('house: the search shows a filling bar', await wait_for(D, '__gc.dialogKind === "lobby" && !!document.querySelector("#seek-bar.fill")', 5000))
+            ok('house: the search shows the running bar and the players around', await wait_for(D, '__gc.dialogKind === "lobby" && !!document.querySelector("#seek-bar.pong") && !!document.querySelector("#lobby-reel .reel-track")', 5000))
             t0 = time.time()
             ok('house: an opponent is found when the bar is full', await wait_for(D, '__gc.online && __gc.game.cfg.mode === "online"', 8000))
             ok('house: found after the search span (~0.7 s), not at once', 0.4 < time.time() - t0 < 4, time.time() - t0)

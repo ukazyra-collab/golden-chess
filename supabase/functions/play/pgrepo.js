@@ -107,16 +107,24 @@ export function createPgRepo(sql) {
       if (!UUID.test(String(uid))) return;
       try { await sql`update public.profiles set last_seen = now() where id = ${uid}`; } catch (e) { /* older schema */ }
     },
-    // who is around right now: seen by the app in the last minutes, heartbeating in a game, or looking for a game
+    // who is around right now: people seen by the app in the last minutes, heartbeating in a game or looking for a
+    // game, and the house players whose hours these are (about half of them at any moment, a different half every half
+    // minute, so the number lives); faces: a handful of them for the search dialog's carousel
     async lobby() {
-      const r = await sql`select
-        (select count(*) from public.seeks where updated_at > now() - interval '30 seconds') as seeking,
-        (select count(*) from public.games where status = 'playing' and updated_at > now() - interval '1 hour') as games,
-        (select count(distinct x.u) from (
-          select id as u from public.profiles where last_seen > now() - interval '5 minutes'
+      const r = await sql`with hr as (select extract(hour from now() at time zone 'utc')::int as h, floor(extract(epoch from now()) / 30)::bigint as b),
+        people as (select x.u from (
+          select id as u from public.profiles where last_seen > now() - interval '5 minutes' and not house
           union select user_id from public.seen where at > now() - interval '5 minutes'
-          union select user_id from public.seeks where updated_at > now() - interval '30 seconds') x) as online`;
-      return { seeking: Number(r[0].seeking), games: Number(r[0].games), online: Number(r[0].online) };
+          union select user_id from public.seeks where updated_at > now() - interval '30 seconds') x),
+        house as (select hp.user_id as u from public.house hp, hr
+          where ((hr.h - hp.online_from + 24) % 24) < hp.online_hours and abs(hashtext(hp.user_id::text || hr.b::text)) % 100 < 55)
+        select
+          (select count(*) from public.seeks where updated_at > now() - interval '30 seconds') as seeking,
+          (select count(*) from public.games where status = 'playing' and updated_at > now() - interval '1 hour') as games,
+          (select count(distinct u) from (select u from people union select u from house) z) as online,
+          (select coalesce(jsonb_agg(jsonb_build_object('uid', p.id, 'name', p.username, 'avatar_v', p.avatar_v)), '[]'::jsonb) from
+            (select p.id, p.username, p.avatar_v from public.profiles p where p.id in (select u from people union select u from house) order by random() limit 14) p) as faces`;
+      return { seeking: Number(r[0].seeking), games: Number(r[0].games), online: Number(r[0].online), faces: r[0].faces || [] };
     },
     async top(pool, n) {
       return plain(await sql`select r.user_id as uid, p.username as name, p.avatar_v, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses

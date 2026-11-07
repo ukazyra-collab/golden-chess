@@ -11,6 +11,9 @@ PIECES = json.load(open(os.path.join(ROOT, 'build/pieces.json')))
 
 BG, LIGHT, DARK = '#232826', '#3a4542', '#2b3331'
 W, H = 390, 844
+# the scene sits high, like chess.com's: the wordmark above it (the intro's .intro-word, clear of iOS banners at the top),
+# the board running down off the bottom; DY lifts board, pieces and Joker together
+DY = -150
 
 
 def piece(name, fill, line, hi):
@@ -24,7 +27,7 @@ def piece(name, fill, line, hi):
 
 def board():
     # 8 x 8 squares seen from a low camera: rows get taller towards the viewer, the far edge narrows
-    far_y, near_y = 478, 940
+    far_y, near_y = 478, 1120
     far_w, near_w = 300, 1500
     rows = []
     for i in range(9):
@@ -57,9 +60,10 @@ def scene_inner():
         '<filter id="sh" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="7"/></filter>'
         '</defs>'
         f'<rect x="-900" y="-600" width="2190" height="2100" fill="{BG}"/>'
+        f'<g transform="translate(0 {DY})">'
         f'<!--board--><g class="sc-board">{board()}'
         '<rect x="-900" y="470" width="2190" height="190" fill="url(#haze)"/>'
-        '<rect x="-900" y="760" width="2190" height="400" fill="url(#foot)"/></g><!--/board-->'
+        '<rect x="-900" y="860" width="2190" height="400" fill="url(#foot)"/></g><!--/board-->'
         # the dim pieces behind: a knight on the left, a rook on the right
         '<!--dim--><g class="sc-dim">'
         '<ellipse cx="88" cy="604" rx="62" ry="9" fill="rgba(0,0,0,.45)" filter="url(#sh)"/>'
@@ -72,7 +76,7 @@ def scene_inner():
         '<ellipse cx="195" cy="662" rx="128" ry="17" fill="rgba(0,0,0,.55)" filter="url(#sh)"/>'
         '<rect x="-25" y="330" width="440" height="440" fill="url(#glow)"/>'
         f'<g transform="translate(80 432) scale(2.3)">{mark}</g>'
-        '</g>'
+        '</g></g>'
     )
 
 

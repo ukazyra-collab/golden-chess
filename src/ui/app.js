@@ -2264,6 +2264,7 @@
     else if (e.key === 'g' || e.key === 'G') onGoldenButton();
   });
   document.addEventListener('pointerdown', function () { Sound.unlock(); }, { capture: true, passive: true });
+  document.addEventListener('touchend', function () { Sound.unlock(); }, { capture: true, passive: true });
   window.addEventListener('resize', layout);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', layout);
   setInterval(function () { if (document.hidden) tick(); }, 250);
@@ -2611,13 +2612,43 @@
     if (L.kind === 'seek') net.call('cancel').catch(function () { /* ignore */ });
     if (L.kind === 'invite' && L.gameId) net.call('resign', { game: L.gameId }).catch(function () { /* ignore */ });
   }
-  function pollLobby(L, el) {
+  function pollLobby(L, el, reel) {
     if (!net) return;
     net.call('lobby').then(function (r) {
       if (!r || r.online == null) return;
+      var first = !(lobbyStats && lobbyStats.faces && lobbyStats.faces.length);
       lobbyStats = r;
-      if (lobby === L && el.isConnected) el.textContent = lobbyLine(r);
+      if (lobby !== L || !el.isConnected) return;
+      if (el.textContent !== lobbyLine(r)) { el.classList.add('bump'); setTimeout(function () { el.classList.remove('bump'); }, 260); }
+      el.textContent = lobbyLine(r);
+      if (reel && first && r.faces && r.faces.length) fillReel(reel, r.faces);
     }, function () { /* the line just stays */ });
+  }
+  // the reel: the faces roll past one by one; each stops in the lens for a moment (sharp there, blurred on the sides)
+  // and the next one comes — like flicking through who might be your opponent. The list is there twice, so the loop
+  // has no seam: after the first round the track jumps back without a transition.
+  var REEL_PITCH = 70; // a disc (56) and the gap (14)
+  function fillReel(reel, faces) {
+    clearInterval(reel._step);
+    var list = (faces || []).slice(0, 14);
+    if (list.length) noteAvatars(list.map(function (x) { return { id: x.uid, avatar_v: x.avatar_v }; }));
+    while (list.length < 10) list.push(null); // until the players come: blank discs
+    var row = list.concat(list).map(function (x, k) {
+      return x ? avatarHtml(x.uid, x.name, 'reel-ava t' + (k % 6)) : '<span class="ava reel-ava blank"></span>';
+    }).join('');
+    reel.innerHTML = '<div class="reel-track blur">' + row + '</div><div class="reel-lens"><div class="reel-track">' + row + '</div></div><i class="reel-ring"></i>';
+    var tracks = reel.querySelectorAll('.reel-track'), k = 0, n = list.length;
+    function place(animate) {
+      var x = -k * REEL_PITCH;
+      tracks[0].style.left = (reel.clientWidth / 2 - 28) + 'px'; tracks[1].style.left = '6px';
+      for (var t = 0; t < 2; t++) { tracks[t].style.transition = animate ? 'transform .42s cubic-bezier(.3, .8, .25, 1)' : 'none'; tracks[t].style.transform = 'translateX(' + x + 'px)'; }
+    }
+    place(false); requestAnimationFrame(function () { place(false); });
+    reel._step = setInterval(function () {
+      if (!reel.isConnected) { clearInterval(reel._step); return; }
+      k++; place(true);
+      if (k >= n) setTimeout(function () { k = 0; place(false); }, 450);
+    }, 800);
   }
   function onPaired(id) { stopLobby(); if (currentDialog && currentDialog.dataset.kind === 'lobby') closeDialog(); haptic('found'); openOnlineGame(id); }
   // How long the search "takes" before a house player is seated when no one else is there: now and then at once,
@@ -2689,25 +2720,24 @@
       if (L.kind === 'seek') {
         // centred on every screen: a card with the search, who is around, and a light line of what "we" are up to
         currentDialog.classList.add('center'); card.classList.add('lobby');
-        card.appendChild(h('div', { class: 'lobby-ic' }, '<span class="ring"></span><span class="ring r2"></span>' + ICON.search));
+        // the players around roll past behind a lens: blurred on the sides, sharp in the middle
+        var reel = h('div', { class: 'lobby-reel', id: 'lobby-reel', 'aria-hidden': 'true' });
+        card.appendChild(reel); fillReel(reel, lobbyStats && lobbyStats.faces);
         card.appendChild(h('div', { class: 'dlg-title' }, esc(T('searching'))));
         var sub = h('div', { class: 'dlg-sub', id: 'seek-sub' }); card.appendChild(sub);
-        var bar = h('div', { class: 'seekbar fill', id: 'seek-bar' }, '<i></i>');
-        card.appendChild(bar);
+        // the bar runs to one end and back, for as long as the search goes on
+        card.appendChild(h('div', { class: 'seekbar pong', id: 'seek-bar' }, '<i></i>'));
         var live = h('div', { class: 'lobby-live', id: 'lobby-live' }, lobbyStats ? esc(lobbyLine(lobbyStats)) : '&nbsp;');
         card.appendChild(live);
         var moods = T('lobbyMoods'), mi = Math.floor(Math.random() * moods.length);
         var mood = h('div', { class: 'lobby-mood', id: 'lobby-mood' }, esc(moods[mi] + '\u2026'));
         card.appendChild(mood);
-        // the bar fills over the search span (then keeps looking if no one could be seated)
-        var fillTo = Math.max(0, L.span - (perf() - L.t0));
-        requestAnimationFrame(function () { var i = bar.firstChild; i.style.transitionDuration = fillTo + 'ms'; i.style.width = '100%'; });
         var n = 0;
         var upd = function () {
           if (lobby !== L) return;
           var sec = Math.floor((perf() - L.t0) / 1000); sub.textContent = meta + ' \u00b7 ' + Math.floor(sec / 60) + ':' + (sec % 60 < 10 ? '0' : '') + (sec % 60);
           if (++n % 4 === 0) { mi = (mi + 1) % moods.length; mood.classList.add('swap'); setTimeout(function () { mood.textContent = moods[mi] + '\u2026'; mood.classList.remove('swap'); }, 180); }
-          if (n % 6 === 1) pollLobby(L, live);
+          if (n % 5 === 1) pollLobby(L, live, reel);
         };
         upd(); L.tick = setInterval(upd, 1000);
       } else {
@@ -3725,6 +3755,7 @@
     });
   }
   function onVisibility() {
+    if (hiddenNow()) Sound.revive(); // the first touch after coming back makes a fresh audio context
     var o = online;
     if (!o) return;
     var hidden = hiddenNow();

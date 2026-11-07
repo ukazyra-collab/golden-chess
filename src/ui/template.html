@@ -492,15 +492,28 @@ svg { display: block; }
 .sheetdlg.lobby .seekbar { width: 100%; margin-top: 6px; }
 .sheetdlg.lobby .row-btns { width: 100%; margin-top: 6px; }
 .sheetdlg.lobby .row-btns .secondary { flex: 1; }
-.lobby-ic { position: relative; width: 72px; height: 72px; border-radius: 50%; background: var(--brand-lo); display: grid; place-items: center; color: var(--bone); margin-bottom: 4px; }
-.lobby-ic svg { width: 30px; height: 30px; position: relative; }
-.lobby-ic .ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--brand-hi); opacity: 0; animation: lobbyRing 2.4s ease-out infinite; }
-.lobby-ic .ring.r2 { animation-delay: 1.2s; }
-@keyframes lobbyRing { 0% { transform: scale(.9); opacity: .7 } 100% { transform: scale(1.9); opacity: 0 } }
-.lobby-live { font-size: 14px; font-weight: 700; color: var(--bone); min-height: 20px; font-variant-numeric: tabular-nums; }
+/* the reel of players (fillReel): discs step right to left, blurred and dim on the sides; the lens in the middle shows
+   the same track sharp, inside a gold ring */
+.lobby-reel { position: relative; width: calc(100% + 48px); margin: -6px -24px 4px; height: 86px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); }
+.reel-track { position: absolute; top: 15px; left: 0; display: flex; gap: 14px; width: max-content; will-change: transform; }
+.reel-track.blur { filter: blur(2.5px); opacity: .5; }
+.reel-lens { position: absolute; left: 50%; top: 9px; width: 68px; height: 68px; margin-left: -34px; border-radius: 50%; overflow: hidden; }
+/* the sharp copy is placed so its discs line up with the blurred ones under the lens */
+.reel-lens .reel-track { top: 6px; } /* left: set from the reel's width (fillReel) */
+.reel-ring { position: absolute; left: 50%; top: 9px; width: 68px; height: 68px; margin-left: -34px; border-radius: 50%; box-shadow: inset 0 0 0 3px var(--gold), 0 0 22px rgba(240, 185, 65, .35); pointer-events: none; }
+.ava.reel-ava { width: 56px; height: 56px; flex: none; font-size: 22px; color: var(--bone); background: var(--raise); }
+.ava.reel-ava.blank { background: rgba(255, 255, 255, .08); }
+.ava.reel-ava.t0 { background: #5d7a74; } .ava.reel-ava.t1 { background: #7a6a5a; } .ava.reel-ava.t2 { background: #5b6683; }
+.ava.reel-ava.t3 { background: #7d5f6c; } .ava.reel-ava.t4 { background: #687a52; } .ava.reel-ava.t5 { background: #4f6b78; }
+.lobby-live { font-size: 15px; font-weight: 800; color: var(--bone); min-height: 20px; font-variant-numeric: tabular-nums; transition: transform .2s ease, color .2s ease; }
+.lobby-live.bump { transform: scale(1.06); color: var(--gold-hi); }
 .lobby-mood { font-size: 13px; color: var(--faint); min-height: 18px; transition: opacity .18s ease; }
 .lobby-mood.swap { opacity: 0; }
-@media (prefers-reduced-motion: reduce) { .lobby-ic .ring { animation: none; } }
+/* the search bar: a gold segment running to one end and back */
+.seekbar.pong i { width: 34%; left: 0; background: linear-gradient(90deg, var(--gold-lo), var(--gold), var(--gold-hi)); animation: seekPong 1.5s cubic-bezier(.45, 0, .55, 1) infinite alternate; }
+@keyframes seekPong { from { left: 0 } to { left: 66% } }
+@media (prefers-reduced-motion: reduce) { .seekbar.pong i { animation-duration: 3s; } }
 /* controls on glass: translucent instead of the page's solid greys */
 .sheetdlg .seg button, .sheetdlg .tc-opt, .sheetdlg .sbtn { background: rgba(255, 255, 255, .09); }
 .sheetdlg .seg button:hover, .sheetdlg .tc-opt:hover, .sheetdlg .sbtn:hover { background: rgba(255, 255, 255, .14); }
@@ -736,9 +749,10 @@ svg { display: block; }
 /* ---- the launch intro: the Joker on the board (app/resources/scene.svg, the same picture as the native splash) ---- */
 .intro { position: fixed; inset: 0; z-index: 100; background: #232826; overflow: hidden; }
 .intro[hidden] { display: none; }
-.intro-scene { position: absolute; inset: 0; transform-origin: 50% 64%; }
+.intro-scene { position: absolute; inset: 0; transform-origin: 50% 46%; }
 .intro-scene svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.intro-word { position: absolute; left: 0; right: 0; top: 78%; text-align: center; font: 800 clamp(26px, 7.4vw, 34px)/1 var(--f-ui); letter-spacing: -.5px; color: var(--muted); opacity: 0; }
+/* the wordmark above the scene, like chess.com's launch: low enough to stay clear of the iOS banners at the top */
+.intro-word { position: absolute; left: 0; right: 0; top: max(19%, calc(env(safe-area-inset-top, 0px) + 120px)); text-align: center; font: 800 clamp(36px, 11vw, 48px)/1 var(--f-ui); letter-spacing: -1px; color: var(--muted); opacity: 0; }
 .intro-word b { color: var(--bone); }
 .intro.run .intro-scene { animation: introZoom 1.5s cubic-bezier(.16, .7, .2, 1) both; }
 .intro.run .sc-dim, .intro.run .sc-board { animation: introFade 1s ease-out .15s both; }

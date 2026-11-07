@@ -123,14 +123,22 @@ var Sound = (function () {
     return b;
   }
 
+  // After the app has been in the background, iOS leaves the audio context "interrupted" (or running but silent): the
+  // first touch after coming back throws the old context away and makes a new one (a touch is what lets audio start).
+  var stale = false, rawCache = null, rawRate = 0;
+  function revive() { if (ready) stale = true; }
   function unlock() {
-    if (ready) { if (ctx && ctx.state === 'suspended') ctx.resume(); return; }
+    if (ready && !stale && ctx && ctx.state === 'running') return;
+    if (ready && !stale && ctx && ctx.state === 'suspended') { ctx.resume(); return; }
+    if (ready) { try { ctx.close(); } catch (e) { /* ignore */ } ctx = null; ready = false; buffers = {}; }
+    stale = false;
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     try {
       ctx = new AC();
       master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
-      var raw = build(ctx.sampleRate);
+      if (!rawCache || rawRate !== ctx.sampleRate) { rawCache = build(ctx.sampleRate); rawRate = ctx.sampleRate; }
+      var raw = rawCache;
       for (var k in raw) {
         var buf = ctx.createBuffer(1, raw[k].length, ctx.sampleRate);
         buf.getChannelData(0).set(raw[k]);
@@ -144,12 +152,12 @@ var Sound = (function () {
   function play(name, gain) {
     if (!enabled || !ready || !buffers[name]) return;
     try {
-      if (ctx.state === 'suspended') ctx.resume();
+      if (ctx.state !== 'running') ctx.resume();
       var src = ctx.createBufferSource(); src.buffer = buffers[name];
       var g = ctx.createGain(); g.gain.value = gain == null ? 1 : gain;
       src.connect(g); g.connect(master); src.start();
     } catch (e) { /* ignore */ }
   }
 
-  return { unlock: unlock, play: play, setEnabled: function (v) { enabled = !!v; }, isEnabled: function () { return enabled; }, _build: build };
+  return { unlock: unlock, revive: revive, play: play, setEnabled: function (v) { enabled = !!v; }, isEnabled: function () { return enabled; }, _build: build };
 })();

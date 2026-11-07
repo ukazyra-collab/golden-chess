@@ -228,7 +228,7 @@ export function createLogic(opts) {
   };
 
   // who is around: for the search dialog ("12 players online · 3 games on")
-  A.lobby = async () => Object.assign({ seeking: 0, games: 0, online: 0 }, repo.lobby ? await repo.lobby() : {});
+  A.lobby = async () => Object.assign({ seeking: 0, games: 0, online: 0, faces: [] }, repo.lobby ? await repo.lobby() : {});
 
   A.rename = async (uid, b) => {
     const name = String(b.name || '').trim().replace(/\s+/g, ' ');

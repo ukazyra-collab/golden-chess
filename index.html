@@ -501,15 +501,28 @@ svg { display: block; }
 .sheetdlg.lobby .seekbar { width: 100%; margin-top: 6px; }
 .sheetdlg.lobby .row-btns { width: 100%; margin-top: 6px; }
 .sheetdlg.lobby .row-btns .secondary { flex: 1; }
-.lobby-ic { position: relative; width: 72px; height: 72px; border-radius: 50%; background: var(--brand-lo); display: grid; place-items: center; color: var(--bone); margin-bottom: 4px; }
-.lobby-ic svg { width: 30px; height: 30px; position: relative; }
-.lobby-ic .ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--brand-hi); opacity: 0; animation: lobbyRing 2.4s ease-out infinite; }
-.lobby-ic .ring.r2 { animation-delay: 1.2s; }
-@keyframes lobbyRing { 0% { transform: scale(.9); opacity: .7 } 100% { transform: scale(1.9); opacity: 0 } }
-.lobby-live { font-size: 14px; font-weight: 700; color: var(--bone); min-height: 20px; font-variant-numeric: tabular-nums; }
+/* the reel of players (fillReel): discs step right to left, blurred and dim on the sides; the lens in the middle shows
+   the same track sharp, inside a gold ring */
+.lobby-reel { position: relative; width: calc(100% + 48px); margin: -6px -24px 4px; height: 86px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); mask-image: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent); }
+.reel-track { position: absolute; top: 15px; left: 0; display: flex; gap: 14px; width: max-content; will-change: transform; }
+.reel-track.blur { filter: blur(2.5px); opacity: .5; }
+.reel-lens { position: absolute; left: 50%; top: 9px; width: 68px; height: 68px; margin-left: -34px; border-radius: 50%; overflow: hidden; }
+/* the sharp copy is placed so its discs line up with the blurred ones under the lens */
+.reel-lens .reel-track { top: 6px; } /* left: set from the reel's width (fillReel) */
+.reel-ring { position: absolute; left: 50%; top: 9px; width: 68px; height: 68px; margin-left: -34px; border-radius: 50%; box-shadow: inset 0 0 0 3px var(--gold), 0 0 22px rgba(240, 185, 65, .35); pointer-events: none; }
+.ava.reel-ava { width: 56px; height: 56px; flex: none; font-size: 22px; color: var(--bone); background: var(--raise); }
+.ava.reel-ava.blank { background: rgba(255, 255, 255, .08); }
+.ava.reel-ava.t0 { background: #5d7a74; } .ava.reel-ava.t1 { background: #7a6a5a; } .ava.reel-ava.t2 { background: #5b6683; }
+.ava.reel-ava.t3 { background: #7d5f6c; } .ava.reel-ava.t4 { background: #687a52; } .ava.reel-ava.t5 { background: #4f6b78; }
+.lobby-live { font-size: 15px; font-weight: 800; color: var(--bone); min-height: 20px; font-variant-numeric: tabular-nums; transition: transform .2s ease, color .2s ease; }
+.lobby-live.bump { transform: scale(1.06); color: var(--gold-hi); }
 .lobby-mood { font-size: 13px; color: var(--faint); min-height: 18px; transition: opacity .18s ease; }
 .lobby-mood.swap { opacity: 0; }
-@media (prefers-reduced-motion: reduce) { .lobby-ic .ring { animation: none; } }
+/* the search bar: a gold segment running to one end and back */
+.seekbar.pong i { width: 34%; left: 0; background: linear-gradient(90deg, var(--gold-lo), var(--gold), var(--gold-hi)); animation: seekPong 1.5s cubic-bezier(.45, 0, .55, 1) infinite alternate; }
+@keyframes seekPong { from { left: 0 } to { left: 66% } }
+@media (prefers-reduced-motion: reduce) { .seekbar.pong i { animation-duration: 3s; } }
 /* controls on glass: translucent instead of the page's solid greys */
 .sheetdlg .seg button, .sheetdlg .tc-opt, .sheetdlg .sbtn { background: rgba(255, 255, 255, .09); }
 .sheetdlg .seg button:hover, .sheetdlg .tc-opt:hover, .sheetdlg .sbtn:hover { background: rgba(255, 255, 255, .14); }
@@ -745,9 +758,10 @@ svg { display: block; }
 /* ---- the launch intro: the Joker on the board (app/resources/scene.svg, the same picture as the native splash) ---- */
 .intro { position: fixed; inset: 0; z-index: 100; background: #232826; overflow: hidden; }
 .intro[hidden] { display: none; }
-.intro-scene { position: absolute; inset: 0; transform-origin: 50% 64%; }
+.intro-scene { position: absolute; inset: 0; transform-origin: 50% 46%; }
 .intro-scene svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.intro-word { position: absolute; left: 0; right: 0; top: 78%; text-align: center; font: 800 clamp(26px, 7.4vw, 34px)/1 var(--f-ui); letter-spacing: -.5px; color: var(--muted); opacity: 0; }
+/* the wordmark above the scene, like chess.com's launch: low enough to stay clear of the iOS banners at the top */
+.intro-word { position: absolute; left: 0; right: 0; top: max(19%, calc(env(safe-area-inset-top, 0px) + 120px)); text-align: center; font: 800 clamp(36px, 11vw, 48px)/1 var(--f-ui); letter-spacing: -1px; color: var(--muted); opacity: 0; }
 .intro-word b { color: var(--bone); }
 .intro.run .intro-scene { animation: introZoom 1.5s cubic-bezier(.16, .7, .2, 1) both; }
 .intro.run .sc-dim, .intro.run .sc-board { animation: introFade 1s ease-out .15s both; }
@@ -1153,7 +1167,7 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div id="overlay-root"></div>
-<div class="intro" id="intro" hidden aria-hidden="true"><div class="intro-scene"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="jg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100"><stop offset="0" stop-color="#ffd166"/><stop offset="1" stop-color="#e3a52a"/></linearGradient><linearGradient id="haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232826" stop-opacity="1"/><stop offset="1" stop-color="#232826" stop-opacity="0"/></linearGradient><linearGradient id="foot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232826" stop-opacity="0"/><stop offset="1" stop-color="#232826" stop-opacity=".85"/></linearGradient><radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#f0b941" stop-opacity=".26"/><stop offset="1" stop-color="#f0b941" stop-opacity="0"/></radialGradient><filter id="sh" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="7"/></filter></defs><rect x="-900" y="-600" width="2190" height="2100" fill="#232826"/><!--board--><g class="sc-board"><polygon points="45.0,478.0 82.5,478.0 64.6,496.4 21.1,496.4" fill="#3a4542"/><polygon points="82.5,478.0 120.0,478.0 108.1,496.4 64.6,496.4" fill="#2b3331"/><polygon points="120.0,478.0 157.5,478.0 151.5,496.4 108.1,496.4" fill="#3a4542"/><polygon points="157.5,478.0 195.0,478.0 195.0,496.4 151.5,496.4" fill="#2b3331"/><polygon points="195.0,478.0 232.5,478.0 238.5,496.4 195.0,496.4" fill="#3a4542"/><polygon points="232.5,478.0 270.0,478.0 281.9,496.4 238.5,496.4" fill="#2b3331"/><polygon points="270.0,478.0 307.5,478.0 325.4,496.4 281.9,496.4" fill="#3a4542"/><polygon points="307.5,478.0 345.0,478.0 368.9,496.4 325.4,496.4" fill="#2b3331"/><polygon points="21.1,496.4 64.6,496.4 30.0,531.9 -25.0,531.9" fill="#2b3331"/><polygon points="64.6,496.4 108.1,496.4 85.0,531.9 30.0,531.9" fill="#3a4542"/><polygon points="108.1,496.4 151.5,496.4 140.0,531.9 85.0,531.9" fill="#2b3331"/><polygon points="151.5,496.4 195.0,496.4 195.0,531.9 140.0,531.9" fill="#3a4542"/><polygon points="195.0,496.4 238.5,496.4 250.0,531.9 195.0,531.9" fill="#2b3331"/><polygon points="238.5,496.4 281.9,496.4 305.0,531.9 250.0,531.9" fill="#3a4542"/><polygon points="281.9,496.4 325.4,496.4 360.0,531.9 305.0,531.9" fill="#2b3331"/><polygon points="325.4,496.4 368.9,496.4 415.0,531.9 360.0,531.9" fill="#3a4542"/><polygon points="-25.0,531.9 30.0,531.9 -15.9,579.0 -86.2,579.0" fill="#3a4542"/><polygon points="30.0,531.9 85.0,531.9 54.4,579.0 -15.9,579.0" fill="#2b3331"/><polygon points="85.0,531.9 140.0,531.9 124.7,579.0 54.4,579.0" fill="#3a4542"/><polygon points="140.0,531.9 195.0,531.9 195.0,579.0 124.7,579.0" fill="#2b3331"/><polygon points="195.0,531.9 250.0,531.9 265.3,579.0 195.0,579.0" fill="#3a4542"/><polygon points="250.0,531.9 305.0,531.9 335.6,579.0 265.3,579.0" fill="#2b3331"/><polygon points="305.0,531.9 360.0,531.9 405.9,579.0 335.6,579.0" fill="#3a4542"/><polygon points="360.0,531.9 415.0,531.9 476.2,579.0 405.9,579.0" fill="#2b3331"/><polygon points="-86.2,579.0 -15.9,579.0 -71.2,635.8 -159.9,635.8" fill="#2b3331"/><polygon points="-15.9,579.0 54.4,579.0 17.5,635.8 -71.2,635.8" fill="#3a4542"/><polygon points="54.4,579.0 124.7,579.0 106.3,635.8 17.5,635.8" fill="#2b3331"/><polygon points="124.7,579.0 195.0,579.0 195.0,635.8 106.3,635.8" fill="#3a4542"/><polygon points="195.0,579.0 265.3,579.0 283.7,635.8 195.0,635.8" fill="#2b3331"/><polygon points="265.3,579.0 335.6,579.0 372.5,635.8 283.7,635.8" fill="#3a4542"/><polygon points="335.6,579.0 405.9,579.0 461.2,635.8 372.5,635.8" fill="#2b3331"/><polygon points="405.9,579.0 476.2,579.0 549.9,635.8 461.2,635.8" fill="#3a4542"/><polygon points="-159.9,635.8 -71.2,635.8 -134.7,701.0 -244.6,701.0" fill="#3a4542"/><polygon points="-71.2,635.8 17.5,635.8 -24.8,701.0 -134.7,701.0" fill="#2b3331"/><polygon points="17.5,635.8 106.3,635.8 85.1,701.0 -24.8,701.0" fill="#3a4542"/><polygon points="106.3,635.8 195.0,635.8 195.0,701.0 85.1,701.0" fill="#2b3331"/><polygon points="195.0,635.8 283.7,635.8 304.9,701.0 195.0,701.0" fill="#3a4542"/><polygon points="283.7,635.8 372.5,635.8 414.8,701.0 304.9,701.0" fill="#2b3331"/><polygon points="372.5,635.8 461.2,635.8 524.7,701.0 414.8,701.0" fill="#3a4542"/><polygon points="461.2,635.8 549.9,635.8 634.6,701.0 524.7,701.0" fill="#2b3331"/><polygon points="-244.6,701.0 -134.7,701.0 -205.6,773.8 -339.1,773.8" fill="#2b3331"/><polygon points="-134.7,701.0 -24.8,701.0 -72.1,773.8 -205.6,773.8" fill="#3a4542"/><polygon points="-24.8,701.0 85.1,701.0 61.5,773.8 -72.1,773.8" fill="#2b3331"/><polygon points="85.1,701.0 195.0,701.0 195.0,773.8 61.5,773.8" fill="#3a4542"/><polygon points="195.0,701.0 304.9,701.0 328.5,773.8 195.0,773.8" fill="#2b3331"/><polygon points="304.9,701.0 414.8,701.0 462.1,773.8 328.5,773.8" fill="#3a4542"/><polygon points="414.8,701.0 524.7,701.0 595.6,773.8 462.1,773.8" fill="#2b3331"/><polygon points="524.7,701.0 634.6,701.0 729.1,773.8 595.6,773.8" fill="#3a4542"/><polygon points="-339.1,773.8 -205.6,773.8 -283.4,853.6 -442.8,853.6" fill="#3a4542"/><polygon points="-205.6,773.8 -72.1,773.8 -123.9,853.6 -283.4,853.6" fill="#2b3331"/><polygon points="-72.1,773.8 61.5,773.8 35.5,853.6 -123.9,853.6" fill="#3a4542"/><polygon points="61.5,773.8 195.0,773.8 195.0,853.6 35.5,853.6" fill="#2b3331"/><polygon points="195.0,773.8 328.5,773.8 354.5,853.6 195.0,853.6" fill="#3a4542"/><polygon points="328.5,773.8 462.1,773.8 513.9,853.6 354.5,853.6" fill="#2b3331"/><polygon points="462.1,773.8 595.6,773.8 673.4,853.6 513.9,853.6" fill="#3a4542"/><polygon points="595.6,773.8 729.1,773.8 832.8,853.6 673.4,853.6" fill="#2b3331"/><polygon points="-442.8,853.6 -283.4,853.6 -367.5,940.0 -555.0,940.0" fill="#2b3331"/><polygon points="-283.4,853.6 -123.9,853.6 -180.0,940.0 -367.5,940.0" fill="#3a4542"/><polygon points="-123.9,853.6 35.5,853.6 7.5,940.0 -180.0,940.0" fill="#2b3331"/><polygon points="35.5,853.6 195.0,853.6 195.0,940.0 7.5,940.0" fill="#3a4542"/><polygon points="195.0,853.6 354.5,853.6 382.5,940.0 195.0,940.0" fill="#2b3331"/><polygon points="354.5,853.6 513.9,853.6 570.0,940.0 382.5,940.0" fill="#3a4542"/><polygon points="513.9,853.6 673.4,853.6 757.5,940.0 570.0,940.0" fill="#2b3331"/><polygon points="673.4,853.6 832.8,853.6 945.0,940.0 757.5,940.0" fill="#3a4542"/><rect x="-900" y="470" width="2190" height="190" fill="url(#haze)"/><rect x="-900" y="760" width="2190" height="400" fill="url(#foot)"/></g><!--/board--><!--dim--><g class="sc-dim"><ellipse cx="88" cy="604" rx="62" ry="9" fill="rgba(0,0,0,.45)" filter="url(#sh)"/><ellipse cx="312" cy="604" rx="56" ry="9" fill="rgba(0,0,0,.45)" filter="url(#sh)"/><g transform="translate(14 472) scale(3.3)"><g fill="none" fill-rule="evenodd" stroke="#1d2220" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21" fill="#3b4340"/><path d="M24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.042-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4.003 1-4-4 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-.994-.5-2-.5-3 1-1 3 2.5 3 2.5h2s.78-1.992 2.5-3c1 0 1 3 1 3" fill="#3b4340"/><path d="M9.5 25.5a.5.5 0 1 1-1 0 .5.5 0 1 1 1 0zm5.433-9.75a.5 1.5 30 1 1-.866-.5.5 1.5 30 1 1 .866.5z" fill="#4a5350" stroke="#4a5350"/><path d="M24.55 10.4l-.45 1.45.5.15c3.15 1 5.65 2.49 7.9 6.75S35.75 29.06 35.25 39l-.05.5h2.25l.05-.5c.5-10.06-.88-16.85-3.25-21.34-2.37-4.49-5.79-6.64-9.19-7.16l-.51-.1z" fill="#4a5350" stroke="none"/></g></g><g transform="translate(243 479) scale(3.1)"><g fill-rule="evenodd" stroke="#1d2220" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 39h27v-3H9v3zm3.5-7l1.5-2.5h17l1.5 2.5h-20zm-.5 4v-4h21v4H12z" stroke-linecap="butt"/><path d="M14 29.5v-13h17v13H14z" stroke-linecap="butt" stroke-linejoin="miter"/><path d="M14 16.5L11 14h23l-3 2.5H14zM11 14V9h4v2h5V9h5v2h5V9h4v5H11z" stroke-linecap="butt"/><path d="M12 35.5h21m-20-4h19m-18-2h17m-17-13h17M11 14h23" fill="none" stroke="#4a5350" stroke-width="1" stroke-linejoin="miter"/></g></g></g><!--/dim--><g class="sc-joker"><ellipse cx="195" cy="662" rx="128" ry="17" fill="rgba(0,0,0,.55)" filter="url(#sh)"/><rect x="-25" y="330" width="440" height="440" fill="url(#glow)"/><g transform="translate(80 432) scale(2.3)"><rect x="24" y="90" width="52" height="9" rx="4" fill="url(#jg)"/> <rect x="24" y="90" width="52" height="5" rx="3" fill="url(#jg)"/> <rect x="30" y="84" width="40" height="8" rx="3" fill="url(#jg)"/> <path d="M40 86 L41 70 L59 70 L60 86 Z" fill="url(#jg)"/> <path d="M43 86 L44 72 L56 72 L57 86 Z" fill="url(#jg)"/> <path d="M31 40 C25 35 25 27 30 25 C34 28 36 34 36 40 Z" fill="url(#jg)"/> <path d="M69 40 C75 35 75 27 70 25 C66 28 64 34 64 40 Z" fill="url(#jg)"/> <circle cx="50" cy="54" r="27" fill="url(#jg)"/> <circle cx="50" cy="56" r="21" fill="url(#jg)"/> <ellipse cx="50" cy="66" rx="14" ry="9" fill="url(#jg)"/> <path d="M40 67 C44 74 56 74 60 67" fill="url(#jg)" stroke="url(#jg)" stroke-width="2.8" stroke-linecap="round"/> <circle cx="50" cy="60" r="7" fill="url(#jg)"/> <ellipse cx="47.4" cy="57.4" rx="2" ry="1.4" fill="url(#jg)" /> <ellipse cx="41" cy="49" rx="4.8" ry="5.2" fill="url(#jg)"/><ellipse cx="59" cy="49" rx="4.8" ry="5.2" fill="url(#jg)"/> <circle cx="41.6" cy="49.6" r="3.2" fill="url(#jg)"/><circle cx="59.6" cy="49.6" r="3.2" fill="url(#jg)"/> <circle cx="42.8" cy="48.2" r="1.1" fill="url(#jg)"/><circle cx="60.8" cy="48.2" r="1.1" fill="url(#jg)"/> <path d="M35.5 42.5 C38.5 39.5 43.5 39.5 46 41.5" fill="url(#jg)" stroke="url(#jg)" stroke-width="2.3" stroke-linecap="round"/> <path d="M54 41.5 C56.5 39.5 61.5 39.5 64.5 42.5" fill="url(#jg)" stroke="url(#jg)" stroke-width="2.3" stroke-linecap="round"/> <path d="M34 30 C26 24 14 20 6 24 C14 26 20 30 26 36 Z" fill="url(#jg)"/> <path d="M35 34 C45 31 48.5 20 50 2 C51.5 20 55 31 65 34 Z" fill="url(#jg)"/> <path d="M66 30 C74 24 86 20 94 24 C86 26 80 30 74 36 Z" fill="url(#jg)"/> <path d="M29 35 C40 26 60 26 71 35 L71 39 C60 31 40 31 29 39 Z" fill="url(#jg)"/> <circle cx="6" cy="24" r="3.2" fill="url(#jg)" stroke="url(#jg)" stroke-width=".8"/> <circle cx="50" cy="3.5" r="3.2" fill="url(#jg)" stroke="url(#jg)" stroke-width=".8"/> <circle cx="94" cy="24" r="3.2" fill="url(#jg)" stroke="url(#jg)" stroke-width=".8"/></g></g></svg></div><div class="intro-word"><b>Joker</b> Chess</div></div>
+<div class="intro" id="intro" hidden aria-hidden="true"><div class="intro-scene"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice"><defs><linearGradient id="jg" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="100"><stop offset="0" stop-color="#ffd166"/><stop offset="1" stop-color="#e3a52a"/></linearGradient><linearGradient id="haze" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232826" stop-opacity="1"/><stop offset="1" stop-color="#232826" stop-opacity="0"/></linearGradient><linearGradient id="foot" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232826" stop-opacity="0"/><stop offset="1" stop-color="#232826" stop-opacity=".85"/></linearGradient><radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#f0b941" stop-opacity=".26"/><stop offset="1" stop-color="#f0b941" stop-opacity="0"/></radialGradient><filter id="sh" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="7"/></filter></defs><rect x="-900" y="-600" width="2190" height="2100" fill="#232826"/><g transform="translate(0 -150)"><!--board--><g class="sc-board"><polygon points="45.0,478.0 82.5,478.0 64.6,503.6 21.1,503.6" fill="#3a4542"/><polygon points="82.5,478.0 120.0,478.0 108.1,503.6 64.6,503.6" fill="#2b3331"/><polygon points="120.0,478.0 157.5,478.0 151.5,503.6 108.1,503.6" fill="#3a4542"/><polygon points="157.5,478.0 195.0,478.0 195.0,503.6 151.5,503.6" fill="#2b3331"/><polygon points="195.0,478.0 232.5,478.0 238.5,503.6 195.0,503.6" fill="#3a4542"/><polygon points="232.5,478.0 270.0,478.0 281.9,503.6 238.5,503.6" fill="#2b3331"/><polygon points="270.0,478.0 307.5,478.0 325.4,503.6 281.9,503.6" fill="#3a4542"/><polygon points="307.5,478.0 345.0,478.0 368.9,503.6 325.4,503.6" fill="#2b3331"/><polygon points="21.1,503.6 64.6,503.6 30.0,552.9 -25.0,552.9" fill="#2b3331"/><polygon points="64.6,503.6 108.1,503.6 85.0,552.9 30.0,552.9" fill="#3a4542"/><polygon points="108.1,503.6 151.5,503.6 140.0,552.9 85.0,552.9" fill="#2b3331"/><polygon points="151.5,503.6 195.0,503.6 195.0,552.9 140.0,552.9" fill="#3a4542"/><polygon points="195.0,503.6 238.5,503.6 250.0,552.9 195.0,552.9" fill="#2b3331"/><polygon points="238.5,503.6 281.9,503.6 305.0,552.9 250.0,552.9" fill="#3a4542"/><polygon points="281.9,503.6 325.4,503.6 360.0,552.9 305.0,552.9" fill="#2b3331"/><polygon points="325.4,503.6 368.9,503.6 415.0,552.9 360.0,552.9" fill="#3a4542"/><polygon points="-25.0,552.9 30.0,552.9 -15.9,618.4 -86.2,618.4" fill="#3a4542"/><polygon points="30.0,552.9 85.0,552.9 54.4,618.4 -15.9,618.4" fill="#2b3331"/><polygon points="85.0,552.9 140.0,552.9 124.7,618.4 54.4,618.4" fill="#3a4542"/><polygon points="140.0,552.9 195.0,552.9 195.0,618.4 124.7,618.4" fill="#2b3331"/><polygon points="195.0,552.9 250.0,552.9 265.3,618.4 195.0,618.4" fill="#3a4542"/><polygon points="250.0,552.9 305.0,552.9 335.6,618.4 265.3,618.4" fill="#2b3331"/><polygon points="305.0,552.9 360.0,552.9 405.9,618.4 335.6,618.4" fill="#3a4542"/><polygon points="360.0,552.9 415.0,552.9 476.2,618.4 405.9,618.4" fill="#2b3331"/><polygon points="-86.2,618.4 -15.9,618.4 -71.2,697.2 -159.9,697.2" fill="#2b3331"/><polygon points="-15.9,618.4 54.4,618.4 17.5,697.2 -71.2,697.2" fill="#3a4542"/><polygon points="54.4,618.4 124.7,618.4 106.3,697.2 17.5,697.2" fill="#2b3331"/><polygon points="124.7,618.4 195.0,618.4 195.0,697.2 106.3,697.2" fill="#3a4542"/><polygon points="195.0,618.4 265.3,618.4 283.7,697.2 195.0,697.2" fill="#2b3331"/><polygon points="265.3,618.4 335.6,618.4 372.5,697.2 283.7,697.2" fill="#3a4542"/><polygon points="335.6,618.4 405.9,618.4 461.2,697.2 372.5,697.2" fill="#2b3331"/><polygon points="405.9,618.4 476.2,618.4 549.9,697.2 461.2,697.2" fill="#3a4542"/><polygon points="-159.9,697.2 -71.2,697.2 -134.7,787.8 -244.6,787.8" fill="#3a4542"/><polygon points="-71.2,697.2 17.5,697.2 -24.8,787.8 -134.7,787.8" fill="#2b3331"/><polygon points="17.5,697.2 106.3,697.2 85.1,787.8 -24.8,787.8" fill="#3a4542"/><polygon points="106.3,697.2 195.0,697.2 195.0,787.8 85.1,787.8" fill="#2b3331"/><polygon points="195.0,697.2 283.7,697.2 304.9,787.8 195.0,787.8" fill="#3a4542"/><polygon points="283.7,697.2 372.5,697.2 414.8,787.8 304.9,787.8" fill="#2b3331"/><polygon points="372.5,697.2 461.2,697.2 524.7,787.8 414.8,787.8" fill="#3a4542"/><polygon points="461.2,697.2 549.9,697.2 634.6,787.8 524.7,787.8" fill="#2b3331"/><polygon points="-244.6,787.8 -134.7,787.8 -205.6,889.0 -339.1,889.0" fill="#2b3331"/><polygon points="-134.7,787.8 -24.8,787.8 -72.1,889.0 -205.6,889.0" fill="#3a4542"/><polygon points="-24.8,787.8 85.1,787.8 61.5,889.0 -72.1,889.0" fill="#2b3331"/><polygon points="85.1,787.8 195.0,787.8 195.0,889.0 61.5,889.0" fill="#3a4542"/><polygon points="195.0,787.8 304.9,787.8 328.5,889.0 195.0,889.0" fill="#2b3331"/><polygon points="304.9,787.8 414.8,787.8 462.1,889.0 328.5,889.0" fill="#3a4542"/><polygon points="414.8,787.8 524.7,787.8 595.6,889.0 462.1,889.0" fill="#2b3331"/><polygon points="524.7,787.8 634.6,787.8 729.1,889.0 595.6,889.0" fill="#3a4542"/><polygon points="-339.1,889.0 -205.6,889.0 -283.4,1000.0 -442.8,1000.0" fill="#3a4542"/><polygon points="-205.6,889.0 -72.1,889.0 -123.9,1000.0 -283.4,1000.0" fill="#2b3331"/><polygon points="-72.1,889.0 61.5,889.0 35.5,1000.0 -123.9,1000.0" fill="#3a4542"/><polygon points="61.5,889.0 195.0,889.0 195.0,1000.0 35.5,1000.0" fill="#2b3331"/><polygon points="195.0,889.0 328.5,889.0 354.5,1000.0 195.0,1000.0" fill="#3a4542"/><polygon points="328.5,889.0 462.1,889.0 513.9,1000.0 354.5,1000.0" fill="#2b3331"/><polygon points="462.1,889.0 595.6,889.0 673.4,1000.0 513.9,1000.0" fill="#3a4542"/><polygon points="595.6,889.0 729.1,889.0 832.8,1000.0 673.4,1000.0" fill="#2b3331"/><polygon points="-442.8,1000.0 -283.4,1000.0 -367.5,1120.0 -555.0,1120.0" fill="#2b3331"/><polygon points="-283.4,1000.0 -123.9,1000.0 -180.0,1120.0 -367.5,1120.0" fill="#3a4542"/><polygon points="-123.9,1000.0 35.5,1000.0 7.5,1120.0 -180.0,1120.0" fill="#2b3331"/><polygon points="35.5,1000.0 195.0,1000.0 195.0,1120.0 7.5,1120.0" fill="#3a4542"/><polygon points="195.0,1000.0 354.5,1000.0 382.5,1120.0 195.0,1120.0" fill="#2b3331"/><polygon points="354.5,1000.0 513.9,1000.0 570.0,1120.0 382.5,1120.0" fill="#3a4542"/><polygon points="513.9,1000.0 673.4,1000.0 757.5,1120.0 570.0,1120.0" fill="#2b3331"/><polygon points="673.4,1000.0 832.8,1000.0 945.0,1120.0 757.5,1120.0" fill="#3a4542"/><rect x="-900" y="470" width="2190" height="190" fill="url(#haze)"/><rect x="-900" y="860" width="2190" height="400" fill="url(#foot)"/></g><!--/board--><!--dim--><g class="sc-dim"><ellipse cx="88" cy="604" rx="62" ry="9" fill="rgba(0,0,0,.45)" filter="url(#sh)"/><ellipse cx="312" cy="604" rx="56" ry="9" fill="rgba(0,0,0,.45)" filter="url(#sh)"/><g transform="translate(14 472) scale(3.3)"><g fill="none" fill-rule="evenodd" stroke="#1d2220" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21" fill="#3b4340"/><path d="M24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.042-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4.003 1-4-4 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-.994-.5-2-.5-3 1-1 3 2.5 3 2.5h2s.78-1.992 2.5-3c1 0 1 3 1 3" fill="#3b4340"/><path d="M9.5 25.5a.5.5 0 1 1-1 0 .5.5 0 1 1 1 0zm5.433-9.75a.5 1.5 30 1 1-.866-.5.5 1.5 30 1 1 .866.5z" fill="#4a5350" stroke="#4a5350"/><path d="M24.55 10.4l-.45 1.45.5.15c3.15 1 5.65 2.49 7.9 6.75S35.75 29.06 35.25 39l-.05.5h2.25l.05-.5c.5-10.06-.88-16.85-3.25-21.34-2.37-4.49-5.79-6.64-9.19-7.16l-.51-.1z" fill="#4a5350" stroke="none"/></g></g><g transform="translate(243 479) scale(3.1)"><g fill-rule="evenodd" stroke="#1d2220" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 39h27v-3H9v3zm3.5-7l1.5-2.5h17l1.5 2.5h-20zm-.5 4v-4h21v4H12z" stroke-linecap="butt"/><path d="M14 29.5v-13h17v13H14z" stroke-linecap="butt" stroke-linejoin="miter"/><path d="M14 16.5L11 14h23l-3 2.5H14zM11 14V9h4v2h5V9h5v2h5V9h4v5H11z" stroke-linecap="butt"/><path d="M12 35.5h21m-20-4h19m-18-2h17m-17-13h17M11 14h23" fill="none" stroke="#4a5350" stroke-width="1" stroke-linejoin="miter"/></g></g></g><!--/dim--><g class="sc-joker"><ellipse cx="195" cy="662" rx="128" ry="17" fill="rgba(0,0,0,.55)" filter="url(#sh)"/><rect x="-25" y="330" width="440" height="440" fill="url(#glow)"/><g transform="translate(80 432) scale(2.3)"><rect x="24" y="90" width="52" height="9" rx="4" fill="url(#jg)"/> <rect x="24" y="90" width="52" height="5" rx="3" fill="url(#jg)"/> <rect x="30" y="84" width="40" height="8" rx="3" fill="url(#jg)"/> <path d="M40 86 L41 70 L59 70 L60 86 Z" fill="url(#jg)"/> <path d="M43 86 L44 72 L56 72 L57 86 Z" fill="url(#jg)"/> <path d="M31 40 C25 35 25 27 30 25 C34 28 36 34 36 40 Z" fill="url(#jg)"/> <path d="M69 40 C75 35 75 27 70 25 C66 28 64 34 64 40 Z" fill="url(#jg)"/> <circle cx="50" cy="54" r="27" fill="url(#jg)"/> <circle cx="50" cy="56" r="21" fill="url(#jg)"/> <ellipse cx="50" cy="66" rx="14" ry="9" fill="url(#jg)"/> <path d="M40 67 C44 74 56 74 60 67" fill="url(#jg)" stroke="url(#jg)" stroke-width="2.8" stroke-linecap="round"/> <circle cx="50" cy="60" r="7" fill="url(#jg)"/> <ellipse cx="47.4" cy="57.4" rx="2" ry="1.4" fill="url(#jg)" /> <ellipse cx="41" cy="49" rx="4.8" ry="5.2" fill="url(#jg)"/><ellipse cx="59" cy="49" rx="4.8" ry="5.2" fill="url(#jg)"/> <circle cx="41.6" cy="49.6" r="3.2" fill="url(#jg)"/><circle cx="59.6" cy="49.6" r="3.2" fill="url(#jg)"/> <circle cx="42.8" cy="48.2" r="1.1" fill="url(#jg)"/><circle cx="60.8" cy="48.2" r="1.1" fill="url(#jg)"/> <path d="M35.5 42.5 C38.5 39.5 43.5 39.5 46 41.5" fill="url(#jg)" stroke="url(#jg)" stroke-width="2.3" stroke-linecap="round"/> <path d="M54 41.5 C56.5 39.5 61.5 39.5 64.5 42.5" fill="url(#jg)" stroke="url(#jg)" stroke-width="2.3" stroke-linecap="round"/> <path d="M34 30 C26 24 14 20 6 24 C14 26 20 30 26 36 Z" fill="url(#jg)"/> <path d="M35 34 C45 31 48.5 20 50 2 C51.5 20 55 31 65 34 Z" fill="url(#jg)"/> <path d="M66 30 C74 24 86 20 94 24 C86 26 80 30 74 36 Z" fill="url(#jg)"/> <path d="M29 35 C40 26 60 26 71 35 L71 39 C60 31 40 31 29 39 Z" fill="url(#jg)"/> <circle cx="6" cy="24" r="3.2" fill="url(#jg)" stroke="url(#jg)" stroke-width=".8"/> <circle cx="50" cy="3.5" r="3.2" fill="url(#jg)" stroke="url(#jg)" stroke-width=".8"/> <circle cx="94" cy="24" r="3.2" fill="url(#jg)" stroke="url(#jg)" stroke-width=".8"/></g></g></g></svg></div><div class="intro-word"><b>Joker</b> Chess</div></div>
 <script type="text/plain" id="engine-src">/* Golden Chess — rules core. Shared by the UI (main thread) and the engine (worker).
  * Board: 0x88 mailbox. Piece code = (color << 3) | type. White = 0, black = 1.
  * Golden move (once per game per side): queen/rook/bishop/knight teleports to any empty
@@ -4164,14 +4178,22 @@ var Sound = (function () {
     return b;
   }
 
+  // After the app has been in the background, iOS leaves the audio context "interrupted" (or running but silent): the
+  // first touch after coming back throws the old context away and makes a new one (a touch is what lets audio start).
+  var stale = false, rawCache = null, rawRate = 0;
+  function revive() { if (ready) stale = true; }
   function unlock() {
-    if (ready) { if (ctx && ctx.state === 'suspended') ctx.resume(); return; }
+    if (ready && !stale && ctx && ctx.state === 'running') return;
+    if (ready && !stale && ctx && ctx.state === 'suspended') { ctx.resume(); return; }
+    if (ready) { try { ctx.close(); } catch (e) { /* ignore */ } ctx = null; ready = false; buffers = {}; }
+    stale = false;
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     try {
       ctx = new AC();
       master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
-      var raw = build(ctx.sampleRate);
+      if (!rawCache || rawRate !== ctx.sampleRate) { rawCache = build(ctx.sampleRate); rawRate = ctx.sampleRate; }
+      var raw = rawCache;
       for (var k in raw) {
         var buf = ctx.createBuffer(1, raw[k].length, ctx.sampleRate);
         buf.getChannelData(0).set(raw[k]);
@@ -4185,14 +4207,14 @@ var Sound = (function () {
   function play(name, gain) {
     if (!enabled || !ready || !buffers[name]) return;
     try {
-      if (ctx.state === 'suspended') ctx.resume();
+      if (ctx.state !== 'running') ctx.resume();
       var src = ctx.createBufferSource(); src.buffer = buffers[name];
       var g = ctx.createGain(); g.gain.value = gain == null ? 1 : gain;
       src.connect(g); g.connect(master); src.start();
     } catch (e) { /* ignore */ }
   }
 
-  return { unlock: unlock, play: play, setEnabled: function (v) { enabled = !!v; }, isEnabled: function () { return enabled; }, _build: build };
+  return { unlock: unlock, revive: revive, play: play, setEnabled: function (v) { enabled = !!v; }, isEnabled: function () { return enabled; }, _build: build };
 })();
 
 ;
@@ -7525,6 +7547,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     else if (e.key === 'g' || e.key === 'G') onGoldenButton();
   });
   document.addEventListener('pointerdown', function () { Sound.unlock(); }, { capture: true, passive: true });
+  document.addEventListener('touchend', function () { Sound.unlock(); }, { capture: true, passive: true });
   window.addEventListener('resize', layout);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', layout);
   setInterval(function () { if (document.hidden) tick(); }, 250);
@@ -7872,13 +7895,43 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     if (L.kind === 'seek') net.call('cancel').catch(function () { /* ignore */ });
     if (L.kind === 'invite' && L.gameId) net.call('resign', { game: L.gameId }).catch(function () { /* ignore */ });
   }
-  function pollLobby(L, el) {
+  function pollLobby(L, el, reel) {
     if (!net) return;
     net.call('lobby').then(function (r) {
       if (!r || r.online == null) return;
+      var first = !(lobbyStats && lobbyStats.faces && lobbyStats.faces.length);
       lobbyStats = r;
-      if (lobby === L && el.isConnected) el.textContent = lobbyLine(r);
+      if (lobby !== L || !el.isConnected) return;
+      if (el.textContent !== lobbyLine(r)) { el.classList.add('bump'); setTimeout(function () { el.classList.remove('bump'); }, 260); }
+      el.textContent = lobbyLine(r);
+      if (reel && first && r.faces && r.faces.length) fillReel(reel, r.faces);
     }, function () { /* the line just stays */ });
+  }
+  // the reel: the faces roll past one by one; each stops in the lens for a moment (sharp there, blurred on the sides)
+  // and the next one comes — like flicking through who might be your opponent. The list is there twice, so the loop
+  // has no seam: after the first round the track jumps back without a transition.
+  var REEL_PITCH = 70; // a disc (56) and the gap (14)
+  function fillReel(reel, faces) {
+    clearInterval(reel._step);
+    var list = (faces || []).slice(0, 14);
+    if (list.length) noteAvatars(list.map(function (x) { return { id: x.uid, avatar_v: x.avatar_v }; }));
+    while (list.length < 10) list.push(null); // until the players come: blank discs
+    var row = list.concat(list).map(function (x, k) {
+      return x ? avatarHtml(x.uid, x.name, 'reel-ava t' + (k % 6)) : '<span class="ava reel-ava blank"></span>';
+    }).join('');
+    reel.innerHTML = '<div class="reel-track blur">' + row + '</div><div class="reel-lens"><div class="reel-track">' + row + '</div></div><i class="reel-ring"></i>';
+    var tracks = reel.querySelectorAll('.reel-track'), k = 0, n = list.length;
+    function place(animate) {
+      var x = -k * REEL_PITCH;
+      tracks[0].style.left = (reel.clientWidth / 2 - 28) + 'px'; tracks[1].style.left = '6px';
+      for (var t = 0; t < 2; t++) { tracks[t].style.transition = animate ? 'transform .42s cubic-bezier(.3, .8, .25, 1)' : 'none'; tracks[t].style.transform = 'translateX(' + x + 'px)'; }
+    }
+    place(false); requestAnimationFrame(function () { place(false); });
+    reel._step = setInterval(function () {
+      if (!reel.isConnected) { clearInterval(reel._step); return; }
+      k++; place(true);
+      if (k >= n) setTimeout(function () { k = 0; place(false); }, 450);
+    }, 800);
   }
   function onPaired(id) { stopLobby(); if (currentDialog && currentDialog.dataset.kind === 'lobby') closeDialog(); haptic('found'); openOnlineGame(id); }
   // How long the search "takes" before a house player is seated when no one else is there: now and then at once,
@@ -7950,25 +8003,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       if (L.kind === 'seek') {
         // centred on every screen: a card with the search, who is around, and a light line of what "we" are up to
         currentDialog.classList.add('center'); card.classList.add('lobby');
-        card.appendChild(h('div', { class: 'lobby-ic' }, '<span class="ring"></span><span class="ring r2"></span>' + ICON.search));
+        // the players around roll past behind a lens: blurred on the sides, sharp in the middle
+        var reel = h('div', { class: 'lobby-reel', id: 'lobby-reel', 'aria-hidden': 'true' });
+        card.appendChild(reel); fillReel(reel, lobbyStats && lobbyStats.faces);
         card.appendChild(h('div', { class: 'dlg-title' }, esc(T('searching'))));
         var sub = h('div', { class: 'dlg-sub', id: 'seek-sub' }); card.appendChild(sub);
-        var bar = h('div', { class: 'seekbar fill', id: 'seek-bar' }, '<i></i>');
-        card.appendChild(bar);
+        // the bar runs to one end and back, for as long as the search goes on
+        card.appendChild(h('div', { class: 'seekbar pong', id: 'seek-bar' }, '<i></i>'));
         var live = h('div', { class: 'lobby-live', id: 'lobby-live' }, lobbyStats ? esc(lobbyLine(lobbyStats)) : '&nbsp;');
         card.appendChild(live);
         var moods = T('lobbyMoods'), mi = Math.floor(Math.random() * moods.length);
         var mood = h('div', { class: 'lobby-mood', id: 'lobby-mood' }, esc(moods[mi] + '\u2026'));
         card.appendChild(mood);
-        // the bar fills over the search span (then keeps looking if no one could be seated)
-        var fillTo = Math.max(0, L.span - (perf() - L.t0));
-        requestAnimationFrame(function () { var i = bar.firstChild; i.style.transitionDuration = fillTo + 'ms'; i.style.width = '100%'; });
         var n = 0;
         var upd = function () {
           if (lobby !== L) return;
           var sec = Math.floor((perf() - L.t0) / 1000); sub.textContent = meta + ' \u00b7 ' + Math.floor(sec / 60) + ':' + (sec % 60 < 10 ? '0' : '') + (sec % 60);
           if (++n % 4 === 0) { mi = (mi + 1) % moods.length; mood.classList.add('swap'); setTimeout(function () { mood.textContent = moods[mi] + '\u2026'; mood.classList.remove('swap'); }, 180); }
-          if (n % 6 === 1) pollLobby(L, live);
+          if (n % 5 === 1) pollLobby(L, live, reel);
         };
         upd(); L.tick = setInterval(upd, 1000);
       } else {
@@ -8986,6 +9038,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     });
   }
   function onVisibility() {
+    if (hiddenNow()) Sound.revive(); // the first touch after coming back makes a fresh audio context
     var o = online;
     if (!o) return;
     var hidden = hiddenNow();

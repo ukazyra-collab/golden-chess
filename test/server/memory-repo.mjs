@@ -116,9 +116,12 @@ export function createMemoryRepo(now) {
       const t = now(), fresh = (x) => x && t - Date.parse(x) < 5 * 60000;
       const seeks = [...db.seeks.values()].filter((s) => t - s.updated < 30000);
       const games = [...db.games.values()].filter((g) => g.status === 'playing' && t - Date.parse(g.updated_at) < 3600000).length;
+      const hr = new Date(t).getUTCHours();
+      const house = [...db.house.values()].filter((h) => ((hr - h.online_from + 24) % 24) < h.online_hours).map((h) => h.user_id);
       const online = new Set([...[...db.profiles.values()].filter((p) => fresh(p.last_seen)).map((p) => p.id),
-        ...[...db.seen.values()].filter((s) => fresh(s.at)).map((s) => s.user_id), ...seeks.map((s) => s.user_id)]);
-      return { seeking: seeks.length, games, online: online.size };
+        ...[...db.seen.values()].filter((s) => fresh(s.at)).map((s) => s.user_id), ...seeks.map((s) => s.user_id), ...house]);
+      const faces = [...online].slice(0, 14).map((id) => ({ uid: id, name: db.profiles.get(id)?.username || '?', avatar_v: db.profiles.get(id)?.avatar_v || 0 }));
+      return { seeking: seeks.length, games, online: online.size, faces };
     },
   };
 

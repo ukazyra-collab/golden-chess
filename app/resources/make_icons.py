@@ -113,7 +113,7 @@ def splash_svg(w, h, size=None):
     k = h / 844
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}">'
             f'<rect width="{w}" height="{h}" fill="{GROUND}"/>'
-            f'<g transform="translate({(w - 390 * k) / 2:.2f} 0) scale({k:.5f})"><g transform="translate(195 540) scale(1.22) translate(-195 -540)">{inner}</g></g></svg>')
+            f'<g transform="translate({(w - 390 * k) / 2:.2f} 0) scale({k:.5f})"><g transform="translate(195 390) scale(1.22) translate(-195 -390)">{inner}</g></g></svg>')
 
 
 async def render(page, svg, w, h, path, alpha=True):
