@@ -52,7 +52,7 @@ var GCLearn = (function () {
       accept: { 'a7f1*': [], 'b7f1*': [] } },
     { id: 'i2', lvl: 1, fen: 'r4r1k/pb3p1p/1p4p1/4q3/8/8/PP3PPP/R1BQ1RK1 w - - 0 1 G', prompt: 'p2Prompt', good: 'p2Good', hint: 'p2Hint',
       accept: { 'c1d4*': ['e5d4', 'd1d4', 'h8g8'], 'c1c3*': ['e5c3', 'b2c3'] } },
-    { id: 'i3', lvl: 2, fen: '6N1/k7/6K1/7P/8/8/2p5/8 w - - 0 1 G', prompt: 'p3Prompt', good: 'p3Good', hint: 'p3Hint',
+    { id: 'i3', lvl: 1, fen: '6N1/k7/6K1/7P/8/8/2p5/8 w - - 0 1 G', prompt: 'p3Prompt', good: 'p3Good', hint: 'p3Hint',
       accept: { 'g8c1*': ['a7b7', 'h5h6', 'b7c6', 'h6h7', 'c6d5', 'h7h8q'], 'g8e2*': ['a7b6', 'h5h6', 'b6c5', 'h6h7', 'c5c4', 'h7h8q'],
         'g8a2*': ['a7b6', 'h5h6', 'b6c5', 'h6h7', 'c5d5', 'h7h8q'], 'g8d3*': ['a7b6', 'h5h6', 'b6b5', 'h6h7', 'b5c4', 'h7h8q'],
         'g8b3*': ['a7b6', 'h5h6', 'b6b5', 'b3c1', 'b5c4', 'h6h7'] } }
@@ -363,6 +363,15 @@ var GCLearn = (function () {
       // which puzzle, how hard, how many solved: one line (there are too many for a row of numbers)
       var head = el('div', 'try-head'), tTitle = el('div', 'try-title'), tCount = el('div', 'try-count');
       head.appendChild(tTitle); head.appendChild(tCount); ts.appendChild(head);
+      // how far along: a thin bar of solved puzzles, the Joker walking along it; where Medium and Hard begin, marked
+      var prog = el('div', 'try-prog'), pFill = el('i', 'tp-fill'), pWalk = el('span', 'tp-walk');
+      prog.setAttribute('aria-hidden', 'true');
+      pWalk.innerHTML = ctx.piece ? ctx.piece() : '';
+      prog.appendChild(pFill);
+      [2, 3].forEach(function (lv) {
+        for (var q = 0; q < PUZZLES.length; q++) if ((PUZZLES[q].lvl || 1) >= lv) { var mk = el('b', 'tp-mark'); mk.style.left = (q / PUZZLES.length * 100).toFixed(2) + '%'; prog.appendChild(mk); break; }
+      });
+      prog.appendChild(pWalk); ts.appendChild(prog);
       var body = el('div', 'try-body'), bhost = el('div'), side = el('div', 'try-side');
       var prompt = el('div', 'try-prompt'), status = el('div', 'try-status'), acts = el('div', 'try-actions');
       side.appendChild(prompt); side.appendChild(status); side.appendChild(acts);
@@ -375,6 +384,9 @@ var GCLearn = (function () {
         var p = PUZZLES[pIndex];
         tTitle.innerHTML = esc(T('puzzleN', { n: pIndex + 1 })) + '<span class="try-lvl l' + (p.lvl || 1) + '">' + esc(T(LVL[p.lvl || 1])) + '</span>';
         tCount.textContent = T('solvedOf', { n: solvedCount(), total: PUZZLES.length });
+        var at = ((pIndex + 0.5) / PUZZLES.length * 100).toFixed(2) + '%';
+        pFill.style.width = (solvedCount() / PUZZLES.length * 100).toFixed(2) + '%';
+        pWalk.style.left = at;
       }
       function nextIndex() {
         for (var k = 1; k <= PUZZLES.length; k++) { var j = (pIndex + k) % PUZZLES.length; if (!done[PUZZLES[j].id]) return j; }

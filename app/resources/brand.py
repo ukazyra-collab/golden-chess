@@ -2,7 +2,8 @@
 # the o of the wordmark): the gold jester piece (mark.svg, its hat's side horns drawn in, a round hole in the head, so
 # it is also the o of "Joker") on a 2x2 corner of the board in two greens (dark on a1, as on any board). Its depth comes
 # from the side: a darker edge on the right, a lit rim on the left, a soft shadow under the plinth.
-# Run: python3 app/resources/brand.py   (writes app/resources/icon.svg, the rounded tile build.js puts in the page)
+# Run: python3 app/resources/brand.py   (writes app/resources/icon.svg, the rounded tile build.js puts in the page, and
+# app/resources/piece.svg, the piece alone)
 import os, re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -76,4 +77,8 @@ def tile(uid, rounded=True, scale=0.78):
 if __name__ == '__main__':
     out = os.path.join(HERE, 'icon.svg')
     open(out, 'w', encoding='utf-8').write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">{tile("i")}</svg>\n')
+    print('wrote', out)
+    # the piece alone (the app's little Joker: the search, empty screens, the puzzle bar, a win)
+    out = os.path.join(HERE, 'piece.svg')
+    open(out, 'w', encoding='utf-8').write(f'<svg xmlns="http://www.w3.org/2000/svg" class="jpc" viewBox="0 0 100 100" aria-hidden="true">{piece("p")}</svg>\n')
     print('wrote', out)

@@ -65,7 +65,7 @@
       ratedLine: 'Rated {pool}', casualLine: 'Casual {pool}', yourRating: 'Your {pool} rating: {r}', firstMove: '{side}: first move within {s} s',
       r_agreement: 'by agreement', gameTaken: 'This game has already started, you are watching it', noGame: 'Game not found',
       stillPlaying: 'Your online game is still running. Starting another game leaves it, and your clock keeps ticking.',
-      reconnecting: 'Reconnecting\u2026', connected: 'Online', disconnected: 'Away', leaderboard: 'Top players', lbEmpty: 'No rated games yet. Be the first.',
+      reconnecting: 'Reconnecting\u2026', connected: 'Online', disconnected: 'Away', leaderboard: 'Top players', lbEmpty: 'No rated games yet. The top spot is free.',
       gamesN: '{n} games', casualNote: 'Casual game: ratings don\u2019t change.', onlineElsewhere: 'Online games and ratings:', appOffline: 'No internet. Bots and two players on one phone work without it.', reconnect: 'Try again', privacy: 'Privacy policy',
       account: 'Account', signIn: 'Sign in', emailLabel: 'Email', sendCode: 'Send code', sending: 'Sending', manage: 'Manage',
       signInSub: 'Enter your email to keep your name, rating and games, or to sign in to your account on this device. We\u2019ll send you a code.',
@@ -161,7 +161,7 @@
       rpGolden: 'Joker Move', rpGoldenNone: 'not used', rpStart: 'Start review', rpReport: 'Report', rpHelp: 'Tap a move to see it on the board.',
       coMissed1: 'You missed a winning Joker Move.', coMissedN: 'You missed {n} winning Joker Moves.', coGolden: 'Your Joker Move was spot on!',
       coGreat: 'Excellent game!', coGood: 'Good game.', coOk: 'Let’s see what could be better.', coShort: 'Too short a game to judge.',
-      games: 'Games', allGames: 'All games', noGames: 'No games yet. Finish one and it shows up here.', showMore: 'Show more',
+      games: 'Games', allGames: 'All games', noGames: 'No games yet. The Joker is getting bored.', showMore: 'Show more',
       vsTwo: 'Two players', resWon: 'Won', resLost: 'Lost', resDraw: 'Draw', opponents: 'Opponents',
       h2h: 'You {w} : {l} {name}', h2hDraws: 'draws: {d}', allOpponents: 'All opponents', reviewShort: 'Review', today: 'Today', yesterday: 'Yesterday',
       // the coach: why a move is good or bad, lines on the board, another try
@@ -234,7 +234,7 @@
       ratedLine: '{pool} на рейтинг', casualLine: '{pool} без рейтинга', yourRating: 'Ваш рейтинг ({pool}): {r}', firstMove: '{side}: первый ход — {s} с',
       r_agreement: 'по соглашению', gameTaken: 'Партия уже началась, вы смотрите её как зритель', noGame: 'Партия не найдена',
       stillPlaying: 'Ваша онлайн-партия ещё идёт. Если начать другую, часы в ней продолжат идти.',
-      reconnecting: 'Переподключение…', connected: 'В игре', disconnected: 'Отошёл', leaderboard: 'Лучшие игроки', lbEmpty: 'Рейтинговых партий ещё нет. Будьте первым.',
+      reconnecting: 'Переподключение…', connected: 'В игре', disconnected: 'Отошёл', leaderboard: 'Лучшие игроки', lbEmpty: 'Рейтинговых партий ещё нет. Первое место свободно.',
       gamesN: 'партий: {n}', casualNote: 'Партия без рейтинга: рейтинг не меняется.', onlineElsewhere: 'Онлайн-партии и рейтинг:', appOffline: 'Нет интернета. Боты и игра вдвоём на одном телефоне работают и без него.', reconnect: 'Повторить', privacy: 'Политика конфиденциальности',
       account: 'Аккаунт', signIn: 'Войти', emailLabel: 'Почта', sendCode: 'Получить код', sending: 'Отправляем', manage: 'Управление',
       signInSub: 'Введите почту, чтобы сохранить имя, рейтинг и партии или войти в свой аккаунт на этом устройстве. Мы пришлём код.',
@@ -326,7 +326,7 @@
       rpGolden: 'Джокер', rpGoldenNone: 'не сыгран', rpStart: 'Начать разбор', rpReport: 'Отчёт', rpHelp: 'Нажмите на ход, чтобы увидеть его на доске.',
       coMissed1: 'Вы упустили выигрывающий джокер.', coMissedN: 'Вы упустили выигрывающих джокеров: {n}.', coGolden: 'Ваш джокер был точным!',
       coGreat: 'Отличная партия!', coGood: 'Хорошая партия.', coOk: 'Посмотрим, что можно было сыграть лучше.', coShort: 'Партия слишком короткая для оценки.',
-      games: 'Партии', allGames: 'Все партии', noGames: 'Партий пока нет. Доиграйте партию — она появится здесь.', showMore: 'Показать ещё',
+      games: 'Партии', allGames: 'Все партии', noGames: 'Партий пока нет. Джокер скучает.', showMore: 'Показать ещё',
       vsTwo: 'Вдвоём', resWon: 'Победа', resLost: 'Поражение', resDraw: 'Ничья', opponents: 'Соперники',
       h2h: 'Вы {w} : {l} {name}', h2hDraws: 'ничьих: {d}', allOpponents: 'Все соперники', reviewShort: 'Разбор', today: 'Сегодня', yesterday: 'Вчера',
       showFollow: 'Что дальше', showShort: 'Дальше', hideLine: 'Назад', bestBtn: 'Лучше: {san}', bestShort: '{san}', retryBtn: 'Найти самому', retryShort: 'Найти', tryAgain: 'Ещё раз', againShort: 'Ещё раз',
@@ -1934,7 +1934,7 @@
       var sub = [];
       if (reason) sub.push(reason.charAt(0).toUpperCase() + reason.slice(1));
       sub.push(T('movesN', { n: Math.ceil(game.records.length / 2) }));
-      card.appendChild(h('div', { class: 'over-head' }, '<div class="dlg-title over-title' + (o === 1 && !spectating() ? ' win' : '') + '">' + esc(resultTitle()) + '</div><div class="over-sub">' + esc(sub.join(' · ')) + '</div>'));
+      card.appendChild(h('div', { class: 'over-head' }, (o === 1 && !spectating() ? '<span class="over-joker' + (motionOK() ? ' drop' : '') + '">' + jokerPiece() + '</span>' : '') + '<div class="dlg-title over-title' + (o === 1 && !spectating() ? ' win' : '') + '">' + esc(resultTitle()) + '</div><div class="over-sub">' + esc(sub.join(' · ')) + '</div>'));
       var acts = h('div', { class: 'over-acts' });
       var rv = h('button', { class: 'second-btn', type: 'button', id: 'btn-over-review' }, esc(T('review')));
       rv.addEventListener('click', function () { closeDialog(); showReport(); renderSide(); });
@@ -2784,8 +2784,9 @@
         card.appendChild(reel); fillReel(reel, lobbyStats && lobbyStats.faces);
         card.appendChild(h('div', { class: 'dlg-title' }, esc(T('searching'))));
         var sub = h('div', { class: 'dlg-sub', id: 'seek-sub' }); card.appendChild(sub);
-        // the bar runs to one end and back, for as long as the search goes on
-        card.appendChild(h('div', { class: 'seekbar pong', id: 'seek-bar' }, '<i></i>'));
+        // the Joker hops square to square for as long as the search goes on
+        var sqs = ''; for (var qi = 0; qi < 5; qi++) sqs += '<i class="' + (qi % 2 ? 'd' : 'l') + '"></i>';
+        card.appendChild(h('div', { class: 'hopper pong', id: 'seek-bar', 'aria-hidden': 'true' }, '<span class="hop-sq">' + sqs + '</span><span class="hop-pc">' + jokerPiece() + '</span>'));
         var live = h('div', { class: 'lobby-live', id: 'lobby-live' }, lobbyStats ? esc(lobbyLine(lobbyStats)) : '&nbsp;');
         card.appendChild(live);
         var moods = T('lobbyMoods'), mi = Math.floor(Math.random() * moods.length);
@@ -3948,6 +3949,12 @@
   var STAR_SVG = '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="var(--gold)" stroke="var(--gold)"><rect x="24" y="90" width="52" height="9" rx="4"/> <rect x="24" y="90" width="52" height="5" rx="3"/> <rect x="30" y="84" width="40" height="8" rx="3"/> <path d="M40 86 L41 70 L59 70 L60 86 Z"/> <path d="M43 86 L44 72 L56 72 L57 86 Z"/> <path d="M31 40 C25 35 25 27 30 25 C34 28 36 34 36 40 Z"/> <path d="M69 40 C75 35 75 27 70 25 C66 28 64 34 64 40 Z"/> <circle cx="50" cy="54" r="27"/> <circle cx="50" cy="56" r="21"/> <ellipse cx="50" cy="66" rx="14" ry="9"/> <path d="M40 67 C44 74 56 74 60 67" stroke-width="2.8" stroke-linecap="round"/> <circle cx="50" cy="60" r="7"/> <ellipse cx="47.4" cy="57.4" rx="2" ry="1.4" /> <ellipse cx="41" cy="49" rx="4.8" ry="5.2"/><ellipse cx="59" cy="49" rx="4.8" ry="5.2"/> <circle cx="41.6" cy="49.6" r="3.2"/><circle cx="59.6" cy="49.6" r="3.2"/> <circle cx="42.8" cy="48.2" r="1.1"/><circle cx="60.8" cy="48.2" r="1.1"/> <path d="M35.5 42.5 C38.5 39.5 43.5 39.5 46 41.5" stroke-width="2.3" stroke-linecap="round"/> <path d="M54 41.5 C56.5 39.5 61.5 39.5 64.5 42.5" stroke-width="2.3" stroke-linecap="round"/> <path d="M34 30 C26 24 14 20 6 24 C14 26 20 30 26 36 Z"/> <path d="M35 34 C45 31 48.5 20 50 2 C51.5 20 55 31 65 34 Z"/> <path d="M66 30 C74 24 86 20 94 24 C86 26 80 30 74 36 Z"/> <path d="M29 35 C40 26 60 26 71 35 L71 39 C60 31 40 31 29 39 Z"/> <circle cx="6" cy="24" r="3.2" stroke-width=".8"/> <circle cx="50" cy="3.5" r="3.2" stroke-width=".8"/> <circle cx="94" cy="24" r="3.2" stroke-width=".8"/></g></svg>';
   var LOGO_SVG = '__LOGO_SVG__'; // the icon (app/resources/icon.svg), put in by build.js
   var WORDMARK_SVG = '__WORDMARK__'; // the name (app/resources/wordmark.svg), put in by build.js
+  var PIECE_SVG = '__PIECE_SVG__'; // the Joker piece alone (app/resources/piece.svg), put in by build.js
+  function jokerPiece() { return uniqIds(PIECE_SVG); }
+  // the small jokes in the motion play only when the player wants motion (settings, and the system's reduce-motion)
+  function motionOK() { return settings.anim !== 'off' && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  // where there is nothing yet: the Joker on its square with one short line
+  function emptyJoker(text) { return '<div class="empty-joker"><span class="ej-piece">' + jokerPiece() + '</span><span class="ej-text">' + esc(text) + '</span></div>'; }
   // an SVG put in the page more than once: its ids (clip paths, masks) made its own, so a hidden copy never breaks a shown one
   var uniqN = 0;
   function uniqIds(svg) {
@@ -4099,7 +4106,13 @@
         host.innerHTML = ''; host.dataset.built = lang + items.join();
         items.forEach(function (v) {
           var a = h('a', { class: 'nav-item', href: '#' + v, 'data-nav': v }, NAV_ICON[v] + '<span>' + esc(T(NAV_KEY[v])) + '</span>');
-          a.addEventListener('click', function (e) { e.preventDefault(); go(v); });
+          a.addEventListener('click', function (e) {
+            e.preventDefault();
+            var fresh = a.getAttribute('aria-current') !== 'page';
+            go(v);
+            // the tab opened gives one small hop
+            if (fresh && motionOK()) { var ic = a.querySelector('svg'); if (ic) { ic.classList.remove('hop'); void ic.offsetWidth; ic.classList.add('hop'); } }
+          });
           host.appendChild(a);
         });
       }
@@ -4116,7 +4129,7 @@
     game.paused = false; if (game.clock) game.clock.since = perf();
   }
   function kit() {
-    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ T: T, esc: esc, h: h, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
+    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
     return learnKit;
   }
 
@@ -4366,7 +4379,7 @@
     (c ? (hasNetSession() ? ensureNet().then(function () { return c.board(pool); }) : c.top(pool).then(function (rows) { return { rows: rows, total: rows.length, rank: null, me: null }; })) : Promise.reject(new Error('offline'))).then(function (b) {
       if (!list.isConnected) return;
       var rows = b.rows || [];
-      if (!rows.length) { list.innerHTML = '<div class="muted" style="padding:10px 4px">' + esc(T('lbEmpty')) + '</div>'; return; }
+      if (!rows.length) { list.innerHTML = emptyJoker(T('lbEmpty')); return; }
       noteAvatars(rows.concat(b.me ? [b.me] : []).map(function (x) { return { id: x.uid, avatar_v: x.avatar_v }; }));
       var html = rows.map(function (x, i) { return rowHtml(x, i + 1, me && x.uid === me.uid); }).join('');
       // below the top: a gap, then my own row with my place
@@ -4637,7 +4650,7 @@
     }
     var list = h('div', { class: 'gh-list', id: 'gh-list' }, items.map(function (it) { return histRow(it, sums); }).join(''));
     inn.appendChild(list);
-    if (!items.length) inn.appendChild(hist.loading ? h('div', { class: 'card' }, skeletonRows(6)) : h('div', { class: 'muted gh-empty' }, esc(T('noGames'))));
+    if (!items.length) inn.appendChild(hist.loading ? h('div', { class: 'card' }, skeletonRows(6)) : h('div', { class: 'gh-empty' }, emptyJoker(T('noGames'))));
     if (hist.err) inn.appendChild(h('div', { class: 'err' }, esc(T('netError'))));
     if (hist.filter ? oppMore : hist.more) {
       var more = h('button', { type: 'button', class: 'secondary gh-more', id: 'btn-more-games' }, esc(T('showMore')));

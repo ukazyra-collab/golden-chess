@@ -42,10 +42,13 @@ const LOGO = '<svg class="logo" viewBox="0 0 100 100" aria-hidden="true">' + ICO
 // the name (app/resources/wordmark.svg, made by app/resources/make_wordmark.py)
 const WORDMARK = rd('app/resources/wordmark.svg').trim().replace(/^<svg xmlns="[^"]*" /, '<svg ');
 if (/'/.test(WORDMARK)) throw new Error('wordmark.svg contains a single quote');
+// the piece alone (app/resources/piece.svg): the search, empty screens, the puzzle bar, a win
+const PIECE = rd('app/resources/piece.svg').trim().replace(/^<svg xmlns="[^"]*" /, '<svg ');
+if (/'/.test(PIECE)) throw new Error('piece.svg contains a single quote');
 // each copy put in the page gets its own ids (clip paths, masks)
 let uniqN = 0;
 const uniq = (svg) => { const n = 'b' + (++uniqN); return svg.replace(/id="([^"]+)"/g, 'id="$1' + n + '"').replace(/url\(#([^)]+)\)/g, 'url(#$1' + n + ')'); };
-const mainSrc = [core, engine, rd('src/book.js'), rd('src/review.js'), rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/puzzles.js'), rd('src/ui/learn.js'), rd('src/ui/bots.js'), rd('src/ui/app.js').replace("'__LOGO_SVG__'", () => "'" + LOGO + "'").replace("'__WORDMARK__'", () => "'" + WORDMARK + "'")].join('\n;\n');
+const mainSrc = [core, engine, rd('src/book.js'), rd('src/review.js'), rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/puzzles.js'), rd('src/ui/learn.js'), rd('src/ui/bots.js'), rd('src/ui/app.js').replace("'__LOGO_SVG__'", () => "'" + LOGO + "'").replace("'__WORDMARK__'", () => "'" + WORDMARK + "'")].join('\n;\n').split("'__PIECE_SVG__'").join("'" + PIECE + "'");
 const supa = rd('vendor/supabase-js-2.117.2.umd.js');
 for (const [name, src] of [['worker', workerSrc], ['main', mainSrc], ['supabase', supa]]) if (/<\/script/i.test(src)) throw new Error(name + ' contains </script');
 

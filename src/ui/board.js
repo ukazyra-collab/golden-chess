@@ -109,6 +109,8 @@ var BoardView = (function () {
         if (k >= 1) {
           p.anim = null; p.x = a.tx; p.y = a.ty; p.scale = 1; if (!p.fade) p.opacity = 1;
           p.el.classList.remove('lift');
+          // landed from a Joker Move: a wobble, like the o of the name
+          if (a.kind !== 'slide' && self.speed > 0) { var pe = p.el; pe.classList.remove('jk-wob'); void pe.offsetWidth; pe.classList.add('jk-wob'); setTimeout(function () { pe.classList.remove('jk-wob'); }, 1000); }
           if (p.pendingCode) { self.setCode(p, p.pendingCode); p.pendingCode = 0; }
         } else active = true;
       }
