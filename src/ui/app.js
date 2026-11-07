@@ -3933,6 +3933,19 @@
     if (playing ? idle > (o.connected ? 12000 : 2500) : idle > 15000) resyncOnline();
   }, 1000);
   document.addEventListener('visibilitychange', onVisibility);
+  // The app shows the live site, and the phone keeps a copy of the page for a while: when the app opens or comes back,
+  // a newer build on the site (version.json) loads at once, unless a game is on. One try per build.
+  function checkUpdate() {
+    if (!NATIVE.on || !window.GC_BUILD || !window.fetch) return;
+    fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || !j.build || j.build === window.GC_BUILD) return;
+      if (liveOnlineGame() || curView === 'game' || currentDialog) return;
+      try { if (sessionStorage.getItem('gcUpdate') === j.build) return; sessionStorage.setItem('gcUpdate', j.build); } catch (e) { return; }
+      location.replace(location.pathname + '?b=' + j.build + location.hash);
+    }, function () { /* offline: later */ });
+  }
+  setTimeout(checkUpdate, 2500);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') checkUpdate(); });
   // ------------------------------------------------------------------ app shell: tabs and pages
   // Play (start screen), Learn, Ratings, Profile, the sign-in page and the game itself are views of one page;
   // the address keeps the view (#play, #learn, ...) so the back button and reloads work.
