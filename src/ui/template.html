@@ -112,6 +112,13 @@ html { overscroll-behavior: none; overflow: hidden; }
   .rail .nav-item:hover { background: var(--panel); color: var(--bone); }
   .rail .nav-item[aria-current="page"] { background: var(--raise); }
 }
+@media (min-width: 768px) {
+  /* in a game the board takes the whole screen, centred, as on a phone: no rail at the side, the way back and the name
+     in the top bar */
+  .shell[data-view="game"] .rail { display: none; }
+  .shell[data-view="game"] .top .back-btn { display: grid; }
+  .shell[data-view="game"] .top .brand { visibility: visible; }
+}
 @media (min-width: 1240px) {
   .rail { width: 196px; padding-inline: 12px; }
   .rail-brand { justify-content: flex-start; gap: 8px; padding-left: 4px; }

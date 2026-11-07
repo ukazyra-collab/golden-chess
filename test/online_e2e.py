@@ -239,7 +239,7 @@ async def main():
             for pg in (A, B): await pg.evaluate('__gc.closeDialog()')
 
             # ---- 11. invite a friend by link (casual 5+0), from the Play tab
-            await A.click('#rail [data-nav=play]'); await wait_for(A, '__gc.curView === "play"')
+            await A.click('#btn-back'); await wait_for(A, '__gc.curView === "play"')  # a game has no rail: back to Play
             await A.click('#play-tc'); await A.click('#tc-5-0')
             ok('time control picked', '5+0' in (await A.text_content('#play-tc')))
             await A.click('#play-tc'); await A.click('#set-rated'); await A.evaluate('__gc.closeDialog()')

@@ -75,7 +75,9 @@ async def main():
                 pt = await pg.evaluate(f'__t.sqCenter({sq})'); await pg.mouse.click(*pt)
             async def click_move(pg, a, z):
                 await click_sq(pg, a); await pg.wait_for_timeout(60); await click_sq(pg, z)
-            async def nav(pg, v):  # the tab bar on a phone, the rail on a computer
+            async def nav(pg, v):  # the tab bar on a phone, the rail on a computer (out of a game first: the game has neither)
+                if await pg.evaluate('__gc.curView === "game"'):
+                    await pg.click('#btn-back'); await wait_for(pg, '__gc.curView !== "game"', 3000)
                 await pg.click(f'#tabbar [data-nav={v}]' if await pg.evaluate('innerWidth < 768') else f'#rail [data-nav={v}]')
                 return await wait_for(pg, f'__gc.curView === "{v}"', 3000)
             async def send_code(pg, email):
