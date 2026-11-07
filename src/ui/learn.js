@@ -147,7 +147,7 @@ var GCLearn = (function () {
     this.p = p; this.ctx = ctx; this.ui = ui;
     this.selected = -1; this.locked = false; this.solved = false; this.timers = [];
     var self = this;
-    this.mb = new MiniBoard(boardHost, { coords: true, handlers: {
+    this.mb = new MiniBoard(boardHost, { coords: false, handlers: {
       onAny: function () { ctx.Sound.unlock(); },
       onDown: function (s) { return self.down(s); },
       onDrop: function (from, to) { return self.drop(from, to); }
@@ -162,7 +162,7 @@ var GCLearn = (function () {
     this.mb.view.speed = speedOf(this.ctx);
     this.mb.view.setOrientation(this.pos.side); // the side to move at the bottom
     this.mb.show(this.pos, [], true);
-    this.mb.el.classList.add('armed');
+    this.mb.el.classList.add('pz-glow');
     this.mb.view.markGolden(this.pos.side);
     this.paint();
   };
@@ -205,7 +205,7 @@ var GCLearn = (function () {
     this.selected = -1; this.locked = true;
     this.pos.makeMove(m);
     this.mb.show(this.pos, moveHints(this.pos, m));
-    this.mb.el.classList.remove('armed'); this.mb.view.markGolden(-1);
+    this.mb.el.classList.remove('pz-glow'); this.mb.view.markGolden(-1);
     this.mb.view.setDots([]);
     var cont = this.p.accept[uci];
     if (cont) {
@@ -239,7 +239,7 @@ var GCLearn = (function () {
       this.later(function () {
         self.pos.unmakeMove();
         self.mb.show(self.pos, [{ from: to, to: from }]);
-        self.mb.el.classList.add('armed'); self.mb.view.markGolden(self.pos.side);
+        self.mb.el.classList.add('pz-glow'); self.mb.view.markGolden(self.pos.side);
         self.locked = false; self.paint();
         self.ui.wrong();
       }, 850);
