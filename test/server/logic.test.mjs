@@ -473,10 +473,10 @@ if (PG) {
   check('mm: E waits', r.waiting === true, r);
   r = await ok(F, { action: 'seek', tc: '3+2' });
   check('mm: 450 points apart, not paired at once', r.waiting === true, r);
-  // ...but the window widens with the wait: 12 s of search, 150 + 25*12 = 450
-  await ageSeek(E, 12000);
+  // ...but the window widens with the wait: 6 s of search, 150 + 50*6 = 450
+  await ageSeek(E, 6000);
   r = await ok(F, { action: 'seek', tc: '3+2' });
-  check('mm: after 12 s of search the two are paired', r.game && [r.game.white_id, r.game.black_id].includes(E) && [r.game.white_id, r.game.black_id].includes(F), r);
+  check('mm: after 6 s of search the two are paired', r.game && [r.game.white_id, r.game.black_id].includes(E) && [r.game.white_id, r.game.black_id].includes(F), r);
   if (r.game) await ok(E, { action: 'resign', game: r.game.id });
   // closest rating first among the people searching
   await ok(F, { action: 'seek', tc: '3+2' }); await ok(G, { action: 'seek', tc: '3+2' }); await ageSeek(F, 60000); await ageSeek(G, 60000);
@@ -498,14 +498,14 @@ if (PG) {
   check('mm: someone searching another time control does not hold the house back', r.game && r.game.house, r.game && r.game.house);
   if (r.game) await ok(E, { action: 'resign', game: r.game.id });
   await ok(F, { action: 'cancel' });
-  // someone else has the app open (not in a game): the house waits 12 s of search
+  // someone else has the app open (not in a game): the house waits 6 s of search
   await setSeen(G, true);
   r = await ok(E, { action: 'seek', tc: '3+2' });
   r = await ok(E, { action: 'house', tc: '3+2' });
   check('mm: G has the app open: the house waits', r.waiting === true && !r.game, r);
-  await ageSeek(E, 13000);
+  await ageSeek(E, 6500);
   r = await ok(E, { action: 'house', tc: '3+2' });
-  check('mm: 13 s on, the house steps in', r.game && r.game.house, r);
+  check('mm: 6.5 s on, the house steps in', r.game && r.game.house, r);
   if (r.game) await ok(E, { action: 'resign', game: r.game.id });
   await quietAll();
 }

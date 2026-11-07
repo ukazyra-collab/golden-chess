@@ -5,7 +5,7 @@ const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
 
 export function createMemoryRepo(now) {
   // as gc_house_pair's house_wait; the browser suites set MOCK_HOUSE_WAIT=0 (their other pages are always "around")
-  const HOUSE_WAIT = process.env.MOCK_HOUSE_WAIT != null ? +process.env.MOCK_HOUSE_WAIT : 12000;
+  const HOUSE_WAIT = process.env.MOCK_HOUSE_WAIT != null ? +process.env.MOCK_HOUSE_WAIT : 6000;
   const iso = (t) => new Date(t).toISOString();
   const db = { games: new Map(), profiles: new Map(), ratings: new Map(), seeks: new Map(), house: new Map(), admins: new Set(), seen: new Map() };
   const GAME_DEFAULTS = { status: 'playing', white_id: null, black_id: null, white_name: null, black_name: null, white_rating: null, black_rating: null,
@@ -70,8 +70,8 @@ export function createMemoryRepo(now) {
       const t = now();
       const own = db.seeks.get(a.user);
       const since = own && own.tc === a.tc && own.rated === a.rated && t - own.updated < 30000 ? own.since : t;
-      // close in rating: 150 points at once, 25 more for every second the longer-waiting of the two has searched
-      const cands = fresh(a, t).filter((s) => Math.abs(s.rating - a.rating) <= 150 + 25 * (t - Math.min(s.since, since)) / 1000);
+      // close in rating: 150 points at once, 50 more for every second the longer-waiting of the two has searched
+      const cands = fresh(a, t).filter((s) => Math.abs(s.rating - a.rating) <= 150 + 50 * (t - Math.min(s.since, since)) / 1000);
       if (!cands.length) { db.seeks.set(a.user, { user_id: a.user, tc: a.tc, pool: a.pool, rating: a.rating, rated: a.rated, updated: t, since }); return { waiting: true }; }
       const opp = cands[0];
       return { game: pairGame(a, opp.user_id).id, opponent: opp.user_id };
