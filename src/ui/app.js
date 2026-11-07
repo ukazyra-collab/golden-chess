@@ -88,7 +88,7 @@
       guestNote: 'Guest: your rating is kept on this device only.', saveProgress: 'Save progress',
       guestRatingNote: 'Your rating is kept on this device only. Add your email to keep it.',
       playH: 'Play online',
-      back: 'Back', navPlay: 'Play', navLearn: 'Learn', navRatings: 'Ratings', navProfile: 'Profile',
+      back: 'Back', close: 'Close', navPlay: 'Play', navLearn: 'Learn', navRatings: 'Ratings', navProfile: 'Profile',
       startGame: 'Start Game', playFriend: 'Play a Friend', playFriendSub: 'Send a link, the game starts when they open it',
       playBot: 'Play a Bot', playBotSub: 'Eight levels, from 600 to 2500 Elo', passPlay: 'Two Players', passPlaySub: 'Take turns on one device',
       more: 'More', gameOn: 'Your game is on', returnBtn: 'Return', continueGame: 'Continue your game', cont: 'Continue', vsName: 'vs {name}',
@@ -101,7 +101,7 @@
       wins1: 'wins', draws1: 'draws', losses1: 'losses', ratingH: 'Rating', gamesH: 'Games',
       profileGuest: 'Guest', profileSignedOut: 'Sign in to keep your rating and games on any device.', howItWorks: 'How the Joker Move works',
       learnTitle: 'One move that changes the game',
-      learnLead: 'Chess, plus one move per game: teleport your queen, rook, bishop or knight to any empty square.',
+      learnLead: 'Once per game, teleport a queen, rook, bishop or knight to any empty square.',
       heroCap1: 'White still has the Joker Move. Black\u2019s queen stands right in front of the king.',
       heroCap2: '<b>Joker Move:</b> the rook teleports to e1 and pins the queen to the king.', heroCap3: 'The king steps aside, and the queen is lost.',
       ruleH: 'The rule', r1T: 'Any empty square',
@@ -252,7 +252,7 @@
       guestNote: 'Гость: рейтинг хранится только на этом устройстве.', saveProgress: 'Сохранить прогресс',
       guestRatingNote: 'Рейтинг хранится только на этом устройстве. Добавьте почту, чтобы не потерять его.',
       playH: 'Играть онлайн',
-      back: 'Назад', navPlay: 'Играть', navLearn: 'Обучение', navRatings: 'Рейтинг', navProfile: 'Профиль',
+      back: 'Назад', close: 'Закрыть', navPlay: 'Играть', navLearn: 'Обучение', navRatings: 'Рейтинг', navProfile: 'Профиль',
       startGame: 'Начать игру', playFriend: 'Сыграть с другом', playFriendSub: 'Отправьте ссылку, игра начнётся, когда друг её откроет',
       playBot: 'Сыграть с ботом', playBotSub: 'Восемь уровней, от 600 до 2500 Elo', passPlay: 'Вдвоём', passPlaySub: 'По очереди на одном устройстве',
       more: 'Ещё', gameOn: 'Ваша партия идёт', returnBtn: 'Вернуться', continueGame: 'Продолжить партию', cont: 'Продолжить', vsName: 'против {name}',
@@ -263,7 +263,7 @@
       yourRating: 'Ваш рейтинг', wdl: 'побед {w}, ничьих {d}, поражений {l}', provisional: 'предварительный', noGamesYet: 'партий ещё нет',
       profileGuest: 'Гость', profileSignedOut: 'Войдите, чтобы рейтинг и партии остались с вами на любом устройстве.', howItWorks: 'Как работает джокер',
       learnTitle: 'Один ход, который меняет партию',
-      learnLead: 'Шахматы плюс один ход за партию: перенести ферзя, ладью, слона или коня на любое пустое поле.',
+      learnLead: 'Раз за партию перенесите ферзя, ладью, слона или коня на любое пустое поле.',
       heroCap1: 'У белых остался джокер. Чёрный ферзь стоит прямо перед своим королём.',
       heroCap2: '<b>Джокер:</b> ладья переносится на e1 и связывает ферзя с королём.', heroCap3: 'Король уходит в сторону, и ферзь потерян.',
       ruleH: 'Правило', r1T: 'Любое пустое поле',
@@ -1181,6 +1181,7 @@
       currentDialog.dataset.kind = 'report';
       card.classList.add('report');
       card.addEventListener('click', function (e) {
+        if (e.target.closest('[data-close]')) { closeDialog(); return; }
         var t = e.target.closest('[data-goto],[data-start]');
         if (!t) return;
         closeDialog();
@@ -1200,7 +1201,7 @@
   function renderReport(card) {
     card = card || reportCard();
     if (!card || !review || !game) return;
-    var me = reviewSide(), you = oppGame() && !spectating(), html = '<div class="dlg-title">' + esc(T('review')) + '</div>';
+    var me = reviewSide(), you = oppGame() && !spectating(), html = '<div class="rp-head"><div class="dlg-title">' + esc(T('review')) + '</div><button type="button" class="rp-close" id="btn-report-close" data-close="1" aria-label="' + esc(T('close')) + '">' + ICON.x + '</button></div>';
     if (review.running || !review.sum) {
       card.innerHTML = '<div class="rp-body">' + html + '<div class="rp-coach">' + esc(T('rpReviewing', { p: reviewPct() })) + '</div><div class="rv-progress rp-progress"><i style="width:' + reviewPct() + '%"></i></div>' + graphHtml() + '</div>';
       return;
@@ -1365,12 +1366,14 @@
   var B_BEST = function (mv) { var san = mv && mv.bestSan ? mv.bestSan.replace(/\*/g, '\u2605') : ''; return cbtn('best', STAR_ICON, T('bestBtn', { san: san }), 'gold', T('bestShort', { san: san })); };
   var B_RETRY = function () { return cbtn('retry', RETRY_ICON, T('retryBtn'), '', T('retryShort')); };
   var B_HIDE = function () { return cbtn('hide', BACK_ICON, T('hideLine'), 'on'); };
+  // "find a better move yourself" is for your own moves; on one device (two players) or watching, for either side
+  function canRetry(rec) { return !oppGame() || spectating() || rec.color === game.cfg.human; }
   // the coach on a move of the game: what it was, why, and the ways to see it on the board
   function coachHtml(i, mv) {
     var rec = game.records[i], why = coachReason(i, mv), acts = '', bad = !GOOD_CLS[mv.cls];
     if (mv.follow && mv.follow.ucis.length) acts += B_FOLLOW();
     if (mv.best && mv.best !== rec.uci) acts += B_BEST(mv);
-    if (bad || mv.cls === 'good') acts += B_RETRY();
+    if ((bad || mv.cls === 'good') && canRetry(rec)) acts += B_RETRY();
     return coachBox('c-' + mv.cls, clsIcon(mv.cls), T('v_' + mv.cls, { san: moveNoText(i) + ' ' + rec.san }), evalAfter(i), why ? '<p>' + esc(why) + '</p>' : '', acts);
   }
   // a line on the board (the follow-up after a move, or the best move and its line): its moves, the one on the board
@@ -1406,7 +1409,7 @@
     var ev = L.kind === 'best' ? evalWhite(review.scores[L.ply], game.fens[L.ply]) : evalAfter(L.ply);
     var acts = B_HIDE();
     if (L.kind === 'follow' && mv.best && mv.best !== rec.uci) acts += B_BEST(mv);
-    if (!GOOD_CLS[mv.cls] || mv.cls === 'good') acts += B_RETRY();
+    if ((!GOOD_CLS[mv.cls] || mv.cls === 'good') && canRetry(rec)) acts += B_RETRY();
     var base = L.kind === 'best' ? L.ply : L.ply + 1;
     var outcome = E.view >= E.records.length ? lineOutcome(st, rec.color, review.scores[base], game.fens[base]) : '';
     return coachBox('line l-' + L.kind, '<span class="ci ci-line">' + (L.kind === 'best' ? STAR_ICON : LINE_ICON) + '</span>', title, ev,

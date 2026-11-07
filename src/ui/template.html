@@ -346,6 +346,10 @@ svg { display: block; }
 .rp-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 22px 20px 12px; }
 .rp-foot { flex: none; padding: 12px 20px calc(16px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); }
 .rp-coach { font-size: 14.5px; line-height: 1.45; color: #e4e0d6; margin-top: -6px; }
+.rp-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rp-close { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none; background: rgba(255, 255, 255, .1); color: var(--bone); margin: -4px -6px -4px 0; }
+.rp-close:hover { background: rgba(255, 255, 255, .16); }
+.rp-close svg { width: 18px; height: 18px; stroke-width: 2.2; }
 .rp-progress { height: 8px; padding: 0; }
 .report .rv-graph { height: 64px; flex: none; }
 .rp-table { display: flex; flex-direction: column; }
@@ -998,12 +1002,12 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 .demo-cap b { color: var(--gold); font-weight: 800; }
 /* phones and tablets: the hero is one screen (fitHero in learn.js sizes the board), the next sections snap into view */
 .learn.screens { gap: 28px; }
-.learn.screens .learn-hero { box-sizing: border-box; grid-template-rows: auto 1fr auto; scroll-snap-align: start; }
+.learn.screens .learn-hero { box-sizing: border-box; grid-template-rows: auto 1fr auto; scroll-snap-align: start; scroll-margin-top: 18px; }
 .learn.screens .learn-hero .demo-box { justify-content: center; align-items: center; }
 .learn.screens .learn-hero .demo-box .mini-board { width: min(100%, var(--hero-board, 420px)); max-width: 100%; }
 .learn.screens .demo-cap { width: 100%; min-height: 2.9em; max-height: 2.9em; overflow: hidden; font-size: 14px; line-height: 1.45; text-align: center; text-wrap: balance; }
-.learn.screens .learn-hero h1 { font-size: clamp(26px, 7.2vw, 34px); }
-.learn.screens .learn-hero .lead { font-size: 15.5px; }
+.learn .learn-hero h1.page-h { font-size: 28px; line-height: 1.15; letter-spacing: -.01em; margin: 2px 0 0; }
+.learn .learn-hero .lead { font-size: 15px; color: var(--muted); }
 .learn.screens section { scroll-snap-align: start; scroll-margin-top: 10px; }
 .learn.screens .hero-acts .second-btn { height: 56px; }
 #view-learn.snap { scroll-snap-type: y proximity; }

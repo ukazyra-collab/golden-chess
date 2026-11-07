@@ -290,7 +290,8 @@ var GCLearn = (function () {
       // bottom — and the sections below snap into place one by one; on wide screens the text and the board sit side by side
       var hero = el('header', 'learn-hero');
       var ht = el('div', 'hero-text');
-      ht.appendChild(el('h1', null, esc(T('learnTitle'))));
+      // the same head as every tab (Ratings, Profile…): the tab's name, then one short line
+      ht.appendChild(el('h1', 'page-h', esc(T('navLearn'))));
       ht.appendChild(el('p', 'lead', esc(T('learnLead'))));
       hero.appendChild(ht);
       var hb = el('div', 'demo-box'), cap = el('div', 'demo-cap');
