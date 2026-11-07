@@ -76,7 +76,7 @@ write('dist/preview.html', doc('', artifactBody));
 // the build's id: the app (which shows the live site) checks it when it opens or comes back and reloads when the site
 // has moved on, instead of waiting for the phone's cached copy to expire
 const BUILD = require('crypto').createHash('sha1').update(webBody).digest('hex').slice(0, 10);
-write('dist/web/index.html', doc(webHead + '<script>' + supa + '</script><script>window.GC_ONLINE=' + JSON.stringify(ONLINE) + ';window.GC_BUILD=' + JSON.stringify(BUILD) + '</script>', webBody));
+write('dist/web/index.html', doc(webHead + '<script>' + supa + '</script><script>window.GC_ONLINE=' + JSON.stringify(ONLINE) + '</script><script>window.GC_BUILD=' + JSON.stringify(BUILD) + '</script>', webBody));
 write('dist/web/version.json', JSON.stringify({ build: BUILD }) + '\n');
 write('version.json', JSON.stringify({ build: BUILD }) + '\n');
 write('dist/mock/index.html', doc('<title>Joker Chess (local server)</title><script>window.GC_ONLINE={mock:"",reviewEmail:"review@kozyramedia.com"}</script>', webBody));
