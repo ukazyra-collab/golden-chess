@@ -9,7 +9,7 @@ import brand
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 MARK = open(os.path.join(HERE, 'mark.svg'), encoding='utf-8').read()
-PIECES = json.load(open(os.path.join(ROOT, 'build/pieces.json')))
+PIECES = json.load(open(os.path.join(ROOT, 'build/pieces-cburnett.json')))
 
 BG, LIGHT, DARK = '#232826', brand.GREEN_LIGHT, brand.GREEN_DARK
 W, H = 390, 844

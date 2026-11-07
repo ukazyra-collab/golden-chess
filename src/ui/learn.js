@@ -206,11 +206,14 @@ var GCLearn = (function () {
     this.pos.makeMove(m);
     this.mb.show(this.pos, moveHints(this.pos, m));
     this.mb.el.classList.remove('armed'); this.mb.view.markGolden(-1);
-    this.mb.view.setMarks([{ sq: from, cls: 'hl-gold' }, { sq: to, cls: 'hl-gold' }]); this.mb.view.setDots([]);
-    this.ctx.Sound.play('golden');
+    this.mb.view.setDots([]);
     var cont = this.p.accept[uci];
     if (cont) {
+      // right: the Joker's gold, its sound, "Found it" on the board itself, a win chime when the line has played out
+      this.mb.view.setMarks([{ sq: from, cls: 'hl-gold' }, { sq: to, cls: 'hl-gold' }]);
+      this.ctx.Sound.play('golden');
       this.solved = true;
+      this.ui.flash(T('pzYes'), 'good');
       this.ui.status(this.ui.goodText(this.p), 'good');
       var t = 900;
       cont.forEach(function (u) {
@@ -226,16 +229,20 @@ var GCLearn = (function () {
         }, t);
         t += 850;
       });
-      this.later(function () { self.ui.solved(); }, Math.max(600, t - 500));
+      this.later(function () { self.ctx.Sound.play('win'); self.ui.solved(); }, Math.max(600, t - 500));
     } else {
-      this.ui.status(this.ctx.T('badMove'), 'bad');
+      // wrong: red squares, the error sound, "Not this one" on the board, and the piece goes straight back
+      this.mb.view.setMarks([{ sq: from, cls: 'hl-bad' }, { sq: to, cls: 'hl-bad' }]);
+      this.ctx.Sound.play('illegal');
+      this.ui.flash(T('pzNo'), 'bad');
+      this.ui.status(T('badMove'), 'bad');
       this.later(function () {
         self.pos.unmakeMove();
-        self.mb.show(self.pos, [{ from: to, to: from, golden: true }]);
+        self.mb.show(self.pos, [{ from: to, to: from }]);
         self.mb.el.classList.add('armed'); self.mb.view.markGolden(self.pos.side);
         self.locked = false; self.paint();
         self.ui.wrong();
-      }, 1300);
+      }, 850);
     }
   };
   Puzzle.prototype.answer = function () {
@@ -301,65 +308,14 @@ var GCLearn = (function () {
       var inn = el('div', 'page-in learn');
       host.appendChild(inn);
 
-      // what it is: on a phone the hero is the first screen — title, a short lead, the board, the two ways in at the
-      // bottom — and the sections below snap into place one by one; on wide screens the text and the board sit side by side
-      var hero = el('header', 'learn-hero');
+      // the first screen: the tab's name, the rule in one line, and straight into the puzzles (the Play tab already
+      // shows what a Joker Move looks like); the rule in full, why it matters and every rule follow below
+      var ts = el('section', 'learn-hero');
+      ts.id = 'try';
       var ht = el('div', 'hero-text');
-      // the same head as every tab (Ratings, Profile…): the tab's name, then one short line
       ht.appendChild(el('h1', 'page-h', esc(T('navLearn'))));
       ht.appendChild(el('p', 'lead', esc(T('learnLead'))));
-      hero.appendChild(ht);
-      var hb = el('div', 'demo-box'), cap = el('div', 'demo-cap');
-      var hd = new Demo(hb, DEMOS.hero, ctx, cap); hb.appendChild(cap);
-      hero.appendChild(hb);
-      // the way in, right under the pitch: play, or try the puzzles below
-      var heroActs = el('div', 'hero-acts');
-      var play1 = el('button', 'start-btn learn-cta', esc(T('learnCta'))); play1.type = 'button'; play1.id = 'learn-play-top';
-      play1.addEventListener('click', function () { ctx.go('bots'); });
-      var tryBtn = el('button', 'second-btn hero-try', esc(T('tryH'))); tryBtn.type = 'button'; tryBtn.id = 'learn-try';
-      tryBtn.addEventListener('click', function () { var t = document.getElementById('try'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-      heroActs.appendChild(play1); heroActs.appendChild(tryBtn);
-      hero.appendChild(heroActs);
-      inn.appendChild(hero);
-      demos.push(hd);
-      // the hero fills the screen on phones: the board takes what is left between the text and the buttons
-      function fitHero() {
-        if (!inn.isConnected) return;
-        var narrow = window.innerWidth < 900;
-        inn.classList.toggle('screens', narrow); host.classList.toggle('snap', narrow);
-        if (!narrow) { hb.style.removeProperty('--hero-board'); hero.style.minHeight = ''; return; }
-        var H = host.clientHeight - 18 - 8; // the page's top padding and a breath at the bottom
-        hero.style.minHeight = H + 'px';
-        var left = H - ht.offsetHeight - heroActs.offsetHeight - cap.offsetHeight - 14 * 3;
-        hb.style.setProperty('--hero-board', Math.max(200, Math.min(hb.clientWidth || 9999, left)) + 'px');
-      }
-      fitHero(); requestAnimationFrame(fitHero);
-      if (typeof ResizeObserver !== 'undefined') { var hro = new ResizeObserver(function () { fitHero(); }); hro.observe(host); }
-
-      // the rule
-      var rs = section(T('ruleH')), grid = el('div', 'rule-grid');
-      var c1 = el('div', 'card rule-card'); staticDiagram(c1);
-      c1.appendChild(el('h3', null, esc(T('r1T')))); c1.appendChild(el('p', null, esc(T('r1P'))));
-      var c2 = el('div', 'card rule-card'), cap2 = el('div', 'demo-cap');
-      var bd = new Demo(c2, DEMOS.block, ctx, cap2); c2.appendChild(cap2);
-      c2.appendChild(el('h3', null, esc(T('r2T')))); c2.appendChild(el('p', null, esc(T('r2P'))));
-      demos.push(bd);
-      var c3 = el('div', 'card rule-card'); c3.appendChild(starsArt());
-      c3.appendChild(el('h3', null, esc(T('r3T')))); c3.appendChild(el('p', null, esc(T('r3P'))));
-      grid.appendChild(c1); grid.appendChild(c2); grid.appendChild(c3);
-      rs.appendChild(grid); inn.appendChild(rs);
-
-      // why it matters
-      var ws = section(T('whyH')), ug = el('div', 'usp-grid');
-      [1, 2, 3, 4].forEach(function (i) { ug.appendChild(el('div', 'usp', '<b>' + esc(T('u' + i + 'N')) + '</b><span>' + esc(T('u' + i + 'T')) + '</span>')); });
-      ws.appendChild(ug);
-      ws.appendChild(el('p', 'vs960', esc(T('vs960'))));
-      inn.appendChild(ws);
-
-      // try it
-      var ts = section(T('tryH'));
-      ts.id = 'try';
-      ts.appendChild(el('p', 'muted', esc(T('tryLead'))));
+      ts.appendChild(ht);
       // which puzzle, how hard, how many solved: one line (there are too many for a row of numbers)
       var head = el('div', 'try-head'), tTitle = el('div', 'try-title'), tCount = el('div', 'try-count');
       head.appendChild(tTitle); head.appendChild(tCount); ts.appendChild(head);
@@ -372,7 +328,7 @@ var GCLearn = (function () {
         for (var q = 0; q < PUZZLES.length; q++) if ((PUZZLES[q].lvl || 1) >= lv) { var mk = el('b', 'tp-mark'); mk.style.left = (q / PUZZLES.length * 100).toFixed(2) + '%'; prog.appendChild(mk); break; }
       });
       prog.appendChild(pWalk); ts.appendChild(prog);
-      var body = el('div', 'try-body'), bhost = el('div'), side = el('div', 'try-side');
+      var body = el('div', 'try-body'), bhost = el('div', 'try-host'), side = el('div', 'try-side');
       var prompt = el('div', 'try-prompt'), status = el('div', 'try-status'), acts = el('div', 'try-actions');
       side.appendChild(prompt); side.appendChild(status); side.appendChild(acts);
       body.appendChild(bhost); body.appendChild(side); ts.appendChild(body);
@@ -411,7 +367,16 @@ var GCLearn = (function () {
         status: function (text, cls) { status.className = 'try-status' + (cls ? ' ' + cls : ''); status.textContent = text; },
         goodText: function (p) { return p.good ? T(p.good) : p.mate ? T('pzMate', { n: p.mate }) : T('pzGood'); },
         solved: function () { done[PUZZLES[pIndex].id] = 1; saveDone(); drawHead(); actions('solved'); },
-        wrong: function () { /* keep the message until the next try */ }
+        wrong: function () { /* keep the message until the next try */ },
+        // right or wrong, said on the board itself, where the eyes are
+        flash: function (text, cls) {
+          if (!puzzle) return;
+          var w = puzzle.mb.wrap, old = w.querySelector('.pz-flash'); if (old) old.remove();
+          var f = el('div', 'pz-flash ' + cls, '<i aria-hidden="true">' + (cls === 'good' ? '\u2713' : '\u2715') + '</i>' + esc(text));
+          f.setAttribute('role', 'status'); w.appendChild(f);
+          setTimeout(function () { f.classList.add('out'); }, cls === 'good' ? 1300 : 750);
+          setTimeout(function () { f.remove(); }, cls === 'good' ? 1700 : 1100);
+        }
       };
       function open(i) {
         pIndex = i; savePlace();
@@ -422,9 +387,39 @@ var GCLearn = (function () {
         puzzle.mb.wrap.classList.add('try-board'); puzzle.mb.wrap.id = 'try-board';
         prompt.textContent = p.prompt ? T(p.prompt) : T(puzzle.pos.side ? 'pzBlack' : 'pzWhite');
         ui.status('', '');
-        drawHead(); actions('open');
+        drawHead(); actions('open'); fitTry();
       }
+      // on a phone the first screen is the whole puzzle: the board takes the height the text and buttons leave
+      function fitTry() {
+        if (!inn.isConnected) return;
+        if (window.innerWidth >= 760) { bhost.style.removeProperty('--try-board'); return; }
+        var H = host.clientHeight - 18 - 12;
+        var used = ht.offsetHeight + head.offsetHeight + prog.offsetHeight + 26 + side.offsetHeight + 14 * 4;
+        bhost.style.setProperty('--try-board', Math.max(240, Math.min(bhost.clientWidth || 9999, H - used)) + 'px');
+      }
+      if (typeof ResizeObserver !== 'undefined') { var tro = new ResizeObserver(function () { fitTry(); }); tro.observe(host); }
       open(Math.min(pIndex, PUZZLES.length - 1));
+
+      // the rule
+      var rs = section(T('ruleH')), grid = el('div', 'rule-grid');
+      var c1 = el('div', 'card rule-card'); staticDiagram(c1);
+      c1.appendChild(el('h3', null, esc(T('r1T')))); c1.appendChild(el('p', null, esc(T('r1P'))));
+      var c2 = el('div', 'card rule-card'), cap2 = el('div', 'demo-cap');
+      var bd = new Demo(c2, DEMOS.block, ctx, cap2); c2.appendChild(cap2);
+      c2.appendChild(el('h3', null, esc(T('r2T')))); c2.appendChild(el('p', null, esc(T('r2P'))));
+      demos.push(bd);
+      var c3 = el('div', 'card rule-card'); c3.appendChild(starsArt());
+      c3.appendChild(el('h3', null, esc(T('r3T')))); c3.appendChild(el('p', null, esc(T('r3P'))));
+      grid.appendChild(c1); grid.appendChild(c2); grid.appendChild(c3);
+      rs.appendChild(grid); inn.appendChild(rs);
+
+      // why it matters
+      var ws = section(T('whyH')), ug = el('div', 'usp-grid');
+      [1, 2, 3, 4].forEach(function (i) { ug.appendChild(el('div', 'usp', '<b>' + esc(T('u' + i + 'N')) + '</b><span>' + esc(T('u' + i + 'T')) + '</span>')); });
+      ws.appendChild(ug);
+      ws.appendChild(el('p', 'vs960', esc(T('vs960'))));
+      inn.appendChild(ws);
+
 
       // every rule
       var rr = section(T('rulesH'));

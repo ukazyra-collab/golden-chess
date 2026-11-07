@@ -1053,9 +1053,23 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 .learn p { margin: 0; line-height: 1.55; }
 .learn .lead { font-size: 16px; color: #e2dccf; max-width: 60ch; }
 .learn section { display: flex; flex-direction: column; gap: 14px; }
-.learn-hero { display: grid; grid-template-areas: "text" "board" "acts"; gap: 14px; align-content: start; }
-.hero-text { grid-area: text; display: flex; flex-direction: column; gap: 10px; }
-.learn-hero .demo-box { grid-area: board; }
+/* the first screen of Learn: name, the rule in one line, the puzzle (its head, the progress bar, the board) */
+.learn-hero { display: flex; flex-direction: column; gap: 14px; }
+.learn-hero .try-prog { margin: 8px 0 4px; }
+.hero-text { display: flex; flex-direction: column; gap: 6px; }
+.try-host .mini-board { width: min(100%, var(--try-board, 600px)); margin: 0 auto; } /* under 1100 px one column, the board big */
+/* right or wrong, said on the board: a pill in the middle, there for a moment */
+.pz-flash { position: absolute; left: 50%; top: 50%; z-index: 6; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 10px;
+  padding: 12px 20px; border-radius: 999px; font: 800 19px/1 var(--f-ui); white-space: nowrap; pointer-events: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .4); animation: pzIn .22s cubic-bezier(.3, 1.5, .5, 1); transition: opacity .3s, transform .3s; }
+.pz-flash i { font-style: normal; font-size: 21px; }
+.pz-flash.good { background: var(--act); color: var(--act-ink); }
+.pz-flash.bad { background: rgba(32, 37, 35, .92); color: var(--bone); } /* calm, in the app's charcoal: not a telling-off */
+.pz-flash.bad i { color: var(--muted); }
+.pz-flash.out { opacity: 0; transform: translate(-50%, -50%) scale(.92); }
+@keyframes pzIn { from { opacity: 0; transform: translate(-50%, -50%) scale(.7); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .pz-flash { animation: none; transition: none; } }
+.hl-bad { background: rgba(28, 33, 31, .28); }
 .hero-acts { grid-area: acts; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 2px; }
 .hero-acts .start-btn { flex: 1 1 180px; }
 .hero-try { flex: 0 1 auto; min-width: 120px; padding: 0 22px; }
@@ -1074,7 +1088,6 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 .learn.screens section { scroll-snap-align: start; scroll-margin-top: 10px; }
 .learn.screens .hero-acts .second-btn { height: 56px; }
 #view-learn.snap { scroll-snap-type: y proximity; }
-@media (min-width: 900px) { .learn-hero { grid-template-columns: minmax(0, 1fr) 360px; grid-template-areas: "text board" "acts board"; gap: 20px 32px; align-items: center; align-content: center; } .hero-acts { align-self: start; } }
 /* wide screens: the page opens up — a two-column hero with a big board, four figures in a row, two columns of rules */
 @media (min-width: 1100px) {
   .learn { max-width: 1120px; gap: 48px; padding-block: 36px 56px; }
@@ -1082,7 +1095,6 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
   .learn h2 { font-size: 26px; }
   .learn .lead { font-size: 18px; max-width: 46ch; }
   .learn section { gap: 18px; }
-  .learn-hero { grid-template-columns: minmax(0, 1fr) 480px; gap: 24px 56px; }
   .hero-text { gap: 18px; }
   .learn-hero .demo-box .mini-board { max-width: 480px; }
   .hero-acts { margin-top: 10px; gap: 14px; }
@@ -1101,7 +1113,7 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
   .usp b { font-size: 38px; }
   .usp span { font-size: 13.5px; }
   .vs960 { font-size: 16px; }
-  .try-body { grid-template-columns: minmax(0, 520px) minmax(0, 1fr); gap: 32px; }
+  .try-body { grid-template-columns: minmax(0, min(600px, calc(100vh - 290px))) minmax(0, 1fr); gap: 32px; } /* the board beside its panel */
   .try-prompt { font-size: 17px; }
   .rules-full .rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 28px; }
   .rules-full .rules li { font-size: 15px; }
@@ -1128,11 +1140,10 @@ html.native .views { margin-bottom: env(safe-area-inset-bottom, 0px); }
 .try-lvl.l1 { color: var(--ok); } .try-lvl.l2 { color: var(--act); } .try-lvl.l3 { color: #f0a59b; }
 .try-count { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .try-body { display: grid; gap: 14px; align-items: start; }
-@media (min-width: 760px) { .try-body { grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 22px; } }
 .try-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .try-prompt { font-size: 15.5px; line-height: 1.5; font-weight: 600; }
 .try-status { font-size: 14px; line-height: 1.5; min-height: 1.5em; color: var(--muted); }
-.try-status.good { color: var(--ok); } .try-status.bad { color: #f0a59b; }
+.try-status.good { color: var(--act); } .try-status.bad { color: var(--bone); }
 .try-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .try-actions .sbtn { height: 44px; padding: 0 18px; }
 .try-actions .sbtn.hot { background: var(--act); color: var(--act-ink); }
