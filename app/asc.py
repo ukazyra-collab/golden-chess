@@ -88,12 +88,19 @@ def cmd_bundle():
 def cmd_capability():
     d = api('GET', f'/v1/bundleIds?filter[identifier]={BUNDLE}&limit=1').get('data') or sys.exit('run bundle first')
     bid = d[0]['id']
-    caps = api('GET', f'/v1/bundleIds/{bid}/bundleIdCapabilities').get('data') or []
-    if any(c['attributes'].get('capabilityType') == 'APPLE_ID_AUTH' for c in caps): print('Sign in with Apple is on already for', BUNDLE); return
-    api('POST', '/v1/bundleIdCapabilities', {'data': {'type': 'bundleIdCapabilities', 'attributes': {'capabilityType': 'APPLE_ID_AUTH',
-        'settings': [{'key': 'APPLE_ID_AUTH_APP_CONSENT', 'options': [{'key': 'PRIMARY_APP_CONSENT'}]}]},
-        'relationships': {'bundleId': rel('bundleIds', bid)}}})
-    print('Sign in with Apple turned on for', BUNDLE, '(primary App ID)')
+    have = {c['attributes'].get('capabilityType') for c in (api('GET', f'/v1/bundleIds/{bid}/bundleIdCapabilities').get('data') or [])}
+    if 'APPLE_ID_AUTH' in have: print('Sign in with Apple is on already for', BUNDLE)
+    else:
+        api('POST', '/v1/bundleIdCapabilities', {'data': {'type': 'bundleIdCapabilities', 'attributes': {'capabilityType': 'APPLE_ID_AUTH',
+            'settings': [{'key': 'APPLE_ID_AUTH_APP_CONSENT', 'options': [{'key': 'PRIMARY_APP_CONSENT'}]}]},
+            'relationships': {'bundleId': rel('bundleIds', bid)}}})
+        print('Sign in with Apple turned on for', BUNDLE, '(primary App ID)')
+    # golden-chess.com links open the app (applinks:) — the App ID needs Associated Domains for the entitlement to sign
+    if 'ASSOCIATED_DOMAINS' in have: print('Associated Domains is on already for', BUNDLE)
+    else:
+        api('POST', '/v1/bundleIdCapabilities', {'data': {'type': 'bundleIdCapabilities', 'attributes': {'capabilityType': 'ASSOCIATED_DOMAINS'},
+            'relationships': {'bundleId': rel('bundleIds', bid)}}})
+        print('Associated Domains turned on for', BUNDLE)
 
 def cmd_metadata():
     L = json.load(open(os.path.join(HERE, 'listing.json'), encoding='utf-8'))
