@@ -247,6 +247,12 @@ async def main():
             await A.click('#btn-friend'); await A.click('#btn-invite-link')
             ok('invite link ready', await wait_for(A, '/[?]join=/.test(document.getElementById("invite-link").value)', 5000))
             link = await A.evaluate('document.getElementById("invite-link").value')
+            # the host swipes the sheet away (to paste the link in a messenger): the invite stays open, Play shows it
+            await A.evaluate('__gc.closeDialog()')
+            ok('invite kept after closing its sheet', await wait_for(A, '!!document.getElementById("invite-open")', 3000))
+            await A.click('#btn-show-invite')
+            ok('its link shows again', await wait_for(A, 'document.getElementById("invite-link") && document.getElementById("invite-link").value === "%s"' % link, 3000))
+            await A.evaluate('__gc.closeDialog()')
             if os.environ.get('DBG'):
                 async def onresp(r):
                     if '/play' in r.url:

@@ -908,6 +908,7 @@ html { overscroll-behavior: none; overflow: hidden; }
 .resume .t b { font-size: 15px; }
 .resume .t span { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .resume .sbtn { flex: none; }
+.resume .sbtn.quiet { background: transparent; color: var(--muted); padding: 0 8px; }
 .resume .av-s { width: 42px; height: 42px; flex: none; }
 .resume .av-s svg { width: 100%; height: 100%; display: block; }
 .offline-note { font-size: 13.5px; color: var(--muted); text-align: center; line-height: 1.5; }
@@ -5623,7 +5624,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       allSolved: 'All solved. Now try it in a real game.', rulesH: 'All the rules', premoveRule: 'You can queue the Joker Move as a premove too.', playNow: 'Play now',
       navBots: 'Bots', easier: 'Easier', stronger: 'Stronger', yourColor: 'Your pieces', botOpp: 'vs {name}', unfinished: 'Game in progress',
       thinkingName: '{name} is thinking', playMain: 'Play', playFriendShort: 'Play a friend', playBotShort: 'Play a bot', friendT: 'Play a friend',
-      friendLink: 'Send a link', friendLinkSub: 'Online. The game starts when your friend opens it', joinLink: 'Join by link', joinLinkSub: 'Paste the link a friend sent you', joinPh: 'Paste the invite link', joinGo: 'Join the game', joinBad: 'That doesn\'t look like an invite link', appAskT: 'Play this game in the app?', appAskSub: 'If you have Joker Chess installed, the game opens there.', openApp: 'Open in the app', playHere: 'Play here in the browser', noAppT: 'No app yet? Get it, then open the link again.', getApp: 'Get the app',
+      friendLink: 'Send a link', friendLinkSub: 'Online. The game starts when your friend opens it', inviteKept: 'The link stays open. When your friend opens it, the game starts.', inviteOpenT: 'Your invite link is open', inviteOpenSub: 'Waiting for your friend', showLink: 'Show link', inviteGone: 'This invite was cancelled. Ask your friend for a new link.', joinLink: 'Join by link', joinLinkSub: 'Paste the link a friend sent you', joinPh: 'Paste the invite link', joinGo: 'Join the game', joinBad: 'That doesn\'t look like an invite link', appAskT: 'Play this game in the app?', appAskSub: 'If you have Joker Chess installed, the game opens there.', openApp: 'Open in the app', playHere: 'Play here in the browser', noAppT: 'No app yet? Get it, then open the link again.', getApp: 'Get the app',
       friendHere: 'On this device', friendHereSub: 'Take turns on one screen', signInFree: 'Online play needs a free sign-in: email or Google', signInFreeApple: 'Online play needs a free sign-in: email, Apple or Google', signInFreeEmail: 'Online play needs a free sign-in by email',
       passPlayLong: 'Two players on one device', learnCta: 'Play a bot', botScore: 'Your score: {w} won, {d} drawn, {l} lost', botNoGames: 'You haven’t played {name} yet',
       againBot: 'Play again',
@@ -5789,7 +5790,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       allSolved: 'Все решены. Теперь попробуйте в настоящей партии.', rulesH: 'Все правила', premoveRule: 'Джокер можно поставить и премувом.', playNow: 'Играть',
       navBots: 'Боты', easier: 'Полегче', stronger: 'Посильнее', yourColor: 'Ваш цвет', botOpp: 'соперник: {name}', unfinished: 'Партия идёт',
       thinkingName: '{name} думает', playMain: 'Играть', playFriendShort: 'Играть с другом', playBotShort: 'Играть с ботом', friendT: 'Игра с другом',
-      friendLink: 'Отправить ссылку', friendLinkSub: 'Онлайн. Партия начнётся, когда друг откроет ссылку', joinLink: 'Войти по ссылке', joinLinkSub: 'Вставьте ссылку, которую прислал друг', joinPh: 'Вставьте ссылку-приглашение', joinGo: 'Войти в партию', joinBad: 'Это не похоже на ссылку-приглашение', appAskT: 'Сыграть в приложении?', appAskSub: 'Если Joker Chess установлен, партия откроется в нём.', openApp: 'Открыть в приложении', playHere: 'Играть здесь, в браузере', noAppT: 'Приложения ещё нет? Скачайте его и откройте ссылку снова.', getApp: 'Скачать приложение',
+      friendLink: 'Отправить ссылку', friendLinkSub: 'Онлайн. Партия начнётся, когда друг откроет ссылку', inviteKept: 'Ссылка остаётся открытой. Когда друг откроет её, партия начнётся.', inviteOpenT: 'Ваша ссылка-приглашение открыта', inviteOpenSub: 'Ждём друга', showLink: 'Показать ссылку', inviteGone: 'Это приглашение отменено. Попросите у друга новую ссылку.', joinLink: 'Войти по ссылке', joinLinkSub: 'Вставьте ссылку, которую прислал друг', joinPh: 'Вставьте ссылку-приглашение', joinGo: 'Войти в партию', joinBad: 'Это не похоже на ссылку-приглашение', appAskT: 'Сыграть в приложении?', appAskSub: 'Если Joker Chess установлен, партия откроется в нём.', openApp: 'Открыть в приложении', playHere: 'Играть здесь, в браузере', noAppT: 'Приложения ещё нет? Скачайте его и откройте ссылку снова.', getApp: 'Скачать приложение',
       friendHere: 'На одном устройстве', friendHereSub: 'Ходите по очереди на одном экране', signInFree: 'Для игры онлайн нужен вход по почте или через Google, это бесплатно', signInFreeApple: 'Для игры онлайн нужен вход по почте, через Apple или Google, это бесплатно', signInFreeEmail: 'Для игры онлайн нужен вход по почте, это бесплатно',
       passPlayLong: 'Вдвоём на одном устройстве', learnCta: 'Сыграть с ботом', botScore: 'Ваш счёт: побед {w}, ничьих {d}, поражений {l}', botNoGames: 'Вы ещё не играли с этим ботом',
       againBot: 'Ещё партия',
@@ -8198,7 +8199,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     return r < 0.3 ? 2000 + Math.random() * 1000 : r < 0.82 ? 3500 + Math.random() * 1800 : 6000 + Math.random() * 1500;
   }
   function startSeek(tc, rated) {
-    stopLobby();
+    if (lobby && lobby.kind === 'invite') cancelLobby(); else stopLobby(); // a search takes the place of an open invite
     var L = lobby = { kind: 'seek', tc: tc, rated: rated, t0: perf(), timer: 0, tick: 0, span: seekSpan(), houseTimer: 0 };
     showLobbyDialog();
     ensureNet().then(function () {
@@ -8242,7 +8243,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       net.read(id).then(function (g) {
         if (lobby !== L) return;
         if (g && g.status === 'playing') onPaired(id);
-        else if (!g || g.status !== 'waiting') { stopLobby(); closeDialog(); }
+        else if (!g || g.status !== 'waiting') { stopLobby(); closeDialog(); if (curView === 'play') refreshView(); }
         else L.timer = setTimeout(poll, 4000);
       }, function () { if (lobby === L) L.timer = setTimeout(poll, 6000); });
     })();
@@ -8258,7 +8259,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     var L = lobby;
     openDialog(function (card) {
       currentDialog.dataset.kind = 'lobby';
-      currentDialog.onClose = function () { if (lobby === L) cancelLobby(); };
+      currentDialog.onClose = function () {
+        if (lobby !== L) return;
+        if (L.kind === 'invite') { toast(T('inviteKept')); if (curView === 'play') refreshView(); return; }
+        cancelLobby();
+      };
       var meta = tcLabel(L.tc) + ' \u00b7 ' + (L.rated ? T('rated') : T('casual')).toLowerCase();
       if (L.kind === 'seek') {
         // centred on every screen: a card with the search, who is around, and a light line of what "we" are up to
@@ -9116,6 +9121,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       startOnline(r.game);
     }, function (e) {
       var d = e && e.data;
+      if (d && d.error === 'taken' && d.game && d.game.status === 'aborted') { setUrl(null); toast(T('inviteGone')); return; }
       if (d && d.error === 'taken' && d.game) { startOnline(d.game); toast(T('gameTaken')); return; }
       setUrl(null);
       toast(d && d.error === 'no_game' ? T('noGame') : T('netError'));
@@ -9696,6 +9702,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     main.appendChild(acts);
     if (NETCFG) acts.appendChild(h('h2', { class: 'play-h' }, esc(T('playH')))); // the panel's title on tablet and desktop
     var lr = localResume(); if (lr) acts.appendChild(lr);
+    if (lobby && lobby.kind === 'invite' && !currentDialog) {
+      var iv = h('div', { class: 'resume', id: 'invite-open' }, '<span class="t"><b>' + esc(T('inviteOpenT')) + '</b><span>' + esc(T('inviteOpenSub')) + '</span></span>');
+      iv.appendChild(bigBtn('sbtn', T('showLink'), 'btn-show-invite', function () { showLobbyDialog(); }));
+      iv.appendChild(bigBtn('sbtn quiet', T('cancel'), 'btn-cancel-invite', function () { cancelLobby(); refreshView(); }));
+      acts.appendChild(iv);
+    }
     if (liveOnlineGame()) {
       // a game is on: the only thing to do here is to go back to it
       acts.appendChild(h('div', { class: 'play-meta' }, esc(T('gameOn') + ': ' + T('vsName', { name: game.cfg.names[game.cfg.human ^ 1] || '' }) + (game.cfg.tc ? ', ' + tcLabel(game.cfg.tc.label) : ''))));
