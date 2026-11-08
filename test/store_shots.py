@@ -14,16 +14,25 @@ ONLY = sys.argv[3].split(',') if len(sys.argv) > 3 else None  # e.g. android,fea
 GAME = json.load(open(ROOT + '/test/fixtures/coach.json'))
 FONTS = ROOT + '/vendor/fontsource-%s-5.3.0/package/files/%s'
 
+BRAND = '/tmp/node_modules/@fontsource/%s/files/%s'  # npm i --prefix /tmp @fontsource/fredoka @fontsource/lilita-one
+
 def font_css():
     faces = []
+    def face(fam, path, w, style='normal', rng=None):
+        if not os.path.exists(path): return
+        b64 = base64.b64encode(open(path, 'rb').read()).decode()
+        faces.append(f"@font-face{{font-family:'{fam}';font-style:{style};font-weight:{w};src:url(data:font/woff2;base64,{b64}) format('woff2');" + (f"unicode-range:{rng};" if rng else '') + "}")
+    LAT = 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD,U+2605,U+2726'
+    CYR = 'U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116'
     for fam, pkg, weights, style in (('Manrope', 'manrope', (500, 600, 700, 800), 'normal'), ('Bodoni Moda', 'bodoni-moda', (600, 700), 'italic')):
         for w in weights:
-            for sub in ('latin', 'cyrillic'):
-                fn = FONTS % (pkg, f'{pkg}-{sub}-{w}-{style}.woff2')
-                if not os.path.exists(fn): continue
-                b64 = base64.b64encode(open(fn, 'rb').read()).decode()
-                rng = 'U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116' if sub == 'cyrillic' else 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD,U+2605,U+2726'
-                faces.append(f"@font-face{{font-family:'{fam}';font-style:{style};font-weight:{w};src:url(data:font/woff2;base64,{b64}) format('woff2');unicode-range:{rng};}}")
+            for sub, rng in (('latin', LAT), ('cyrillic', CYR)):
+                face(fam, FONTS % (pkg, f'{pkg}-{sub}-{w}-{style}.woff2'), w, style, rng)
+    # the app's own voice: Fredoka for text, Lilita One for titles and big buttons
+    for w in (400, 500, 600, 700):
+        face('Fredoka', BRAND % ('fredoka', f'fredoka-latin-{w}-normal.woff2'), w, rng=LAT)
+    face('Lilita One', BRAND % ('lilita-one', 'lilita-one-latin-400-normal.woff2'), 400, rng=LAT)
+    face('Lilita One', BRAND % ('lilita-one', 'lilita-one-latin-ext-400-normal.woff2'), 400, rng='U+0100-024F')
     return '\n'.join(faces)
 
 SIZES = {  # name: (css width, css height, scale) -> pixels
@@ -95,23 +104,16 @@ async def main():
             await shot('6-learn')
             await ctx.close()
 
-        # the Play feature graphic (1024 x 500) and the icon at 512
-        icon64 = base64.b64encode(open(ROOT + '/app/resources/icon.png', 'rb').read()).decode()
-        tag = 'Chess with one Joker Move' if LANG == 'en' else 'Шахматы с одним джокером'
-        html = f"""<html><head><style>{css}
-          html,body{{margin:0;width:1024px;height:500px;overflow:hidden;background:#2a2f2d}}
-          .g{{position:absolute;inset:0;background:radial-gradient(ellipse at 28% 50%,rgba(108,148,136,.34),rgba(42,47,45,0) 60%),#2a2f2d}}
-          .sq{{position:absolute;right:-40px;top:-40px;width:520px;height:580px;opacity:.16;
-               background:conic-gradient(#f4efe4 25%,transparent 0 50%,#f4efe4 0 75%,transparent 0) 0 0/116px 116px;transform:rotate(-8deg)}}
-          img{{position:absolute;left:84px;top:110px;width:280px;height:280px;border-radius:62px;box-shadow:0 24px 60px rgba(0,0,0,.45)}}
-          .t{{position:absolute;left:412px;top:150px;color:#f4efe4}}
-          h1{{margin:0;font:700 italic 88px/1 'Bodoni Moda',serif;letter-spacing:.5px;color:#b2bab5}} h1 b{{color:#f4efe4;font-weight:700}}
-          p{{margin:26px 0 0;font:700 32px/1.25 Manrope,sans-serif;color:#d8d3c8;max-width:580px}}
-        </style></head><body><div class="g"></div><div class="sq"></div><img src="data:image/png;base64,{icon64}">
-        <div class="t"><h1><b>Joker</b> Chess</h1><p>{tag}</p></div></body></html>"""
-        pg = await (await br.new_context(viewport={'width': 1024, 'height': 500}, device_scale_factor=1)).new_page()
-        await pg.set_content(html); await pg.evaluate('document.fonts.ready'); await pg.wait_for_timeout(300)
-        await pg.screenshot(path=f'{OUT}/feature-graphic.png')
+        # the Play feature graphic (1024 x 500): the link preview's poster (test/og_image.py), laid out for 2.05:1
+        sys.path.insert(0, ROOT + '/test'); import og_image
+        html = og_image.page().replace('.og {{', '.og {{').replace('height: 630px;', 'height: 586px;')
+        html = html.replace('.board { position: absolute; left: 700px; top: 92px;', '.board { position: absolute; left: 700px; top: 70px;').replace('.joker { position: absolute; left: 1012px; top: 392px;', '.joker { position: absolute; left: 1012px; top: 370px;')
+        open('/tmp/feature.html', 'w').write(html)
+        pg = await (await br.new_context(viewport={'width': 1200, 'height': 586}, device_scale_factor=1)).new_page()
+        await pg.goto('file:///tmp/feature.html'); await pg.evaluate('document.fonts.ready'); await pg.wait_for_timeout(300)
+        await pg.screenshot(path=f'{OUT}/feature-graphic-big.png')
+        Image.open(f'{OUT}/feature-graphic-big.png').resize((1024, 500), Image.LANCZOS).save(f'{OUT}/feature-graphic.png')
+        os.remove(f'{OUT}/feature-graphic-big.png')
         await br.close()
     Image.open(ROOT + '/app/resources/icon.png').resize((512, 512), Image.LANCZOS).save(f'{OUT}/icon-512.png')
     for f in sorted(os.listdir(OUT)):

@@ -20,29 +20,42 @@ def data_svg(svg):
     return 'data:image/svg+xml;base64,' + base64.b64encode(svg.encode()).decode()
 
 
-def page():
+BOARD_CSS = '''.sq { position: relative; } .sq img { position: absolute; inset: 4%; width: 92%; }
+.sq .to { position: absolute; inset: 0; background: rgba(240, 185, 65, .55); }
+.sq .from { position: absolute; inset: 0; background: rgba(240, 185, 65, .28); }
+.arc { position: absolute; inset: 0; width: 100%; height: 100%; }'''
+
+
+def board(sq):
+    """A 4x4 corner of the board: a knight has just made its Joker Move (gold arc from the square it left)."""
     pieces = json.load(open(f'{ROOT}/build/pieces.json'))
-    wordmark = open(f'{ROOT}/app/resources/wordmark.svg').read()
-    joker = open(f'{ROOT}/app/resources/piece.svg').read()
     L, D = '#e2dccb', '#5d7a74'
     # a 4x4 corner of the board: (file, rank) -> piece; the knight jumped from b1 to d3 with its Joker Move
-    place = {(0, 0): 'bR', (1, 0): 'bK', (1, 1): 'bP', (3, 1): 'bP', (0, 3): 'wQ', (3, 2): 'wN', (2, 3): 'wP'}
-    sq = 104
+    place = {(0, 0): 'bR', (2, 0): 'bK', (0, 1): 'bP', (3, 2): 'bP', (0, 3): 'wQ', (3, 1): 'wN', (2, 3): 'wP'}
     cells = []
     for r in range(4):
         for f in range(4):
             col = L if (r + f) % 2 == 0 else D
             mark = ''
-            if (f, r) == (3, 2): mark = '<i class="to"></i>'
+            if (f, r) == (3, 1): mark = '<i class="to"></i>'
             if (f, r) == (0, 2): mark = '<i class="from"></i>'
             img = f'<img src="{data_svg(pieces[place[(f, r)]])}">' if (f, r) in place else ''
             cells.append(f'<div class="sq" style="background:{col}">{mark}{img}</div>')
     # the Joker Move's arc, from the empty square it left to where the knight stands
-    x0, y0, x1, y1 = 0.5 * sq, 2.5 * sq, 3.5 * sq, 2.5 * sq
-    arc = (f'<svg class="arc" viewBox="0 0 {4 * sq} {4 * sq}"><path d="M{x0} {y0} Q {(x0 + x1) / 2} {y0 - 1.25 * sq} {x1 - 18} {y1 - 30}" '
-           f'fill="none" stroke="#f0b941" stroke-width="6" stroke-linecap="round" stroke-dasharray="2 14"/>'
-           + ''.join(f'<circle cx="{x}" cy="{y}" r="{r}" fill="#ffd98a"/>' for x, y, r in [(x1 + 34, y1 - 62, 5), (x1 - 46, y1 - 70, 3.5), (x1 + 50, y1 - 8, 3), (x1 + 10, y1 - 84, 2.6)])
+    x0, y0, x1, y1, u = 0.5 * sq, 2.5 * sq, 3.5 * sq, 1.5 * sq, sq / 104
+    arc = (f'<svg class="arc" viewBox="0 0 {4 * sq} {4 * sq}"><path d="M{x0} {y0} Q {(x0 + x1) / 2 - 0.2 * sq} {y1 - 0.9 * sq} {x1 - 26 * u} {y1 - 34 * u}" '
+           f'fill="none" stroke="#f0b941" stroke-width="{6 * u}" stroke-linecap="round" stroke-dasharray="{2 * u} {14 * u}"/>'
+           + ''.join(f'<circle cx="{x1 + dx * u}" cy="{y1 + dy * u}" r="{r * u}" fill="#ffd98a"/>' for dx, dy, r in [(34, -62, 5), (-46, -70, 3.5), (50, -8, 3), (10, -84, 2.6)])
            + '</svg>')
+    return ''.join(cells), arc
+
+
+def page():
+    pieces = json.load(open(f'{ROOT}/build/pieces.json'))
+    wordmark = open(f'{ROOT}/app/resources/wordmark.svg').read()
+    joker = open(f'{ROOT}/app/resources/piece.svg').read()
+    sq = 104
+    cells, arc = board(sq)
     return f'''<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face {{ font-family: Lilita; src: url({font('lilita-one', 'lilita-one-latin-400-normal.woff2')}); }}
 @font-face {{ font-family: Fredoka; font-weight: 600; src: url({font('fredoka', 'fredoka-latin-600-normal.woff2')}); }}

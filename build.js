@@ -67,7 +67,7 @@ const TO_HTTPS = '<script>if(location.protocol==="http:"&&/(^|\\.)golden-chess\\
 const webHead = TO_HTTPS + '<title>Joker Chess</title><meta name="description" content="' + DESC + '"><meta name="theme-color" content="#2a2f2d">' +
   '<link rel="icon" href="' + ICON + '"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="privacy-policy" href="privacy.html">' +
   '<meta property="og:title" content="Joker Chess"><meta property="og:description" content="' + DESC + '">' +
-  '<meta property="og:type" content="website"><meta property="og:url" content="' + SITE + '"><meta property="og:image" content="' + SITE + 'og.png?v=3"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' +
+  '<meta property="og:type" content="website"><meta property="og:url" content="' + SITE + '"><meta property="og:image" content="' + SITE + 'og.png?v=4"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' +
   '<meta name="twitter:card" content="summary_large_image">';
 const webBody = body.replace(/^<title>[^<]*<\/title>\n/, '').replace(/^<meta name="claude:viewport-fit-sides"[^>]*>\n/m, '');
 

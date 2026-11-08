@@ -7,24 +7,9 @@ from playwright.async_api import async_playwright
 ROOT = '/home/claude/golden-chess'
 DIR, LANG = sys.argv[1], sys.argv[2]
 FONTS = ROOT + '/vendor/fontsource-%s-5.3.0/package/files/%s'
-CAPS = {
-    'en': {
-        '1-golden': ('One Joker Move per game', 'Teleport a queen, rook, bishop or knight to any empty square. Once. When?'),
-        '2-report': ('A review after every game', 'Accuracy, mistakes and the Joker Moves you missed'),
-        '3-coach': ('The coach shows why', 'Every mistake explained, with the answer that punishes it'),
-        '4-best': ('See the best line', 'Joker Moves included'),
-        '5-bots': ('Eight bots, 600 to 2500', 'Or rated games online, no sign-up needed'),
-        '6-learn': ('Learn it in a minute', 'The rule in pictures, then puzzles'),
-    },
-    'ru': {
-        '1-golden': ('Один джокер за партию', 'Перенесите ферзя, ладью, слона или коня на любое пустое поле. Один раз. Когда?'),
-        '2-report': ('Разбор после каждой партии', 'Точность, ошибки и упущенные джокеры'),
-        '3-coach': ('Тренер объясняет почему', 'Каждая ошибка — с ответом, который её наказывает'),
-        '4-best': ('Лучший вариант', 'С джокерами'),
-        '5-bots': ('Восемь ботов: 600–2500', 'Или онлайн на рейтинг — без регистрации'),
-        '6-learn': ('Правило за минуту', 'Картинки, потом задачи'),
-    },
-}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import store_poster
+CAPS = store_poster.CAPS
 
 def font_css():
     faces = []
@@ -37,23 +22,16 @@ def font_css():
     return '\n'.join(faces)
 
 async def main():
-    css = font_css()
+    css = store_poster.fonts()
     async with async_playwright() as p:
         br = await p.chromium.launch()
         pg = await (await br.new_context(viewport={'width': 1080, 'height': 1920}, device_scale_factor=1)).new_page()
-        for n, (title, sub) in CAPS[LANG].items():
+        # the poster first: what the game feels like, before the screens show how it works
+        await pg.set_content(store_poster.hero(1080, 1920, 1.0, css, LANG)); await pg.evaluate('document.fonts.ready'); await pg.wait_for_timeout(200)
+        await pg.screenshot(path=f'{DIR}/play-0-hero.png'); print('play-0-hero.png')
+        for i, (n, (title, sub)) in enumerate(CAPS[LANG].items(), 1):
             shot = base64.b64encode(open(f'{DIR}/android-{n}.png', 'rb').read()).decode()
-            html = f"""<html><head><style>{css}
-              html,body{{margin:0;width:1080px;height:1920px;overflow:hidden;background:#2a2f2d}}
-              .bg{{position:absolute;inset:0;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(108,148,136,.32),rgba(42,47,45,0) 70%),#2a2f2d}}
-              .wrap{{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:84px 60px 44px;box-sizing:border-box}}
-              .cap{{text-align:center;font-family:Manrope,sans-serif;flex:none}}
-              h1{{margin:0;font-weight:800;font-size:60px;line-height:1.1;color:#f4efe4;letter-spacing:-.5px;text-wrap:balance}}
-              p{{margin:18px auto 0;max-width:900px;font-weight:600;font-size:34px;line-height:1.3;color:#c9c4b8;text-wrap:balance}}
-              .shot{{flex:1;min-height:0;margin-top:44px;display:flex;justify-content:center}}
-              img{{height:100%;border-radius:40px;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 2px rgba(244,239,228,.08)}}
-            </style></head><body><div class="bg"></div><div class="wrap"><div class="cap"><h1>{title}</h1><p>{sub}</p></div>
-            <div class="shot"><img src="data:image/png;base64,{shot}"></div></div></body></html>"""
+            html = store_poster.page(title, sub, f'{DIR}/android-{n}.png', 1080, 1920, 1.0, css, i)
             await pg.set_content(html)
             await pg.evaluate('document.fonts.ready')
             await pg.wait_for_timeout(200)
