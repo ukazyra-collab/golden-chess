@@ -127,16 +127,21 @@ var Sound = (function () {
   // first touch after coming back throws the old context away and makes a new one (a touch is what lets audio start).
   var stale = false, rawCache = null, rawRate = 0;
   function revive() { if (ready) stale = true; }
+  // a silent sound started inside the touch: some mobile browsers only open the audio for good once something plays
+  // while the finger is on the screen (resuming alone is not always enough)
+  function kick() {
+    try { var b = ctx.createBuffer(1, 1, ctx.sampleRate), s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(0); } catch (e) { /* ignore */ }
+  }
   function unlock() {
     if (ready && !stale && ctx && ctx.state === 'running') return;
-    if (ready && !stale && ctx && ctx.state === 'suspended') { ctx.resume(); return; }
+    if (ready && !stale && ctx && ctx.state === 'suspended') { try { ctx.resume(); } catch (e) { /* ignore */ } kick(); return; }
     if (ready) { try { ctx.close(); } catch (e) { /* ignore */ } ctx = null; ready = false; buffers = {}; }
     stale = false;
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     try {
       ctx = new AC();
-      master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+      master = ctx.createGain(); master.gain.value = 0.42; master.connect(ctx.destination); // about half the old 0.9: it was too loud
       if (!rawCache || rawRate !== ctx.sampleRate) { rawCache = build(ctx.sampleRate); rawRate = ctx.sampleRate; }
       var raw = rawCache;
       for (var k in raw) {
@@ -145,7 +150,8 @@ var Sound = (function () {
         buffers[k] = buf;
       }
       ready = true;
-      if (ctx.state === 'suspended') ctx.resume();
+      if (ctx.state === 'suspended') { try { ctx.resume(); } catch (e) { /* ignore */ } }
+      kick();
     } catch (e) { ctx = null; }
   }
 

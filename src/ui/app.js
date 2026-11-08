@@ -2278,6 +2278,9 @@
   });
   document.addEventListener('pointerdown', function () { Sound.unlock(); }, { capture: true, passive: true });
   document.addEventListener('touchend', function () { Sound.unlock(); }, { capture: true, passive: true });
+  // a click and a key also count as the user's own action in every browser (a touch's pointerdown does not on iOS)
+  document.addEventListener('click', function () { Sound.unlock(); }, { capture: true, passive: true });
+  document.addEventListener('keydown', function () { Sound.unlock(); }, { capture: true, passive: true });
   window.addEventListener('resize', layout);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', layout);
   setInterval(function () { if (document.hidden) tick(); }, 250);
@@ -3520,8 +3523,24 @@
   // ---- the app: what the system browser sends back (goldenchess://auth: Google's ID token from google.html, or the
   // session from a sign-in email's link), the Android back button, the splash screen
   var nativeSeen = {};
+  // a golden-chess.com link opened the app (iOS universal link / Android app link): open that page here, as the browser
+  // would have: an invite, a game, a sign-in link. Pages that are only documents (privacy, support) open in the browser
+  function siteLink(url, launch) {
+    var m = /^https:\/\/(?:www\.)?golden-chess\.com(\/[^?#]*)?([?#].*)?$/i.exec(url);
+    if (!m) return false;
+    var path = m[1] || '/', rest = m[2] || '';
+    if (/^\/(privacy|support|google)/i.test(path)) { NATIVE.call('Browser', 'open', { url: url }).catch(function () { /* ignore */ }); return true; }
+    var mark = url.slice(-80);
+    // the launch address stays the same for the whole run of the app: after the reload below it is not taken again
+    if (launch && load('nativeLink', '') === mark) return true;
+    save('nativeLink', mark);
+    if (!rest || rest === '#' || rest === '?') return true; // the bare site: the app is already it
+    location.href = location.origin + '/' + rest;
+    return true;
+  }
   function nativeUrl(url, launch) {
     url = String(url || '');
+    if (siteLink(url, launch)) return;
     if (!/^goldenchess:\/\/auth/i.test(url)) return;
     var mark = url.slice(-60), now = Date.now();
     // one opening can arrive twice (as the launch address and as an event); and the launch address stays the

@@ -1,0 +1,19 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["F3P87X2A7L.com.kozyramedia.goldenchess"],
+        "appID": "F3P87X2A7L.com.kozyramedia.goldenchess",
+        "components": [
+          { "/": "/privacy.html", "exclude": true },
+          { "/": "/support.html", "exclude": true },
+          { "/": "/google*.html", "exclude": true },
+          { "/": "/*" }
+        ],
+        "paths": ["NOT /privacy.html", "NOT /support.html", "NOT /google*.html", "*"]
+      }
+    ]
+  },
+  "webcredentials": { "apps": ["F3P87X2A7L.com.kozyramedia.goldenchess"] }
+}

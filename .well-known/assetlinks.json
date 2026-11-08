@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.kozyramedia.goldenchess",
+      "sha256_cert_fingerprints": [
+        "E3:C9:E0:13:34:7E:8E:E9:D1:A7:8E:6D:0B:73:E1:53:6A:AA:90:F3:30:35:8C:46:E0:8D:43:3A:66:53:DC:CF",
+        "0F:AA:04:7A:69:89:BD:32:B8:6A:4B:BF:88:69:30:7B:7C:AA:59:39:A4:E2:C1:82:AC:EC:07:67:F8:3F:34:D0"
+      ]
+    }
+  }
+]

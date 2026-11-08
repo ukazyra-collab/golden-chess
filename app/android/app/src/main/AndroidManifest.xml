@@ -21,6 +21,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- a golden-chess.com link opens the app when it is installed (verified by /.well-known/assetlinks.json) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="golden-chess.com" />
+            </intent-filter>
             <!-- sign-in comes back from the system browser to goldenchess://auth -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
