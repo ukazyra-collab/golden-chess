@@ -688,6 +688,9 @@ html { overscroll-behavior: none; overflow: hidden; }
 .linkbtn:hover { color: var(--bone); }
 .linkbtn svg { width: 17px; height: 17px; }
 .linkbox { display: flex; gap: 6px; flex-wrap: wrap; }
+.join-form { display: flex; flex-direction: column; gap: 12px; }
+.sbtn.wide { width: 100%; height: 46px; } /* the quieter second choice under a main button */
+.veil[data-kind="open-in-app"] .primary, .join-form .primary { width: 100%; min-height: 50px; border-radius: 14px; font-size: 16px; }
 .linkbox input { flex: 1 1 200px; font-weight: 500; font-size: 13px; }
 .seekbar { position: relative; height: 4px; border-radius: 2px; background: var(--raise); overflow: hidden; }
 .seekbar i { position: absolute; top: 0; bottom: 0; width: 30%; border-radius: 2px; background: var(--bone); animation: seek 1.4s ease-in-out infinite; }

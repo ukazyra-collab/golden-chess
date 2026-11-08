@@ -687,6 +687,9 @@ html { overscroll-behavior: none; overflow: hidden; }
 .linkbtn:hover { color: var(--bone); }
 .linkbtn svg { width: 17px; height: 17px; }
 .linkbox { display: flex; gap: 6px; flex-wrap: wrap; }
+.join-form { display: flex; flex-direction: column; gap: 12px; }
+.sbtn.wide { width: 100%; height: 46px; } /* the quieter second choice under a main button */
+.veil[data-kind="open-in-app"] .primary, .join-form .primary { width: 100%; min-height: 50px; border-radius: 14px; font-size: 16px; }
 .linkbox input { flex: 1 1 200px; font-weight: 500; font-size: 13px; }
 .seekbar { position: relative; height: 4px; border-radius: 2px; background: var(--raise); overflow: hidden; }
 .seekbar i { position: absolute; top: 0; bottom: 0; width: 30%; border-radius: 2px; background: var(--bone); animation: seek 1.4s ease-in-out infinite; }
@@ -5620,7 +5623,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       allSolved: 'All solved. Now try it in a real game.', rulesH: 'All the rules', premoveRule: 'You can queue the Joker Move as a premove too.', playNow: 'Play now',
       navBots: 'Bots', easier: 'Easier', stronger: 'Stronger', yourColor: 'Your pieces', botOpp: 'vs {name}', unfinished: 'Game in progress',
       thinkingName: '{name} is thinking', playMain: 'Play', playFriendShort: 'Play a friend', playBotShort: 'Play a bot', friendT: 'Play a friend',
-      friendLink: 'Send a link', friendLinkSub: 'Online. The game starts when your friend opens it',
+      friendLink: 'Send a link', friendLinkSub: 'Online. The game starts when your friend opens it', joinLink: 'Join by link', joinLinkSub: 'Paste the link a friend sent you', joinPh: 'Paste the invite link', joinGo: 'Join the game', joinBad: 'That doesn\'t look like an invite link', appAskT: 'Play this game in the app?', appAskSub: 'If you have Joker Chess installed, the game opens there.', openApp: 'Open in the app', playHere: 'Play here in the browser', noAppT: 'No app yet? Get it, then open the link again.', getApp: 'Get the app',
       friendHere: 'On this device', friendHereSub: 'Take turns on one screen', signInFree: 'Online play needs a free sign-in: email or Google', signInFreeApple: 'Online play needs a free sign-in: email, Apple or Google', signInFreeEmail: 'Online play needs a free sign-in by email',
       passPlayLong: 'Two players on one device', learnCta: 'Play a bot', botScore: 'Your score: {w} won, {d} drawn, {l} lost', botNoGames: 'You haven’t played {name} yet',
       againBot: 'Play again',
@@ -5786,7 +5789,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       allSolved: 'Все решены. Теперь попробуйте в настоящей партии.', rulesH: 'Все правила', premoveRule: 'Джокер можно поставить и премувом.', playNow: 'Играть',
       navBots: 'Боты', easier: 'Полегче', stronger: 'Посильнее', yourColor: 'Ваш цвет', botOpp: 'соперник: {name}', unfinished: 'Партия идёт',
       thinkingName: '{name} думает', playMain: 'Играть', playFriendShort: 'Играть с другом', playBotShort: 'Играть с ботом', friendT: 'Игра с другом',
-      friendLink: 'Отправить ссылку', friendLinkSub: 'Онлайн. Партия начнётся, когда друг откроет ссылку',
+      friendLink: 'Отправить ссылку', friendLinkSub: 'Онлайн. Партия начнётся, когда друг откроет ссылку', joinLink: 'Войти по ссылке', joinLinkSub: 'Вставьте ссылку, которую прислал друг', joinPh: 'Вставьте ссылку-приглашение', joinGo: 'Войти в партию', joinBad: 'Это не похоже на ссылку-приглашение', appAskT: 'Сыграть в приложении?', appAskSub: 'Если Joker Chess установлен, партия откроется в нём.', openApp: 'Открыть в приложении', playHere: 'Играть здесь, в браузере', noAppT: 'Приложения ещё нет? Скачайте его и откройте ссылку снова.', getApp: 'Скачать приложение',
       friendHere: 'На одном устройстве', friendHereSub: 'Ходите по очереди на одном экране', signInFree: 'Для игры онлайн нужен вход по почте или через Google, это бесплатно', signInFreeApple: 'Для игры онлайн нужен вход по почте, через Apple или Google, это бесплатно', signInFreeEmail: 'Для игры онлайн нужен вход по почте, это бесплатно',
       passPlayLong: 'Вдвоём на одном устройстве', learnCta: 'Сыграть с ботом', botScore: 'Ваш счёт: побед {w}, ничьих {d}, поражений {l}', botNoGames: 'Вы ещё не играли с этим ботом',
       againBot: 'Ещё партия',
@@ -9018,6 +9021,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   }
   function nativeUrl(url, launch) {
     url = String(url || '');
+    var inv = /^goldenchess:\/\/auth\/?\?(join|game)=([A-Za-z0-9-]+)/i.exec(url);
+    if (inv) url = 'https://golden-chess.com/?' + inv[1] + '=' + inv[2];
     if (siteLink(url, launch)) return;
     if (!/^goldenchess:\/\/auth/i.test(url)) return;
     var mark = url.slice(-60), now = Date.now();
@@ -9489,7 +9494,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   var ROW_ICON = {
     friend: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11.5" cy="11" r="4.2"/><circle cx="22.5" cy="12.8" r="3.3"/><path d="M3.8 26.2c.8-4.7 3.7-7.4 7.7-7.4s6.9 2.7 7.7 7.4"/><path d="M19.4 19.6a6.2 6.2 0 0 1 3.1-.8c3.3 0 5.5 2.2 6.1 6"/></svg>',
     bot: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="10" width="19" height="14" rx="4"/><path d="M16 10V6.2M13.6 6h4.8M3.5 15.2v4M28.5 15.2v4"/><circle cx="12.2" cy="16.8" r="1.7" fill="currentColor" stroke="none"/><circle cx="19.8" cy="16.8" r="1.7" fill="currentColor" stroke="none"/></svg>',
-    pass: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11.5h18.5l-4.2-4.2M26 20.5H7.5l4.2 4.2"/></svg>'
+    pass: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11.5h18.5l-4.2-4.2M26 20.5H7.5l4.2 4.2"/></svg>',
+    join: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 18.5l5-5"/><path d="M15.2 9.8l2.3-2.3a5 5 0 0 1 7 7l-2.3 2.3"/><path d="M16.8 22.2l-2.3 2.3a5 5 0 0 1-7-7l2.3-2.3"/></svg>'
   };
   function initial(name) { var c = String(name || '?').trim().charAt(0); return c ? c.toUpperCase() : '?'; }
   // ---- avatars: a player's own picture (storage, 256×256 JPEG at <uid>.jpg) or, without one, the first letter of the name
@@ -9770,7 +9776,38 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
         return b;
       }
       card.appendChild(opt('main', 'friend', T('friendLink'), T('friendLinkSub') + ' (' + tcLabel(tc) + ')', 'btn-invite-link', function () { closeDialog(); requireAccount({ kind: 'invite', tc: tc, rated: rated }); }));
+      card.appendChild(opt('', 'join', T('joinLink'), T('joinLinkSub'), 'btn-join-link', function () { joinByLinkSheet(); }));
       card.appendChild(opt('', 'pass', T('friendHere'), T('friendHereSub'), 'btn-pass', function () { closeDialog(); showLocalSetup(); }));
+    });
+  }
+  // an invite link (or just its code) pasted by hand: the way in when a link opened somewhere else (a browser, another app)
+  function inviteFrom(text) {
+    text = String(text || '').trim();
+    var m = /[?&](join|game)=([A-Za-z0-9-]{6,})/.exec(text);
+    if (m) return { kind: m[1], id: m[2] };
+    m = /^([A-Za-z0-9-]{6,})$/.exec(text);
+    return m ? { kind: 'join', id: m[1] } : null;
+  }
+  function joinByLinkSheet() {
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'join-link';
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('joinLink'))));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('joinLinkSub'))));
+      var f = h('form', { class: 'join-form' });
+      var box = h('div', { class: 'linkbox' });
+      var inp = h('input', { type: 'text', id: 'join-link-input', inputmode: 'url', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: T('joinPh'), 'aria-label': T('joinPh') });
+      box.appendChild(inp); f.appendChild(box);
+      var go2 = h('button', { type: 'submit', class: 'primary', id: 'btn-join-go' }, esc(T('joinGo')));
+      f.appendChild(go2);
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var inv = inviteFrom(inp.value);
+        if (!inv) { toast(T('joinBad')); inp.focus(); return; }
+        closeDialog();
+        if (inv.kind === 'game') openOnlineGame(inv.id); else requireAccount({ kind: 'join', id: inv.id });
+      });
+      card.appendChild(f);
+      setTimeout(function () { try { inp.focus(); } catch (e) { /* ignore */ } }, 60);
     });
   }
 
@@ -10315,6 +10352,36 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     k.active(curView);
   }
 
+  function mobileOs() { var u = navigator.userAgent || ''; return /iPhone|iPad|iPod|Android/i.test(u) || (/Macintosh/.test(u) && navigator.maxTouchPoints > 1) ? (/Android/i.test(u) ? 'android' : 'ios') : ''; }
+  var STORE = { ios: 'https://apps.apple.com/app/id6828439421', android: 'https://play.google.com/store/apps/details?id=com.kozyramedia.goldenchess' };
+  // an invite opened in a phone's browser: open it in the app (one tap), or play right here. The app's own address
+  // (goldenchess://auth?...) is the one the installed builds already answer to
+  function askOpenInApp(kind, id) {
+    function here() { closeDialog(); if (kind === 'join') requireAccount({ kind: 'join', id: id }); else openOnlineGame(id); }
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'open-in-app';
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('appAskT'))));
+      var sub = h('div', { class: 'dlg-sub' }, esc(T('appAskSub')));
+      card.appendChild(sub);
+      var open = h('button', { type: 'button', class: 'primary', id: 'btn-open-app' }, esc(T('openApp')));
+      var web = h('button', { type: 'button', class: 'sbtn wide', id: 'btn-play-here' }, esc(T('playHere')));
+      var noApp = false;
+      open.addEventListener('click', function () {
+        if (noApp) { location.href = STORE[mobileOs()] || STORE.ios; return; }
+        var left = false, onHide = function () { if (document.hidden) left = true; };
+        document.addEventListener('visibilitychange', onHide);
+        location.href = 'goldenchess://auth?' + kind + '=' + encodeURIComponent(id);
+        // still here a moment later: no app on this phone. Offer the store, keep playing here as the other way
+        setTimeout(function () {
+          document.removeEventListener('visibilitychange', onHide);
+          if (left || document.hidden) return;
+          noApp = true; sub.textContent = T('noAppT'); open.textContent = T('getApp');
+        }, 1600);
+      });
+      web.addEventListener('click', here);
+      card.appendChild(open); card.appendChild(web);
+    });
+  }
   function bootOnline() {
     if (!NETCFG) return;
     var join = urlQ.get('join'), gid = urlQ.get('game'), saved = load('online', null), note = load('notice', null);
@@ -10334,6 +10401,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     }
     var fromLink = authReturn();
     if (googleBack) { googleIdReturn(function (k) { return googleBack.get(k) || ''; }); googleBack = null; fromLink = true; }
+    if ((join || gid) && !NATIVE.on && mobileOs()) { askOpenInApp(join ? 'join' : 'game', join || gid); return; }
     if (join) { requireAccount({ kind: 'join', id: join }); return; }
     if (gid) { openOnlineGame(gid); return; }
     if (fromLink || note || (saved && saved.id) || hasNetSession()) {
