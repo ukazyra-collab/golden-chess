@@ -26,7 +26,7 @@ def page():
     joker = open(f'{ROOT}/app/resources/piece.svg').read()
     L, D = '#e2dccb', '#5d7a74'
     # a 4x4 corner of the board: (file, rank) -> piece; the knight jumped from b1 to d3 with its Joker Move
-    place = {(0, 0): 'bR', (2, 0): 'bK', (1, 1): 'bP', (3, 1): 'bP', (0, 3): 'wQ', (3, 2): 'wN', (2, 3): 'wP'}
+    place = {(0, 0): 'bR', (1, 0): 'bK', (1, 1): 'bP', (3, 1): 'bP', (0, 3): 'wQ', (3, 2): 'wN', (2, 3): 'wP'}
     sq = 104
     cells = []
     for r in range(4):
@@ -71,7 +71,7 @@ html, body {{ margin: 0; }}
   <div class="wm">{wordmark}</div>
   <div class="tag">Chess with a twist.</div>
   <div class="sub">One Joker Move per game: teleport a piece to any empty square.</div>
-  <div class="cta"><span class="btn">Play now</span><span class="url">golden-chess.com</span></div>
+  <div class="cta"><span class="btn">Play now</span></div>
 </div>
 <div class="board">{''.join(cells)}{arc}</div>
 <div class="joker">{joker}</div>
