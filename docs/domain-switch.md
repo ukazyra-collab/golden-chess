@@ -26,3 +26,16 @@ the 1.2 apps (which load joker-chess.com) are out and the old ones have mostly u
 8. **Texts**: privacy.html, support.html, README.md, supabase/emails/README.md, app/README.md, the Supabase email
    templates' footer, the outreach letters (already say joker-chess.com).
 9. Later (months): golden-chess.com → registrar forward to https://joker-chess.com, remove the old origins.
+
+## State (8 Nov 2026)
+
+- joker-chess.com is bought (GoDaddy); two A records point to GitHub Pages. The site is still served on golden-chess.com
+  (CNAME), because the installed 1.2 apps load it.
+- The code works on either address: Google answers to `google.html` on the page's own address (`googleReturn()` in
+  app.js), plain http goes to https on the same host, `siteLink()` takes links to both domains.
+- App 1.3 still loads golden-chess.com, allows both domains, and has universal / app links for both.
+- The flip, once 1.3 is out and the old apps have updated: CNAME → joker-chess.com, `SITE` in build.js →
+  joker-chess.com, listing.json / privacy / support / email texts → joker-chess.com; Google Cloud: add origin
+  https://joker-chess.com and redirect URI https://joker-chess.com/google.html; Supabase: Site URL + redirect URL;
+  GoDaddy: golden-chess.com → forwarding (301) to https://joker-chess.com. The 1.3 apps follow the 301 (golden-chess.com
+  and joker-chess.com are both in allowNavigation).

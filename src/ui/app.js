@@ -3395,7 +3395,7 @@
   function appleSignIn(connect) {
     var raw = randHex(16);
     return sha256hex(raw).then(function (hashed) {
-      return NATIVE.call('SignInWithApple', 'authorize', { clientId: 'com.kozyramedia.goldenchess', redirectURI: 'https://joker-chess.com/', scopes: 'email name', state: randHex(8), nonce: hashed });
+      return NATIVE.call('SignInWithApple', 'authorize', { clientId: 'com.kozyramedia.goldenchess', redirectURI: location.origin + '/', scopes: 'email name', state: randHex(8), nonce: hashed });
     }).then(function (r) {
       var a = r && r.response;
       if (!a || !a.identityToken) { var e = new Error('cancelled'); e.code = 'cancelled'; throw e; }
@@ -3439,13 +3439,19 @@
   function gsiCredential(resp) { if (resp && resp.credential && gsi) providerIdToken('google', resp.credential, gsi.nonce); }
   // our button (the app; the website without Google's script): Google's sign-in page, answering to google.html.
   // The state says where the answer goes on (a: the app, w: this site, after the dot the ?p= profile); the nonce stays here.
+  // Google answers to google.html on the address this page came from (golden-chess.com today, joker-chess.com after the
+  // move; both are authorised redirect URIs of the Google client), so a sign-in never crosses to the other address
+  function googleReturn() {
+    var m = /^(?:www\.)?((?:joker|golden)-chess\.com)$/i.exec(location.hostname);
+    return m ? 'https://' + m[1].toLowerCase() + '/google.html' : NETCFG.googleReturn;
+  }
   function googleRedirect(connect) {
     if (!googleOn()) return Promise.reject(new Error('unsupported'));
     var raw = randHex(16), st = (NATIVE.on ? 'a' : 'w') + randHex(8) + (profileSuffix ? '.' + profileSuffix : '');
     save('gFlow', { nonce: raw, state: st, at: Date.now(), connect: !!connect });
     return sha256hex(raw).then(function (hashed) {
       var u = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=' + encodeURIComponent(NETCFG.googleClientId) +
-        '&redirect_uri=' + encodeURIComponent(NETCFG.googleReturn) + '&response_type=id_token&scope=' + encodeURIComponent('openid email profile') +
+        '&redirect_uri=' + encodeURIComponent(googleReturn()) + '&response_type=id_token&scope=' + encodeURIComponent('openid email profile') +
         '&nonce=' + hashed + '&state=' + encodeURIComponent(st) + '&prompt=select_account';
       if (NATIVE.on) return NATIVE.openUrl(u);
       location.assign(u);
@@ -3554,7 +3560,7 @@
   function nativeUrl(url, launch) {
     url = String(url || '');
     var inv = /^goldenchess:\/\/auth\/?\?(join|game)=([A-Za-z0-9-]+)/i.exec(url);
-    if (inv) url = 'https://joker-chess.com/?' + inv[1] + '=' + inv[2];
+    if (inv) url = 'https://joker-chess.com/?' + inv[1] + '=' + inv[2]; // siteLink keeps only the part after the host
     if (siteLink(url, launch)) return;
     if (!/^goldenchess:\/\/auth/i.test(url)) return;
     var mark = url.slice(-60), now = Date.now();

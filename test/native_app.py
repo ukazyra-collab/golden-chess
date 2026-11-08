@@ -486,7 +486,7 @@ async def main():
         ctx = await br.new_context(**phone)
         offline = open(os.path.join(ROOT, 'app/www/index.html')).read()
         pg, errs = await setup(ctx, offline)
-        for live in ('https://ukazyra-collab.github.io/**', 'https://joker-chess.com/**'):
+        for live in ('https://ukazyra-collab.github.io/**', 'https://joker-chess.com/**', 'https://golden-chess.com/**'):
             await pg.route(live, lambda r: r.fulfill(status=200, body='<!doctype html><title>live</title>', content_type='text/html'))
         await pg.goto(SITE + 'index.html#play'); await pg.wait_for_timeout(600)
         ok = await wait_for(pg, '!!document.getElementById("app-offline") && !!document.getElementById("btn-reconnect")')
@@ -499,7 +499,7 @@ async def main():
         await pg.evaluate('__gc.go("play")'); await pg.wait_for_timeout(200)
         async with pg.expect_navigation():
             await pg.click('#btn-reconnect')
-        check('offline: "Try again" goes to the live site', pg.url.startswith('https://ukazyra-collab.github.io/golden-chess/') or pg.url.startswith('https://joker-chess.com/'), pg.url)
+        check('offline: "Try again" goes to the live site', pg.url.startswith('https://ukazyra-collab.github.io/golden-chess/') or pg.url.startswith('https://joker-chess.com/') or pg.url.startswith('https://golden-chess.com/'), pg.url)
         await ctx.close()
         await br.close()
     bad = [n for n, ok in results if not ok]

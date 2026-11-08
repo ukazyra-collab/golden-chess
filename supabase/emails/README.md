@@ -14,14 +14,14 @@
 
 Остальные настройки проекта `wduoqpoqbtpkrgbcsegg`:
 
-- URL Configuration: Site URL `https://joker-chess.com/`, Redirect URLs `https://joker-chess.com/**`, `goldenchess://auth` (the app) and the old `https://ukazyra-collab.github.io/golden-chess/**` (it redirects to the domain).
+- URL Configuration: Site URL `https://golden-chess.com/`, Redirect URLs `https://golden-chess.com/**`, `goldenchess://auth` (the app) and the old `https://ukazyra-collab.github.io/golden-chess/**` (it redirects to the domain).
 - Email OTP (Sign In / Providers → Email): длина 6 (в проекте по умолчанию было 8; клиент ждёт `GC_ONLINE.otpLength` = 6), срок 3600 с.
 - Свой отправитель: подключён через интеграцию Resend → Supabase (Resend → Settings → Integrations → Supabase): проект Joker Chess, домен `hutka.ai`, ключ `Supabase Integration`, отправитель `Joker Chess <chess@hutka.ai>`.
 - Rate Limits → emails sent: 100 в час.
 
 Google (подготовлено, выключено флагом `googleAuth` в `build.js`):
 
-1. Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web). Authorized redirect URI: `https://wduoqpoqbtpkrgbcsegg.supabase.co/auth/v1/callback`. Authorized JavaScript origins: `https://joker-chess.com`, `https://ukazyra-collab.github.io`.
+1. Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web). Authorized redirect URI: `https://wduoqpoqbtpkrgbcsegg.supabase.co/auth/v1/callback`. Authorized JavaScript origins: `https://golden-chess.com`, `https://ukazyra-collab.github.io`.
 2. Supabase → Authentication → Sign In / Providers → Google: включить, вставить Client ID и Client Secret.
 3. Supabase → Authentication → Sign In / Providers: включить «Allow manual linking» (гость привязывает Google к тому же аккаунту через `linkIdentity`).
 4. `build.js`: `googleAuth: true` в `GC_ONLINE`, собрать и запушить.

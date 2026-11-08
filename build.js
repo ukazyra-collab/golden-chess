@@ -24,10 +24,13 @@ const ONLINE = {
   googleAuth: true, // "Continue with Google" (Google Cloud project golden-chess-512108, client "Golden Chess web"; Supabase provider on)
   // the Google client (public id): Google's own button on the website (authorised JavaScript origin https://joker-chess.com)
   googleClientId: '977363935890-q5rnfd17nih6agv3ha00af926ev6j275.apps.googleusercontent.com',
-  // where Google's sign-in page answers (an authorised redirect URI of that client): google.html hands the token on
+  // where Google's sign-in page answers (an authorised redirect URI of that client): google.html hands the token on.
+  // On golden-chess.com / joker-chess.com the page's own address is used (app.js googleReturn()); this one elsewhere
   googleReturn: 'https://joker-chess.com/google.html',
 };
-const SITE = 'https://joker-chess.com/';
+// the address the site is served from (CNAME). joker-chess.com takes over once the apps that load it are out:
+// docs/domain-switch.md
+const SITE = 'https://golden-chess.com/';
 
 const pieces = JSON.parse(rd('build/pieces.json'));
 let css = '';
@@ -63,7 +66,7 @@ const doc = (head, b) => '<!doctype html>\n<html lang="en"><head><meta charset="
 const ICON = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' + ICON_INNER + '</svg>');
 const DESC = 'Chess with one Joker Move per game: teleport a queen, rook, bishop or knight to any empty square. Play the bot, a friend, or rated games online.';
 // plain http (an old link, the github.io redirect before HTTPS is enforced) goes to https: one origin, one saved session
-const TO_HTTPS = '<script>if(location.protocol==="http:"&&/(^|\\.)joker-chess\\.com$/.test(location.hostname))location.replace("https://joker-chess.com"+location.pathname+location.search+location.hash)</script>';
+const TO_HTTPS = '<script>if(location.protocol==="http:"&&/(^|\\.)(joker|golden)-chess\\.com$/.test(location.hostname))location.replace("https://"+location.hostname+location.pathname+location.search+location.hash)</script>';
 const webHead = TO_HTTPS + '<title>Joker Chess</title><meta name="description" content="' + DESC + '"><meta name="theme-color" content="#2a2f2d">' +
   '<link rel="icon" href="' + ICON + '"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="privacy-policy" href="privacy.html">' +
   '<meta property="og:title" content="Joker Chess"><meta property="og:description" content="' + DESC + '">' +

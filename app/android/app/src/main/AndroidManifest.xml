@@ -26,6 +26,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="golden-chess.com" />
                 <data android:scheme="https" android:host="joker-chess.com" />
             </intent-filter>
             <!-- sign-in comes back from the system browser to goldenchess://auth -->
