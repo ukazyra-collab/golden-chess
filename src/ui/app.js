@@ -142,7 +142,7 @@
       allSolved: 'All solved. Now try it in a real game.', rulesH: 'All the rules', premoveRule: 'You can queue the Joker Move as a premove too.', playNow: 'Play now',
       navBots: 'Bots', easier: 'Easier', stronger: 'Stronger', yourColor: 'Your pieces', botOpp: 'vs {name}', unfinished: 'Game in progress',
       thinkingName: '{name} is thinking', playMain: 'Play', playFriendShort: 'Play a friend', playBotShort: 'Play a bot', friendT: 'Play a friend',
-      friendLink: 'Send a link', friendLinkSub: 'Online. The game starts when your friend opens it', inviteKept: 'The link stays open. When your friend opens it, the game starts.', inviteOpenT: 'Your invite link is open', inviteOpenSub: 'Waiting for your friend', showLink: 'Show link', inviteGone: 'This invite was cancelled. Ask your friend for a new link.', joinLink: 'Join by link', joinLinkSub: 'Paste the link a friend sent you', joinPh: 'Paste the invite link', joinGo: 'Join the game', joinBad: 'That doesn\'t look like an invite link', appAskT: 'Play this game in the app?', appAskSub: 'If you have Joker Chess installed, the game opens there.', openApp: 'Open in the app', playHere: 'Play here in the browser', noAppT: 'No app yet? Get it, then open the link again.', getApp: 'Get the app',
+      friendLink: 'Invite a friend', friendLinkSub: 'Online. You get a 4-digit code for your friend', gcodeT: 'Your game code', gcodeSub: 'Tell your friend this code. The game starts when they enter it.', copyCode: 'Copy code', codeCopied: 'Code copied', shareCodeText: 'Play Joker Chess with me. Game code: {code}', joinCode: 'Join by code', joinCodeSub: 'Enter the 4 digits your friend tells you', noCode: 'No game with this code. Check the digits with your friend.', codeOpenT: 'Your game code: {code}', inviteKept: 'The code stays open. When your friend enters it, the game starts.', inviteOpenT: 'Your invite link is open', inviteOpenSub: 'Waiting for your friend', showLink: 'Show code', inviteGone: 'This invite was cancelled. Ask your friend for a new link.', joinLink: 'Join by link', joinLinkSub: 'Paste the link a friend sent you', joinPh: 'Paste the invite link', joinGo: 'Join the game', joinBad: 'That doesn\'t look like an invite link', appAskT: 'Play this game in the app?', appAskSub: 'If you have Joker Chess installed, the game opens there.', openApp: 'Open in the app', playHere: 'Play here in the browser', noAppT: 'No app yet? Get it, then open the link again.', getApp: 'Get the app',
       friendHere: 'On this device', friendHereSub: 'Take turns on one screen', signInFree: 'Online play needs a free sign-in: email or Google', signInFreeApple: 'Online play needs a free sign-in: email, Apple or Google', signInFreeEmail: 'Online play needs a free sign-in by email',
       passPlayLong: 'Two players on one device', learnCta: 'Play a bot', botScore: 'Your score: {w} won, {d} drawn, {l} lost', botNoGames: 'You haven’t played {name} yet',
       againBot: 'Play again',
@@ -308,7 +308,7 @@
       allSolved: 'Все решены. Теперь попробуйте в настоящей партии.', rulesH: 'Все правила', premoveRule: 'Джокер можно поставить и премувом.', playNow: 'Играть',
       navBots: 'Боты', easier: 'Полегче', stronger: 'Посильнее', yourColor: 'Ваш цвет', botOpp: 'соперник: {name}', unfinished: 'Партия идёт',
       thinkingName: '{name} думает', playMain: 'Играть', playFriendShort: 'Играть с другом', playBotShort: 'Играть с ботом', friendT: 'Игра с другом',
-      friendLink: 'Отправить ссылку', friendLinkSub: 'Онлайн. Партия начнётся, когда друг откроет ссылку', inviteKept: 'Ссылка остаётся открытой. Когда друг откроет её, партия начнётся.', inviteOpenT: 'Ваша ссылка-приглашение открыта', inviteOpenSub: 'Ждём друга', showLink: 'Показать ссылку', inviteGone: 'Это приглашение отменено. Попросите у друга новую ссылку.', joinLink: 'Войти по ссылке', joinLinkSub: 'Вставьте ссылку, которую прислал друг', joinPh: 'Вставьте ссылку-приглашение', joinGo: 'Войти в партию', joinBad: 'Это не похоже на ссылку-приглашение', appAskT: 'Сыграть в приложении?', appAskSub: 'Если Joker Chess установлен, партия откроется в нём.', openApp: 'Открыть в приложении', playHere: 'Играть здесь, в браузере', noAppT: 'Приложения ещё нет? Скачайте его и откройте ссылку снова.', getApp: 'Скачать приложение',
+      friendLink: 'Пригласить друга', friendLinkSub: 'Онлайн. Вы получите код из 4 цифр для друга', gcodeT: 'Код партии', gcodeSub: 'Скажите другу этот код. Партия начнётся, когда он его введёт.', copyCode: 'Скопировать код', codeCopied: 'Код скопирован', shareCodeText: 'Сыграем в Joker Chess. Код партии: {code}', joinCode: 'Войти по коду', joinCodeSub: 'Введите 4 цифры, которые назвал друг', noCode: 'Партии с таким кодом нет. Сверьте цифры с другом.', codeOpenT: 'Код вашей партии: {code}', inviteKept: 'Код остаётся открытым. Когда друг введёт его, партия начнётся.', inviteOpenT: 'Ваша ссылка-приглашение открыта', inviteOpenSub: 'Ждём друга', showLink: 'Показать код', inviteGone: 'Это приглашение отменено. Попросите у друга новую ссылку.', joinLink: 'Войти по ссылке', joinLinkSub: 'Вставьте ссылку, которую прислал друг', joinPh: 'Вставьте ссылку-приглашение', joinGo: 'Войти в партию', joinBad: 'Это не похоже на ссылку-приглашение', appAskT: 'Сыграть в приложении?', appAskSub: 'Если Joker Chess установлен, партия откроется в нём.', openApp: 'Открыть в приложении', playHere: 'Играть здесь, в браузере', noAppT: 'Приложения ещё нет? Скачайте его и откройте ссылку снова.', getApp: 'Скачать приложение',
       friendHere: 'На одном устройстве', friendHereSub: 'Ходите по очереди на одном экране', signInFree: 'Для игры онлайн нужен вход по почте или через Google, это бесплатно', signInFreeApple: 'Для игры онлайн нужен вход по почте, через Apple или Google, это бесплатно', signInFreeEmail: 'Для игры онлайн нужен вход по почте, это бесплатно',
       passPlayLong: 'Вдвоём на одном устройстве', learnCta: 'Сыграть с ботом', botScore: 'Ваш счёт: побед {w}, ничьих {d}, поражений {l}', botNoGames: 'Вы ещё не играли с этим ботом',
       againBot: 'Ещё партия',
@@ -2750,6 +2750,7 @@
     showLobbyDialog();
     ensureNet().then(function () { return net.call('challenge', { tc: tc, rated: rated, color: 'r' }); }).then(function (r) {
       if (lobby !== L) { net.call('resign', { game: r.game.id }).catch(function () { /* ignore */ }); return; }
+      L.code = r.game.code || null;
       watchInvite(L, r.game.id);
     }, function () { if (lobby === L) { stopLobby(); closeDialog(); toast(T('netError')); } });
   }
@@ -2808,28 +2809,36 @@
         };
         upd(); L.tick = setInterval(upd, 1000);
       } else {
-        card.appendChild(h('div', { class: 'dlg-title' }, esc(T('invite'))));
-        card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('inviteSub'))));
-        var box = h('div', { class: 'linkbox' });
-        var inp = h('input', { type: 'text', readonly: 'readonly', id: 'invite-link', 'aria-label': T('invite') });
-        var cp = h('button', { type: 'button', class: 'sbtn', id: 'btn-copy-link' }, esc(T('copyLink')));
-        cp.addEventListener('click', function () { copyText(inp.value, T('linkCopied'), inp); });
-        box.appendChild(inp); box.appendChild(cp);
+        card.appendChild(h('div', { class: 'dlg-title' }, esc(T('gcodeT'))));
+        card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('gcodeSub'))));
+        // the 4 digits, big enough to read out across a table
+        var codeEl = h('div', { class: 'game-code', id: 'invite-code', 'aria-live': 'polite' });
+        card.appendChild(codeEl);
+        var inp = h('input', { type: 'hidden', id: 'invite-link' }); // the link, for the share and for a link already sent
+        card.appendChild(inp);
+        var box = h('div', { class: 'code-acts' });
+        var cp = h('button', { type: 'button', class: 'sbtn', id: 'btn-copy-code' }, esc(T('copyCode')));
+        cp.addEventListener('click', function () { if (L.code) copyText(L.code, T('codeCopied')); });
+        box.appendChild(cp);
         var sh = null;
         // the share sheet: the browser's, or the system one in the app (an Android web view has no navigator.share)
         if (NATIVE.on || navigator.share) {
           sh = h('button', { type: 'button', class: 'sbtn', id: 'btn-share-link' }, esc(T('share')));
           sh.addEventListener('click', function () {
             if (!L.gameId) return;
-            var o = { title: 'Joker Chess', text: T('shareText'), url: inp.value };
-            if (NATIVE.on) { NATIVE.call('Share', 'share', Object.assign({ dialogTitle: T('share') }, o)).catch(function () { copyText(inp.value, T('linkCopied'), inp); }); return; }
+            var o = { title: 'Joker Chess', text: T('shareCodeText', { code: L.code || '' }), url: inp.value };
+            if (NATIVE.on) { NATIVE.call('Share', 'share', Object.assign({ dialogTitle: T('share') }, o)).catch(function () { copyText(L.code || inp.value, T('codeCopied')); }); return; }
             try { navigator.share(o).catch(function () { /* ignore */ }); } catch (e) { /* ignore */ }
           });
           box.appendChild(sh);
         }
         card.appendChild(box);
         card.appendChild(h('div', { class: 'record' }, esc(meta + '. ' + T('waitingFriend') + '…')));
-        L.render = function () { inp.value = L.gameId ? inviteLink(L.gameId) : T('connecting') + '…'; cp.disabled = !L.gameId; if (sh) sh.disabled = !L.gameId; };
+        L.render = function () {
+          inp.value = L.gameId ? inviteLink(L.gameId) : '';
+          codeEl.innerHTML = L.code ? L.code.split('').map(function (d) { return '<span>' + d + '</span>'; }).join('') : '<span class="wait">\u2022</span><span class="wait">\u2022</span><span class="wait">\u2022</span><span class="wait">\u2022</span>';
+          cp.disabled = !L.code; if (sh) sh.disabled = !L.gameId;
+        };
         L.render();
       }
       var row = h('div', { class: 'row-btns' }), c = h('button', { class: 'secondary', type: 'button', id: 'btn-cancel-lobby' }, esc(T('cancel')));
@@ -4019,7 +4028,7 @@
     friend: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11.5" cy="11" r="4.2"/><circle cx="22.5" cy="12.8" r="3.3"/><path d="M3.8 26.2c.8-4.7 3.7-7.4 7.7-7.4s6.9 2.7 7.7 7.4"/><path d="M19.4 19.6a6.2 6.2 0 0 1 3.1-.8c3.3 0 5.5 2.2 6.1 6"/></svg>',
     bot: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="10" width="19" height="14" rx="4"/><path d="M16 10V6.2M13.6 6h4.8M3.5 15.2v4M28.5 15.2v4"/><circle cx="12.2" cy="16.8" r="1.7" fill="currentColor" stroke="none"/><circle cx="19.8" cy="16.8" r="1.7" fill="currentColor" stroke="none"/></svg>',
     pass: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 11.5h18.5l-4.2-4.2M26 20.5H7.5l4.2 4.2"/></svg>',
-    join: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 18.5l5-5"/><path d="M15.2 9.8l2.3-2.3a5 5 0 0 1 7 7l-2.3 2.3"/><path d="M16.8 22.2l-2.3 2.3a5 5 0 0 1-7-7l2.3-2.3"/></svg>'
+    join: '<svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><circle cx="9.5" cy="8.5" r="1.9" fill="currentColor" stroke="none"/><circle cx="16" cy="8.5" r="1.9" fill="currentColor" stroke="none"/><circle cx="22.5" cy="8.5" r="1.9" fill="currentColor" stroke="none"/><circle cx="9.5" cy="15" r="1.9" fill="currentColor" stroke="none"/><circle cx="16" cy="15" r="1.9" fill="currentColor" stroke="none"/><circle cx="22.5" cy="15" r="1.9" fill="currentColor" stroke="none"/><circle cx="9.5" cy="21.5" r="1.9" fill="currentColor" stroke="none"/><circle cx="16" cy="21.5" r="1.9" fill="currentColor" stroke="none"/><circle cx="22.5" cy="21.5" r="1.9" fill="currentColor" stroke="none"/><circle cx="16" cy="28" r="1.9" fill="currentColor" stroke="none"/></svg>'
   };
   function initial(name) { var c = String(name || '?').trim().charAt(0); return c ? c.toUpperCase() : '?'; }
   // ---- avatars: a player's own picture (storage, 256×256 JPEG at <uid>.jpg) or, without one, the first letter of the name
@@ -4221,7 +4230,7 @@
     if (NETCFG) acts.appendChild(h('h2', { class: 'play-h' }, esc(T('playH')))); // the panel's title on tablet and desktop
     var lr = localResume(); if (lr) acts.appendChild(lr);
     if (lobby && lobby.kind === 'invite' && !currentDialog) {
-      var iv = h('div', { class: 'resume', id: 'invite-open' }, '<span class="t"><b>' + esc(T('inviteOpenT')) + '</b><span>' + esc(T('inviteOpenSub')) + '</span></span>');
+      var iv = h('div', { class: 'resume', id: 'invite-open' }, '<span class="t"><b>' + esc(lobby.code ? T('codeOpenT', { code: lobby.code }) : T('inviteOpenT')) + '</b><span>' + esc(T('inviteOpenSub')) + '</span></span>');
       iv.appendChild(bigBtn('sbtn', T('showLink'), 'btn-show-invite', function () { showLobbyDialog(); }));
       iv.appendChild(bigBtn('sbtn quiet', T('cancel'), 'btn-cancel-invite', function () { cancelLobby(); refreshView(); }));
       acts.appendChild(iv);
@@ -4306,7 +4315,7 @@
         return b;
       }
       card.appendChild(opt('main', 'friend', T('friendLink'), T('friendLinkSub') + ' (' + tcLabel(tc) + ')', 'btn-invite-link', function () { closeDialog(); requireAccount({ kind: 'invite', tc: tc, rated: rated }); }));
-      card.appendChild(opt('', 'join', T('joinLink'), T('joinLinkSub'), 'btn-join-link', function () { joinByLinkSheet(); }));
+      card.appendChild(opt('', 'join', T('joinCode'), T('joinCodeSub'), 'btn-join-code', function () { joinByCodeSheet(); }));
       card.appendChild(opt('', 'pass', T('friendHere'), T('friendHereSub'), 'btn-pass', function () { closeDialog(); showLocalSetup(); }));
     });
   }
@@ -4318,24 +4327,44 @@
     m = /^([A-Za-z0-9-]{6,})$/.exec(text);
     return m ? { kind: 'join', id: m[1] } : null;
   }
-  function joinByLinkSheet() {
+  // the friend's side: 4 digits (or a pasted invite link); the game starts as soon as the fourth digit is in
+  function joinByCodeSheet() {
     openDialog(function (card) {
-      currentDialog.dataset.kind = 'join-link';
-      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('joinLink'))));
-      card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('joinLinkSub'))));
+      currentDialog.dataset.kind = 'join-code';
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('joinCode'))));
+      var sub = h('div', { class: 'dlg-sub' }, esc(T('joinCodeSub')));
+      card.appendChild(sub);
       var f = h('form', { class: 'join-form' });
-      var box = h('div', { class: 'linkbox' });
-      var inp = h('input', { type: 'text', id: 'join-link-input', inputmode: 'url', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: T('joinPh'), 'aria-label': T('joinPh') });
-      box.appendChild(inp); f.appendChild(box);
+      var inp = h('input', { type: 'text', id: 'join-code-input', class: 'code-input', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '120',
+        autocapitalize: 'off', spellcheck: 'false', placeholder: '\u2022\u2022\u2022\u2022', 'aria-label': T('joinCodeSub') });
+      f.appendChild(inp);
       var go2 = h('button', { type: 'submit', class: 'primary', id: 'btn-join-go' }, esc(T('joinGo')));
       f.appendChild(go2);
-      f.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var inv = inviteFrom(inp.value);
-        if (!inv) { toast(T('joinBad')); inp.focus(); return; }
-        closeDialog();
-        if (inv.kind === 'game') openOnlineGame(inv.id); else requireAccount({ kind: 'join', id: inv.id });
+      var busy = false;
+      function attempt() {
+        if (busy) return;
+        var v = inp.value.trim(), inv = /[?&](join|game)=/.test(v) ? inviteFrom(v) : null, digits = v.replace(/\D/g, '');
+        if (inv) { closeDialog(); if (inv.kind === 'game') openOnlineGame(inv.id); else requireAccount({ kind: 'join', id: inv.id }); return; }
+        if (digits.length !== 4) { inp.focus(); return; }
+        busy = true; go2.disabled = true; sub.textContent = T('connecting') + '\u2026'; sub.classList.remove('bad');
+        ensureNet().then(function () { return net.call('join', { code: digits }); }).then(function (r) {
+          closeDialog();
+          if (r.game.status === 'waiting') { openOnlineGame(r.game.id); return; }
+          startOnline(r.game);
+        }, function (e) {
+          busy = false; go2.disabled = false;
+          var d = e && e.data;
+          sub.textContent = d && d.error === 'no_code' ? T('noCode') : T('netError'); sub.classList.add('bad');
+          inp.value = ''; inp.focus();
+        });
+      }
+      inp.addEventListener('input', function () {
+        if (/[?&](join|game)=/.test(inp.value)) return; // a link being pasted: wait for the button
+        var d = inp.value.replace(/\D/g, '').slice(0, 4);
+        if (inp.value !== d) inp.value = d;
+        if (d.length === 4) attempt();
       });
+      f.addEventListener('submit', function (e) { e.preventDefault(); attempt(); });
       card.appendChild(f);
       setTimeout(function () { try { inp.focus(); } catch (e) { /* ignore */ } }, 60);
     });

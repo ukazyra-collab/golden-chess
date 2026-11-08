@@ -179,12 +179,17 @@ check('abort after 30s without a first move', r.game.status === 'aborted' && r.g
 r = await ok(C, { action: 'challenge', tc: '1+0', color: 'w', rated: true });
 const inv = r.game;
 check('challenge waiting', inv.status === 'waiting' && inv.host_id === C);
+check('challenge has a 4-digit code', /^\d{4}$/.test(inv.code || ''), inv.code);
 r = await ok(C, { action: 'join', game: inv.id });
 check('host join is no-op', r.game.status === 'waiting');
-r = await ok(A, { action: 'join', game: inv.id });
+r = await call(A, { action: 'join', code: inv.code === '0000' ? '0001' : String((+inv.code + 1) % 10000).padStart(4, '0') });
+check('a wrong code: no_code', r.body.error === 'no_code', r.body);
+r = await ok(A, { action: 'join', code: inv.code });
 check('joined, host plays white', r.game.status === 'playing' && r.game.white_id === C && r.game.black_id === A && r.game.pool === 'bullet');
 r = await call(B, { action: 'join', game: inv.id });
 check('third joiner gets taken + state', r.body.error && r.body.error === 'taken' && r.body.game.id === inv.id);
+r = await call(B, { action: 'join', code: inv.code });
+check('a code is free again once its game started', r.body.error === 'no_code', r.body);
 await ok(C, { action: 'move', game: inv.id, uci: 'e2e4', ply: 0 });
 T += 1000;
 await ok(A, { action: 'move', game: inv.id, uci: 'e7e5', ply: 1 });

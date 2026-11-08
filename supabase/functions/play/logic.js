@@ -311,13 +311,25 @@ export function createLogic(opts) {
     if (!t) throw new Fail('bad_tc');
     const color = ['w', 'b', 'r'].includes(b.color) ? b.color : 'r';
     await repo.abortWaiting(uid);
-    const row = await repo.insertGame({ status: 'waiting', host_id: uid, host_color: color, tc_base: t[0], tc_inc: t[1], pool: poolOf(t[0], t[1]),
-      rated: !!b.rated, start_fen: GC.START_FEN, fen: GC.START_FEN, moves: [], sans: [], clock_w: t[0], clock_b: t[0], version: 0 });
+    // a 4-digit code the friend types in (unique among waiting invites: a clash just draws again)
+    let row = null;
+    for (let i = 0; i < 25 && !row; i++) {
+      const code = String(Math.floor(Math.random() * 10000)).padStart(4, '0'); // not opts.random: a fixed test random would clash forever
+      try {
+        row = await repo.insertGame({ status: 'waiting', host_id: uid, host_color: color, tc_base: t[0], tc_inc: t[1], pool: poolOf(t[0], t[1]), code,
+          rated: !!b.rated, start_fen: GC.START_FEN, fen: GC.START_FEN, moves: [], sans: [], clock_w: t[0], clock_b: t[0], version: 0 });
+      } catch (e) { if (!(e && e.code === '23505')) throw e; }
+    }
     if (!row || !row.id) throw new Error('insert failed');
     return { game: view(row) };
   };
 
   A.join = async (uid, b) => {
+    if (b.code != null && !b.game) {
+      const w = await repo.waitingByCode(String(b.code).replace(/\D/g, ''));
+      if (!w) throw new Fail('no_code');
+      b = { game: w.id };
+    }
     const g = await game(b.game);
     if (g.status !== 'waiting') {
       if (colorOf(g, uid) || g.host_id === uid) return { game: view(g) };

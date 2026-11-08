@@ -260,10 +260,21 @@ async def main():
                         except Exception: body = '?'
                         print('B resp', r.status, r.request.post_data, body[:300])
                 B.on('response', lambda r: asyncio.ensure_future(onresp(r)))
-            await B.goto(link); await B.evaluate(HELPERS)
-            ok('friend joined from the link', await wait_for(B, '__gc.online && __gc.game.status === "playing"', 8000) and await wait_for(A, '__gc.online && __gc.online.id === "%s"' % link.split('join=')[1], 8000))
+            await A.click('#btn-show-invite'); await wait_for(A, '/^\\d{4}$/.test(document.getElementById("invite-code").textContent)', 3000)
+            code = await A.evaluate('document.getElementById("invite-code").textContent')
+            ok('the invite has a 4-digit code', len(code) == 4 and code.isdigit(), code)
+            await A.evaluate('__gc.closeDialog()')
+            # the friend: Play a friend > Join by code, a wrong code first (said calmly, the field cleared), then the right one
+            await B.goto(BASE); await B.evaluate(HELPERS); await wait_for(B, '!!document.getElementById("btn-friend")', 5000)
+            await B.click('#btn-friend'); await B.click('#btn-join-code')
+            wrong = str((int(code) + 1) % 10000).zfill(4)
+            await B.fill('#join-code-input', wrong); await B.dispatch_event('#join-code-input', 'input')
+            ok('a wrong code is answered in the sheet', await wait_for(B, '/code/i.test(document.querySelector(".veil .dlg-sub").textContent) && document.getElementById("join-code-input").value === ""', 5000))
+            await B.fill('#join-code-input', code); await B.dispatch_event('#join-code-input', 'input')
+            ok('friend joined by the code', await wait_for(B, '__gc.online && __gc.game.status === "playing"', 8000) and await wait_for(A, '__gc.online && __gc.online.id === "%s"' % link.split('join=')[1], 8000))
             ok('casual game', await A.evaluate('__gc.game.cfg.rated') == False and await A.evaluate('__gc.game.cfg.tc.label') == '5+0')
             ok('url switched to ?game=', 'game=' in B.url and 'join=' not in B.url, B.url)
+            link = BASE + '?join=' + link.split('join=')[1]
 
             # ---- 12. a third person opening the invite link watches at once, as a guest (no sign-in asked)
             C = await open_page(await br.new_context(viewport={'width': 800, 'height': 900}), 'C', link)

@@ -1,7 +1,7 @@
 // Storage adapter over a direct Postgres connection (postgres.js), used by the edge function.
 // Rows come back through to_jsonb so their shape matches the REST API (ISO timestamps, arrays as JSON).
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const GAME_COLS = new Set(['status', 'white_id', 'black_id', 'white_name', 'black_name', 'white_rating', 'black_rating', 'host_id', 'host_color',
+const GAME_COLS = new Set(['status', 'code', 'white_id', 'black_id', 'white_name', 'black_name', 'white_rating', 'black_rating', 'host_id', 'host_color',
   'tc_base', 'tc_inc', 'pool', 'rated', 'start_fen', 'moves', 'sans', 'fen', 'clock_w', 'clock_b', 'turn_started_at', 'result', 'reason',
   'white_diff', 'black_diff', 'white_after', 'black_after', 'draw_offer', 'rematch_offer', 'rematch_game', 'version', 'created_at', 'updated_at',
   'house', 'house_style']);
@@ -95,6 +95,10 @@ export function createPgRepo(sql) {
     },
     async touch(gameId, uid, at) {
       await sql`insert into public.seen (game_id, user_id, at) values (${gameId}, ${uid}, ${at}) on conflict (game_id, user_id) do update set at = excluded.at`;
+    },
+    // the invite still waiting for a friend under this code (see A.challenge)
+    async waitingByCode(code) {
+      return first(await sql`select to_jsonb(g) as j from public.games g where g.code = ${code} and g.status = 'waiting' limit 1`);
     },
     async abortWaiting(uid) {
       await sql`update public.games set status = 'aborted', result = '*', reason = 'abort' where host_id = ${uid} and status = 'waiting'`;

@@ -10,8 +10,12 @@ export function createMemoryRepo(now) {
   const db = { games: new Map(), profiles: new Map(), ratings: new Map(), seeks: new Map(), house: new Map(), admins: new Set(), seen: new Map() };
   const GAME_DEFAULTS = { status: 'playing', white_id: null, black_id: null, white_name: null, black_name: null, white_rating: null, black_rating: null,
     host_id: null, host_color: null, rated: true, moves: [], sans: [], turn_started_at: null, result: null, reason: null, white_diff: null, black_diff: null,
-    white_after: null, black_after: null, draw_offer: null, rematch_offer: null, rematch_game: null, version: 0, house: null, house_style: null };
+    white_after: null, black_after: null, draw_offer: null, rematch_offer: null, rematch_game: null, version: 0, house: null, house_style: null, code: null };
   function insertGame(row) {
+    // as the database's games_waiting_code: one waiting game per code
+    if (row.code && row.status === 'waiting' && [...db.games.values()].some((g) => g.status === 'waiting' && g.code === row.code)) {
+      const e = new Error('duplicate code'); e.code = '23505'; throw e;
+    }
     const t = iso(now());
     const g = Object.assign({}, GAME_DEFAULTS, { id: crypto.randomUUID(), created_at: t, updated_at: t }, clone(row));
     db.games.set(g.id, g);
@@ -116,6 +120,7 @@ export function createMemoryRepo(now) {
     async seenAt(gameId) { return [...db.seen.values()].filter((s) => s.game_id === gameId).map(clone); },
     async touch(gameId, uid, at) { db.seen.set(gameId + '|' + uid, { game_id: gameId, user_id: uid, at }); },
     async isAdmin(uid) { return db.admins.has(uid); },
+    async waitingByCode(code) { for (const g of db.games.values()) if (g.status === 'waiting' && g.code === code) return clone(g); return null; },
     async abortWaiting(uid) { for (const g of db.games.values()) if (g.host_id === uid && g.status === 'waiting') Object.assign(g, { status: 'aborted', result: '*', reason: 'abort' }); },
     // as gc_merge_accounts (the sign-in side lives in the test server's stand-in for Auth)
     async mergeAccounts(a, b) {
