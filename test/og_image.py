@@ -1,4 +1,4 @@
-# The link-preview image (og.png, 1200x630): what a messenger shows when someone shares a golden-chess.com link.
+# The link-preview image (og.png, 1200x630): what a messenger shows when someone shares a joker-chess.com link.
 # A poster in the brand: the wordmark, one line of what it is, a gold "Play now", and a corner of the board where a
 # knight has just made its Joker Move (a gold arc from where it was), with the Joker himself standing by.
 # Run: python3 test/og_image.py   -> dist/web/og.png (build.js copies the root og.png; this writes both)

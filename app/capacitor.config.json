@@ -3,9 +3,11 @@
   "appName": "Joker Chess",
   "webDir": "www",
   "server": {
-    "url": "https://golden-chess.com/",
+    "url": "https://joker-chess.com/",
     "errorPath": "index.html",
     "allowNavigation": [
+      "joker-chess.com",
+      "www.joker-chess.com",
       "golden-chess.com",
       "www.golden-chess.com",
       "ukazyra-collab.github.io"

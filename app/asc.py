@@ -95,7 +95,7 @@ def cmd_capability():
             'settings': [{'key': 'APPLE_ID_AUTH_APP_CONSENT', 'options': [{'key': 'PRIMARY_APP_CONSENT'}]}]},
             'relationships': {'bundleId': rel('bundleIds', bid)}}})
         print('Sign in with Apple turned on for', BUNDLE, '(primary App ID)')
-    # golden-chess.com links open the app (applinks:) — the App ID needs Associated Domains for the entitlement to sign
+    # joker-chess.com links open the app (applinks:) — the App ID needs Associated Domains for the entitlement to sign
     if 'ASSOCIATED_DOMAINS' in have: print('Associated Domains is on already for', BUNDLE)
     else:
         api('POST', '/v1/bundleIdCapabilities', {'data': {'type': 'bundleIdCapabilities', 'attributes': {'capabilityType': 'ASSOCIATED_DOMAINS'},

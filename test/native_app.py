@@ -184,7 +184,7 @@ async def main():
         check('app: tab bar reaches the bottom edge', pad == '0px', pad)
 
         # Google in the app: the system browser opens Google's own sign-in page (no Supabase in between), which answers
-        # to golden-chess.com/google.html (so Google names golden-chess.com); that page hands the ID token back here
+        # to joker-chess.com/google.html (so Google names joker-chess.com); that page hands the ID token back here
         cid = re.search(r'"googleClientId":\s*"([^"]+)"', html).group(1)
         await pg.evaluate('location.hash = "signin"'); await pg.wait_for_timeout(500)
         ok = await wait_for(pg, '!!document.getElementById("btn-google")')
@@ -195,7 +195,7 @@ async def main():
         flow = await pg.evaluate('JSON.parse(localStorage.getItem("goldenchess.gFlow") || "null")')
         gu = urllib.parse.urlparse(bo[0] if bo else ''); gq = urllib.parse.parse_qs(gu.query)
         check("app: the system browser opens Google's sign-in page itself", ok and gu.netloc == 'accounts.google.com' and gq.get('client_id') == [cid] and gq.get('response_type') == ['id_token'], bo)
-        check('app: Google answers to golden-chess.com/google.html', gq.get('redirect_uri') == ['https://golden-chess.com/google.html'], gq.get('redirect_uri'))
+        check('app: Google answers to joker-chess.com/google.html', gq.get('redirect_uri') == ['https://joker-chess.com/google.html'], gq.get('redirect_uri'))
         check('app: hashed nonce sent, state marked for the app', flow and gq.get('nonce') == [sha256(flow['nonce'])] and gq.get('state') == [flow['state']] and flow['state'].startswith('a'), [flow, gq.get('state')])
         check('app: nothing sent to Supabase yet', not await pg.evaluate('__sbCalls.some(function (c) { return /linkIdentity|signInWith/.test(c[0]); })'))
         ok = await wait_for(pg, '!document.getElementById("btn-google").disabled')
@@ -400,7 +400,7 @@ async def main():
         check('iphone+apple: no console errors', not [e for e in errs if 'Failed to load resource' not in e], errs[:5])
         await ctx.close()
 
-        # ---- the website: Google's own button signs in right on the site (Google shows golden-chess.com, not Supabase)
+        # ---- the website: Google's own button signs in right on the site (Google shows joker-chess.com, not Supabase)
         cid = re.search(r'"googleClientId":\s*"([^"]+)"', html).group(1)
         ctx = await br.new_context(**phone)
         pg, errs = await setup(ctx, html, native=False, gsi='fake')
@@ -459,7 +459,7 @@ async def main():
         gq = urllib.parse.parse_qs(urllib.parse.urlparse(google_pages[0] if google_pages else '').query)
         await pg.goto(SITE + '#play'); await pg.wait_for_timeout(300)
         flow = await pg.evaluate('JSON.parse(localStorage.getItem("goldenchess.gFlow") || "null")')
-        check("web: the page goes to Google's sign-in page, answering to google.html", ok and gq.get('client_id') == [cid] and gq.get('redirect_uri') == ['https://golden-chess.com/google.html'] and gq.get('response_type') == ['id_token'], gq)
+        check("web: the page goes to Google's sign-in page, answering to google.html", ok and gq.get('client_id') == [cid] and gq.get('redirect_uri') == ['https://joker-chess.com/google.html'] and gq.get('response_type') == ['id_token'], gq)
         check('web: hashed nonce sent, state marked for the website', flow and gq.get('nonce') == [sha256(flow['nonce'])] and gq.get('state') == [flow['state']] and flow['state'].startswith('w'), [flow, gq.get('state')])
         check('web: no Supabase sign-in on the way out', not await pg.evaluate('__sbCalls.some(function (c) { return /linkIdentity|signInWith/.test(c[0]); })'))
         # Google answers to google.html, which brings the ID token back to the site (and out of the address)
@@ -486,7 +486,7 @@ async def main():
         ctx = await br.new_context(**phone)
         offline = open(os.path.join(ROOT, 'app/www/index.html')).read()
         pg, errs = await setup(ctx, offline)
-        for live in ('https://ukazyra-collab.github.io/**', 'https://golden-chess.com/**'):
+        for live in ('https://ukazyra-collab.github.io/**', 'https://joker-chess.com/**'):
             await pg.route(live, lambda r: r.fulfill(status=200, body='<!doctype html><title>live</title>', content_type='text/html'))
         await pg.goto(SITE + 'index.html#play'); await pg.wait_for_timeout(600)
         ok = await wait_for(pg, '!!document.getElementById("app-offline") && !!document.getElementById("btn-reconnect")')
@@ -499,7 +499,7 @@ async def main():
         await pg.evaluate('__gc.go("play")'); await pg.wait_for_timeout(200)
         async with pg.expect_navigation():
             await pg.click('#btn-reconnect')
-        check('offline: "Try again" goes to the live site', pg.url.startswith('https://ukazyra-collab.github.io/golden-chess/') or pg.url.startswith('https://golden-chess.com/'), pg.url)
+        check('offline: "Try again" goes to the live site', pg.url.startswith('https://ukazyra-collab.github.io/golden-chess/') or pg.url.startswith('https://joker-chess.com/'), pg.url)
         await ctx.close()
         await br.close()
     bad = [n for n, ok in results if not ok]

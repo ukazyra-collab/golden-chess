@@ -3371,12 +3371,12 @@
     askName();
   }
 
-  // ---- Google, without the Supabase address. Google only ever talks to golden-chess.com, so its pages name
-  // golden-chess.com (the redirect through Supabase showed the Supabase project's address), and the session comes
+  // ---- Google, without the Supabase address. Google only ever talks to joker-chess.com, so its pages name
+  // joker-chess.com (the redirect through Supabase showed the Supabase project's address), and the session comes
   // from Google's ID token (Supabase checks it against our nonce):
   //  - the website: Google's own button (Google Identity Services);
   //  - the app (Google refuses sign-in inside an app's web view), and the website if Google's script can't load:
-  //    Google's sign-in page answers to golden-chess.com/google.html, which hands the token back here
+  //    Google's sign-in page answers to joker-chess.com/google.html, which hands the token back here
   //    (the app: through goldenchess://auth).
   function randHex(n) { var b = crypto.getRandomValues(new Uint8Array(n)), s = ''; for (var i = 0; i < b.length; i++) s += (b[i] < 16 ? '0' : '') + b[i].toString(16); return s; }
   function sha256hex(str) {
@@ -3395,7 +3395,7 @@
   function appleSignIn(connect) {
     var raw = randHex(16);
     return sha256hex(raw).then(function (hashed) {
-      return NATIVE.call('SignInWithApple', 'authorize', { clientId: 'com.kozyramedia.goldenchess', redirectURI: 'https://golden-chess.com/', scopes: 'email name', state: randHex(8), nonce: hashed });
+      return NATIVE.call('SignInWithApple', 'authorize', { clientId: 'com.kozyramedia.goldenchess', redirectURI: 'https://joker-chess.com/', scopes: 'email name', state: randHex(8), nonce: hashed });
     }).then(function (r) {
       var a = r && r.response;
       if (!a || !a.identityToken) { var e = new Error('cancelled'); e.code = 'cancelled'; throw e; }
@@ -3536,10 +3536,10 @@
   // ---- the app: what the system browser sends back (goldenchess://auth: Google's ID token from google.html, or the
   // session from a sign-in email's link), the Android back button, the splash screen
   var nativeSeen = {};
-  // a golden-chess.com link opened the app (iOS universal link / Android app link): open that page here, as the browser
+  // a joker-chess.com (or old golden-chess.com) link opened the app (iOS universal link / Android app link): open that page here, as the browser
   // would have: an invite, a game, a sign-in link. Pages that are only documents (privacy, support) open in the browser
   function siteLink(url, launch) {
-    var m = /^https:\/\/(?:www\.)?golden-chess\.com(\/[^?#]*)?([?#].*)?$/i.exec(url);
+    var m = /^https:\/\/(?:www\.)?(?:joker|golden)-chess\.com(\/[^?#]*)?([?#].*)?$/i.exec(url);
     if (!m) return false;
     var path = m[1] || '/', rest = m[2] || '';
     if (/^\/(privacy|support|google)/i.test(path)) { NATIVE.call('Browser', 'open', { url: url }).catch(function () { /* ignore */ }); return true; }
@@ -3554,7 +3554,7 @@
   function nativeUrl(url, launch) {
     url = String(url || '');
     var inv = /^goldenchess:\/\/auth\/?\?(join|game)=([A-Za-z0-9-]+)/i.exec(url);
-    if (inv) url = 'https://golden-chess.com/?' + inv[1] + '=' + inv[2];
+    if (inv) url = 'https://joker-chess.com/?' + inv[1] + '=' + inv[2];
     if (siteLink(url, launch)) return;
     if (!/^goldenchess:\/\/auth/i.test(url)) return;
     var mark = url.slice(-60), now = Date.now();
