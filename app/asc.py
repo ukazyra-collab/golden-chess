@@ -191,6 +191,8 @@ def cmd_build(wait=False):
     a, v = version()
     while True:
         bs = api('GET', f"/v1/builds?filter[app]={a['id']}&filter[preReleaseVersion.version]={VERSION}&sort=-uploadedDate&limit=5").get('data') or []
+        want = os.environ.get('GC_BUILD')  # wait for this build number (a fresh upload shows up a few minutes late)
+        if want: bs = [x for x in bs if x['attributes']['version'] == want]
         if bs:
             b = bs[0]; st = b['attributes']['processingState']; print('build', b['attributes']['version'], st, b['attributes'].get('uploadedDate'))
             if st == 'VALID':
