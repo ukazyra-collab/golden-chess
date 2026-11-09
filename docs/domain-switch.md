@@ -39,3 +39,20 @@ the 1.2 apps (which load joker-chess.com) are out and the old ones have mostly u
   https://joker-chess.com and redirect URI https://joker-chess.com/google.html; Supabase: Site URL + redirect URL;
   GoDaddy: golden-chess.com → forwarding (301) to https://joker-chess.com. The 1.3 apps follow the 301 (golden-chess.com
   and joker-chess.com are both in allowNavigation).
+
+## State (9 Nov 2026): the move
+
+- The site lives on **joker-chess.com**, served by a second Pages repo, `ukazyra-collab/joker-chess` (main, root; CNAME
+  joker-chess.com). It holds only the published files: index.html, privacy.html, support.html, google.html, the Search
+  Console file, og.png, apple-touch-icon.png, version.json, .nojekyll, .well-known/ (AASA + assetlinks).
+- This repo (golden-chess) keeps golden-chess.com on Pages, but only to hand over: the head script in index.html
+  (build.js `TO_HTTPS`), privacy.html and support.html send a browser to the same page on joker-chess.com; the app goes
+  too when it is 1.3 or later (it allows joker-chess.com); 1.2 apps stay on golden-chess.com (they would be thrown out
+  to the system browser).
+- **Deploy** now = `node build.js`, copy dist/web/index.html + og.png to the root, push main here, **and** put the same
+  published files into ukazyra-collab/joker-chess (the Claude GitHub app has no push access to that repo yet: either add
+  it to the app's installation, github.com/settings/installations, or upload through github.com/…/upload/main).
+- Supabase: Redirect URL https://joker-chess.com/** added (9 Nov). Site URL → https://joker-chess.com/ at the switch.
+- Google Cloud OAuth client: authorised origin https://joker-chess.com and redirect URI
+  https://joker-chess.com/google.html — needs the owner's sign-in (password) to the Cloud console.
+- Later (when 1.2 apps are gone): golden-chess.com can become a GoDaddy forward, or keep the hand-over pages.
