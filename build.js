@@ -30,7 +30,7 @@ const ONLINE = {
 };
 // the address the site is served from (CNAME). joker-chess.com takes over once the apps that load it are out:
 // docs/domain-switch.md
-const SITE = 'https://golden-chess.com/';
+const SITE = 'https://joker-chess.com/';
 
 const pieces = JSON.parse(rd('build/pieces.json'));
 let css = '';
@@ -66,8 +66,16 @@ const doc = (head, b) => '<!doctype html>\n<html lang="en"><head><meta charset="
 const ICON = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' + ICON_INNER + '</svg>');
 const DESC = 'Chess with one Joker Move per game: teleport a queen, rook, bishop or knight to any empty square. Play the bot, a friend, or rated games online.';
 // plain http (an old link, the github.io redirect before HTTPS is enforced) goes to https: one origin, one saved session
-const TO_HTTPS = '<script>if(location.protocol==="http:"&&/(^|\\.)(joker|golden)-chess\\.com$/.test(location.hostname))location.replace("https://"+location.hostname+location.pathname+location.search+location.hash)</script>';
-const webHead = TO_HTTPS + '<title>Joker Chess</title><meta name="description" content="' + DESC + '"><meta name="theme-color" content="#2a2f2d">' +
+// joker-chess.com is the address. golden-chess.com (the old one) only hands over: a browser goes to the same page on
+// joker-chess.com at once; the app does too when it allows joker-chess.com (1.3 and later), older apps stay (they would
+// be thrown out to the system browser). http goes to https.
+const TO_HTTPS = '<script>(function(){var h=location.hostname,p=location.pathname+location.search+location.hash;'+
+  'if(/(^|\\.)golden-chess\\.com$/.test(h)){var go=function(){location.replace("https://joker-chess.com"+p)},C=window.Capacitor,n=false;'+
+  'try{n=!!(C&&C.isNativePlatform&&C.isNativePlatform())}catch(e){}'+
+  'if(!n){go();return}'+
+  'try{Promise.resolve(C.nativePromise("App","getInfo",{})).then(function(i){var v=String(i&&i.version||"").split(".");if(+v[0]>1||(+v[0]===1&&+v[1]>=3))go()},function(){})}catch(e){}return}'+
+  'if(location.protocol==="http:"&&/(^|\\.)joker-chess\\.com$/.test(h))location.replace("https://"+h+p)})()</script>';
+const webHead = TO_HTTPS + '<title>Joker Chess</title><meta name="description" content="' + DESC + '"><meta name="theme-color" content="#2a2f2d"><link rel="canonical" href="' + SITE + '">' +
   '<link rel="icon" href="' + ICON + '"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="privacy-policy" href="privacy.html">' +
   '<meta property="og:title" content="Joker Chess"><meta property="og:description" content="' + DESC + '">' +
   '<meta property="og:type" content="website"><meta property="og:url" content="' + SITE + '"><meta property="og:image" content="' + SITE + 'og.png?v=4"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' +
