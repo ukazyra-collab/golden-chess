@@ -40,7 +40,7 @@
       emailOptLabel: 'Email me a weekly summary of my games. Stop any time.', emailsSw: 'Emails about my games',
       emailsNote: 'A summary on Sundays, and a puzzle if you’ve been away a week. Never more than one a week.',
       emailAskT: 'Your week by email?', emailAskB: 'Your games, rating and best win of the week, every Sunday evening. One email a week at most; stop any time.',
-      emailAskYes: 'Yes, send it',
+      emailAskYes: 'Yes, send it', puzzleSeries: 'Puzzle series',
       gaAsk: 'May we count visits? Google Analytics shows us which videos bring players and what to improve. No ads, nothing sold.', gaYes: 'Allow', gaNo: 'No thanks',
       lv1: 'Beginner', lv2: 'Casual', lv3: 'Club player', lv4: 'Strong club', lv5: 'Expert', lv6: 'Master', lv7: 'Grandmaster', lv8: 'Maximum',
       opponent: 'Opponent', computer: 'Computer', twoPlayers: 'Two players, one device', playAs: 'Play as', random: 'Random',
@@ -232,7 +232,7 @@
       emailOptLabel: 'Присылать раз в неделю сводку моих партий. Можно отключить в любой момент.', emailsSw: 'Письма о моих партиях',
       emailsNote: 'Сводка по воскресеньям и задача, если тебя не было неделю. Не чаще раза в неделю.',
       emailAskT: 'Твоя неделя на почту?', emailAskB: 'Партии, рейтинг и лучшая победа недели — каждое воскресенье вечером. Не больше одного письма в неделю, отписаться можно в любой момент.',
-      emailAskYes: 'Да, присылайте',
+      emailAskYes: 'Да, присылайте', puzzleSeries: 'Задачи по порядку',
       gaAsk: 'Можно считать визиты? Google Analytics покажет, какие ролики приводят игроков и что улучшить. Без рекламы и продажи данных.', gaYes: 'Разрешить', gaNo: 'Не надо',
       lv1: 'Новичок', lv2: 'Любитель', lv3: 'Клубный игрок', lv4: 'Сильный клубный', lv5: 'Эксперт', lv6: 'Мастер', lv7: 'Гроссмейстер', lv8: 'Максимум',
       opponent: 'Соперник', computer: 'Компьютер', twoPlayers: 'Двое на одном устройстве', playAs: 'Играть за', random: 'Случайно',
@@ -1577,8 +1577,7 @@
     var outcome = humanOutcome();
     if (!spectating() && !game.tracked && game.reason !== 'abort' && game.records.length >= 2) {
       noteDay(game.online ? 'online' : game.cfg.mode);
-      if (outcome === 1 && returningPlayer()) setTimeout(function () { askReminders('win'); }, 4200);
-      else if (game.online) setTimeout(function () { askEmailOpt('game'); }, 4200);
+      if (outcome === 1 && returningPlayer()) askWhenCalm(function () { askReminders('win'); }, 4200);
     }
     if (!spectating() && !game.tracked) {
       game.tracked = true;
@@ -2522,7 +2521,7 @@
     noteDay('daily');
     setTimeout(function () { askReminders('daily'); }, 2600);
   }
-  function openDaily() { go('learn'); }
+  function openDaily() { if (learnKit && learnKit.showDaily) learnKit.showDaily(); go('learn'); }
   function streakChip() {
     var st = streakNow();
     if (st.count < 2) return null;
@@ -2626,7 +2625,7 @@
       [ru ? 'Просьба включить напоминания' : 'The reminders ask', function () { closeDialog(); setTimeout(function () { askReminders('proto', true); }, 250); }],
       [ru ? 'План напоминаний: тексты и время' : 'Reminder plan: texts and times', function () { closeDialog(); setTimeout(remindPlanSheet, 250); }],
       [ru ? 'Письма: согласие при сохранении аккаунта' : 'Emails: the yes while saving the account', function () { closeDialog(); setTimeout(function () { showAccount(null); }, 250); }],
-      [ru ? 'Письма: вопрос после партии' : 'Emails: the ask after a game', function () { closeDialog(); setTimeout(function () { askEmailOpt('proto', true); }, 250); }],
+      [ru ? 'Письма: карточка в Профиле' : 'Emails: the card on the Profile tab', function () { closeDialog(); setTimeout(emailCardSheet, 250); }],
       [ru ? 'Честная игра: жалоба на соперника' : 'Fair play: reporting an opponent', function () { closeDialog(); setTimeout(function () { reportSheet('proto', 'NightOwlGM', null); }, 250); }],
       [ru ? 'Честная игра: список владельца' : 'Fair play: the owner\'s list', function () { closeDialog(); setTimeout(fairListSheet, 250); }],
       [ru ? 'Честная игра: закрытый аккаунт' : 'Fair play: a closed account', function () { closeDialog(); setTimeout(closedSheet, 250); }]
@@ -2692,28 +2691,45 @@
     row.appendChild(lab); row.appendChild(b); card.appendChild(row);
     card.appendChild(h('div', { class: 'set-note', id: 'set-email-note' }, esc(T('emailsNote'))));
   }
-  // a saved account that never answered (signed in with Google or Apple: no checkbox there): asked after a game,
-  // twice at most, two weeks apart
-  function askEmailOpt(reason, force) {
-    if (!force && (!mailOn() || !me || me.guest || !me.profile || me.profile.email_opt != null || currentDialog)) return;
+  // a saved account that never answered (signed in with Google or Apple: no checkbox there): a card on the Profile
+  // tab, never a sheet over the game; gone after an answer, "not now" hides it for two weeks, twice at most
+  function emailCardDue() {
+    if (!mailOn() || !me || me.guest || !me.profile || me.profile.email_opt != null) return false;
     var a = load('emailAsk', { n: 0, at: 0 });
-    if (!force && (a.n >= 2 || Date.now() - a.at < 14 * 864e5)) return;
-    save('emailAsk', { n: a.n + 1, at: Date.now() });
-    Track.event('email_ask', { reason: reason });
-    openDialog(function (card) {
-      currentDialog.dataset.kind = 'email-ask';
-      card.classList.add('remind-card');
-      card.appendChild(h('div', { class: 'remind-art mail-art', 'aria-hidden': 'true' }, '<span class="env">' + jokerPiece() + '</span>'));
-      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('emailAskT'))));
-      card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('emailAskB'))));
-      card.appendChild(bigBtn('start-btn', T('emailAskYes'), 'btn-email-yes', function () {
-        closeDialog();
-        setEmailOpt(true, reason).catch(function () { toast(T('netError')); });
-      }));
-      var later = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-email-later' }, esc(T('notNowBtn')));
-      later.addEventListener('click', function () { closeDialog(); Track.event('email_later', { reason: reason }); });
-      card.appendChild(later);
+    return a.n < 2 && Date.now() - a.at > 14 * 864e5;
+  }
+  function emailCard(force) {
+    if (!force && !emailCardDue()) return null;
+    var card = h('div', { class: 'card email-card', id: 'email-card' });
+    card.appendChild(h('div', { class: 'email-card-top' }, '<span class="remind-art mail-art" aria-hidden="true"><span class="env">' + jokerPiece() + '</span></span><div><b>' + esc(T('emailAskT')) + '</b><span>' + esc(T('emailAskB')) + '</span></div>'));
+    var row = h('div', { class: 'row-btns' });
+    var later = h('button', { type: 'button', class: 'secondary', id: 'btn-email-later' }, esc(T('notNowBtn')));
+    var yes = h('button', { type: 'button', class: 'primary', id: 'btn-email-yes' }, esc(T('emailAskYes')));
+    later.addEventListener('click', function () { var a = load('emailAsk', { n: 0, at: 0 }); save('emailAsk', { n: a.n + 1, at: Date.now() }); Track.event('email_later', { where: 'profile' }); card.remove(); });
+    yes.addEventListener('click', function () {
+      yes.disabled = later.disabled = true;
+      setEmailOpt(true, 'profile').then(function () { card.remove(); toast(T('fairDone')); }, function () { yes.disabled = later.disabled = false; toast(T('netError')); });
     });
+    row.appendChild(later); row.appendChild(yes); card.appendChild(row);
+    return card;
+  }
+  // the prototype tour shows the card in a sheet
+  function emailCardSheet() {
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'email-card';
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(lang === 'ru' ? 'Так карточка выглядит в Профиле у сохранённого аккаунта, который ещё не ответил:' : 'How the card looks on the Profile tab of a saved account that hasn’t answered yet:')));
+      card.appendChild(emailCard(true));
+    });
+  }
+  // an ask that must not land on top of a game: run it once nothing is open and the player has left the board
+  function askWhenCalm(fn, delay) {
+    var tries = 0;
+    var go = function () {
+      var busy = currentDialog || curView === 'game' || (game && game.online && game.status === 'playing');
+      if (!busy) { fn(); return; }
+      if (++tries < 40) setTimeout(go, 1500); // a minute at most; otherwise another moment will come
+    };
+    setTimeout(go, delay || 0);
   }
 
   // ---- fair play (prototype; the server says it takes reports in hello: me.fair)
@@ -3110,6 +3126,7 @@
       noteAvatars([r.profile]);
       (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; });
       if (!userSub) userSub = net.sub('u:' + net.uid, { event: function (ev, p) { if (ev === 'paired' && p && p.game && lobby) onPaired(p.game); } });
+      syncPrefs(); // the language, the time zone and a yes given while saving (prototype: only when the server keeps them)
       return r;
     });
     netReady.catch(function () { netReady = null; });
@@ -4701,7 +4718,7 @@
     game.paused = false; if (game.clock) game.clock.since = perf();
   }
   function kit() {
-    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ daily: function () { return dailyToday(); }, solveDaily: solveDaily, streakSheet: streakSheet, streakLine: function () { var st = streakNow(); return st.count >= 2 ? { n: st.count, html: FLAME_SVG + '<b>' + st.count + '</b>' } : null; }, newcomer: function () { return !returningPlayer(); }, track: function (n, p) { Track.event(n, p); if (n === 'puzzle_solved') { noteAct('learn'); noteDay('puzzle'); } }, T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
+    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ daily: function () { return dailyToday(); }, solveDaily: solveDaily, streakSheet: streakSheet, streakLine: function () { var st = streakNow(); return st.count >= 2 ? { n: st.count, html: FLAME_SVG + '<b>' + st.count + '</b>' } : null; }, newcomer: function () { return !returningPlayer(); }, dailyAuto: function () { var t = todayStr(); if (load('dailyAuto', '') === t) return false; save('dailyAuto', t); return true; }, track: function (n, p) { Track.event(n, p); if (n === 'puzzle_solved') { noteAct('learn'); noteDay('puzzle'); } }, T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
     return learnKit;
   }
 
@@ -5071,6 +5088,7 @@
           grid.appendChild(h('div', { class: 'pool-card' }, '<span class="h"><span class="ic-' + p + '">' + POOL_ICON[p] + '</span>' + esc(T(p)) + '</span><span class="r">' + esc(ratingText(p)) + '</span><span class="g">' + esc(r && r.games ? gamesText(r.games) : T('noGamesYet')) + '</span>'));
         });
         inn.appendChild(grid);
+        var ec = emailCard(); if (ec) inn.appendChild(ec);
         var so = h('button', { type: 'button', class: 'secondary danger', id: 'btn-signout' }, esc(T('signOut')));
         var soErr = h('div', { class: 'err', id: 'signout-err' });
         so.addEventListener('click', function () {

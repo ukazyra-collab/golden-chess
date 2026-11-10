@@ -18,7 +18,8 @@ var Habits = (function () {
   function uniqSorted(days) { var m = {}; (days || []).forEach(function (d) { if (/^\d{4}-\d\d-\d\d$/.test(d)) m[d] = 1; }); return Object.keys(m).sort(); }
 
   // ---- the daily puzzle: Monday and Tuesday easy, the middle of the week medium, the weekend hard (a newspaper
-  // crossword's week); inside its level the week number picks the puzzle, so a year of days gets different ones
+  // crossword's week); inside its level the week number picks the puzzle, so a year of days gets different ones.
+  // A longer list moves the days still to come onto other puzzles (today's too): new puzzles go out between days.
   var LEVEL_OF_DAY = { 1: 1, 2: 1, 3: 2, 4: 2, 5: 2, 6: 3, 7: 3 };
   function dailyFor(s, list) {
     if (!list || !list.length) return null;

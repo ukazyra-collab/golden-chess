@@ -27,6 +27,7 @@ const SUPABASE_STUBS = `
 
 export async function createDb(userIds = []) {
   const pg = await PGlite.create();
+  await pg.exec("set timezone to 'UTC'"); // as Supabase runs it (PGlite takes the machine's zone: dates then split at local midnight)
   await pg.exec(SUPABASE_STUBS);
   for (const dir of [MIGRATIONS, PENDING]) {
     if (!fs.existsSync(dir)) continue;

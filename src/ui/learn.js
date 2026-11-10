@@ -300,6 +300,8 @@ var GCLearn = (function () {
         '<div class="row">' + star(false) + '<span>' + esc(T('black')) + '<small>' + esc(T('usedUp')) + '</small></span></div>');
     }
 
+    var wantDaily = false; // asked for from outside (the daily board on Play): the next render opens the daily puzzle
+    function showDaily() { wantDaily = true; }
     function render(host) {
       demos.forEach(function (d) { d.stop(); if (io) io.unobserve(d.mb.wrap); });
       demos = [];
@@ -392,6 +394,8 @@ var GCLearn = (function () {
           if (!p.hint) puzzle.hint();
         }, 'try-hint'));
         acts.appendChild(btn(T('showAnswer'), '', function () { puzzle.answer(); }, 'try-answer'));
+        // from the daily puzzle back to the series at any time (the daily stays a tap away on its line)
+        if (inDaily) acts.appendChild(btn(T('puzzleSeries'), '', function () { inDaily = false; open(pIndex); }, 'try-series'));
       }
       var ui = {
         status: function (text, cls) { status.className = 'try-status' + (cls ? ' ' + cls : ''); status.textContent = text; },
@@ -451,7 +455,10 @@ var GCLearn = (function () {
       }
       if (typeof ResizeObserver !== 'undefined') { var tro = new ResizeObserver(function () { fitTry(); }); tro.observe(host); }
       // the daily puzzle first, unless it is solved or this is someone's first day (they start with the easy ones)
-      if (dailyNow && !dailyNow.solved && !(ctx.newcomer && ctx.newcomer() && !solvedCount())) openDaily();
+      // a player back from an earlier day starts on the daily puzzle, once a day (the daily line above the board opens it
+      // any time); a new player goes through the series undisturbed, and a reload keeps the place in it
+      var asked = wantDaily; wantDaily = false;
+      if (dailyNow && !dailyNow.solved && (asked || (ctx.newcomer && !ctx.newcomer() && (!ctx.dailyAuto || ctx.dailyAuto())))) openDaily();
       else open(Math.min(pIndex, PUZZLES.length - 1));
 
       // the rule
@@ -518,7 +525,7 @@ var GCLearn = (function () {
       if (playDemo) { playDemo.wanted = v === 'play' && playDemo.mb.wrap.isConnected; playDemo.update(); }
       if (puzzle && v !== 'learn') puzzle.clearTimers();
     }
-    return { render: render, active: active, heroBoard: heroBoard, dailyBoard: dailyBoard, PUZZLES: PUZZLES };
+    return { render: render, active: active, heroBoard: heroBoard, dailyBoard: dailyBoard, showDaily: showDaily, PUZZLES: PUZZLES };
   }
   return { create: create, DEMOS: DEMOS, PUZZLES: PUZZLES, REEL: REEL };
 })();

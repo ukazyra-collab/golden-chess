@@ -220,6 +220,10 @@ async def main():
             ok('result dialog shows rating change', await wait_for(Bl, '!!document.querySelector(".fo-rating .up, .fo-rating .down")', 3000))
             diffs = admin('game', game=gid)
             ok('ratings changed by Glicko-2', diffs['white_diff'] < 0 < diffs['black_diff'], (diffs['white_diff'], diffs['black_diff']))
+            # fair play (prototype, on in the test server): a quiet report line on a game between two people, every move timed
+            ok('fair: a report line on the result card', await wait_for(Bl, '!!document.querySelector("#btn-report")', 3000))
+            mt = diffs.get('mt') or []
+            ok('fair: the server timed every move', len(mt) == len(diffs['moves']) and all(isinstance(x, int) and x >= -1 for x in mt), (mt, len(diffs['moves'])))
             for nm, pg in (('A', A), ('B', B)):
                 r = await settle(pg); ok(f'board consistent ({nm})', r == [], r)
 
