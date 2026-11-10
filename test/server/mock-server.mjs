@@ -290,6 +290,15 @@ const server = http.createServer(async (req, res) => {
         games: over.length, games7: since(7).length, games30: since(30).length, games_house30: since(30).filter((g) => g.house).length, live: [...db.games.values()].filter((g) => g.status === 'playing').length,
         active7: players(since(7)), active30: players(since(30)), returned: [...seen.values()].filter((s) => s.size >= 2).length,
         pools: since(30).reduce((a, g) => (a[g.pool] = (a[g.pool] || 0) + 1, a), {}), days };
+      // the day log (activity): people a day by platform, retention, cohorts, what was done this week
+      const act = [...(db.activity || new Map()).values()].filter((a) => human(a.user_id) && !db.admins.has(a.user_id)), people = profs.filter((p) => !db.admins.has(p.id));
+      const on = (u, d) => act.some((a) => a.user_id === u && a.day === d), plus = (d, n) => day(Date.parse(d) + n * 86400000), today = day(t);
+      out.dau = []; for (let i = 13; i >= 0; i--) { const d = day(t - i * 86400000), rows = act.filter((a) => a.day === d); out.dau.push({ d, n: rows.length, ios: rows.filter((a) => a.platform === 'ios').length, android: rows.filter((a) => a.platform === 'android').length, web: rows.filter((a) => a.platform === 'web').length }); }
+      const first = (p) => day(Date.parse(p.created_at)), rate = (k, test) => { const base = people.filter((p) => plus(first(p), k) <= today); return { n: base.filter(test).length, of: base.length }; };
+      out.ret = { d1: rate(1, (p) => on(p.id, plus(first(p), 1))), d7: rate(7, (p) => on(p.id, plus(first(p), 7))), back: rate(1, (p) => act.some((a) => a.user_id === p.id && a.day > first(p))) };
+      const byDay = new Map(); people.forEach((p) => { const c = first(p); if (!byDay.has(c)) byDay.set(c, []); byDay.get(c).push(p); });
+      out.cohorts = [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([d, ps]) => ({ d, size: ps.length, d1: ps.filter((p) => on(p.id, plus(d, 1))).length, d7: ps.filter((p) => on(p.id, plus(d, 7))).length, back: ps.filter((p) => act.some((a) => a.user_id === p.id && a.day > d)).length }));
+      out.kinds7 = {}; act.filter((a) => a.day > day(t - 7 * 86400000)).forEach((a) => a.kinds.forEach((k) => { out.kinds7[k] = (out.kinds7[k] || 0) + 1; }));
     }
     else if (b.op === 'house') out = [...db.house.values()].map(clone);
     else if (b.op === 'outbox') out = accounts.outbox.filter((m) => !b.to || m.to === b.to);

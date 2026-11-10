@@ -26,6 +26,7 @@ let setSeen, quietAll, ageSeek, setRating, playedAgo;
 if (PG) {
   const { setupPg } = await import('./pg-harness.mjs');
   ({ repo, inspect, cleanup, pg } = await setupPg([A, B, C, D, H, E, F, G, M1, M2, M3]));
+  inspect.activity = async (uid) => (await pg.query('select platform, kinds from public.activity where user_id = $1', [uid])).rows;
   setSeen = (uid, on) => pg.query('update public.profiles set last_seen = ' + (on ? 'now()' : 'null') + ' where id = $1', [uid]);
   quietAll = () => pg.query('update public.profiles set last_seen = null');
   ageSeek = (uid, ms) => pg.query('update public.seeks set since = since - make_interval(secs => $2) where user_id = $1', [uid, ms / 1000]);
@@ -41,7 +42,8 @@ if (PG) {
 } else {
   const m = createMemoryRepo(now);
   repo = m.repo;
-  inspect = { profiles: async () => [...m.db.profiles.values()], ratings: async () => [...m.db.ratings.values()], game: async (id) => m.db.games.get(id) };
+  inspect = { profiles: async () => [...m.db.profiles.values()], ratings: async () => [...m.db.ratings.values()], game: async (id) => m.db.games.get(id),
+    activity: async (uid) => [...(m.db.activity || new Map()).values()].filter((x) => x.user_id === uid) };
   addHouse = async (o) => m.addHouse(o);
   setSeen = async (uid, on) => { const p = m.db.profiles.get(uid); if (p) p.last_seen = on ? new Date(T).toISOString() : null; };
   quietAll = async () => { for (const p of m.db.profiles.values()) p.last_seen = null; };
@@ -469,6 +471,15 @@ if (PG) {
   check('stats: sign-in methods', st.methods && st.methods.google === 1 && st.methods.email === 1, st.methods);
   check('stats: games, active players, the last 30 days by day', st.games >= 5 && st.active30 >= 2 && Array.isArray(st.days) && st.days.length === 31 && st.days.some((d) => d.games >= 1), [st.games, st.active30, st.days && st.days.length]);
   check('stats: house games counted apart', st.games_house30 >= 3 && st.games_house30 <= st.games30, [st.games_house30, st.games30]);
+  // the day log: B came yesterday and is back today; the owner (A) is left out of everything
+  await pg.query("update public.profiles set created_at = now() - interval '1 day' where id = $1", [B]);
+  await pg.query("insert into public.activity (user_id, day, platform, kinds) values ($1, current_date - 1, 'android', '{open}') on conflict do nothing", [B]);
+  await ok(B, { action: 'hello', platform: 'android' });
+  const st2 = await stats(A);
+  check('stats: people a day for two weeks, by platform', Array.isArray(st2.dau) && st2.dau.length === 14 && st2.dau[13].android >= 1 && st2.dau.every((d) => d.n >= d.ios + d.android + d.web), st2.dau && st2.dau.slice(-2));
+  check('stats: D1 retention counts B', st2.ret && st2.ret.d1.n >= 1 && st2.ret.d1.of >= st2.ret.d1.n && st2.ret.back.n >= 1, st2.ret);
+  check('stats: cohorts by first day, newest first', Array.isArray(st2.cohorts) && st2.cohorts.length >= 1 && st2.cohorts.some((c) => c.size >= 1 && c.d1 >= 1), st2.cohorts);
+  check('stats: what was done this week', st2.kinds7 && st2.kinds7.open >= 1, st2.kinds7);
 }
 
 // ---- matchmaking: people play people first; close ratings first; the house only fills in
@@ -595,6 +606,15 @@ check('the pool\'s size comes with the board, and no own row while the caller is
 await ok(A, { action: 'hello' }); // A has the app open
 r = await ok(A, { action: 'lobby' });
 check('lobby: online players, games on, seekers', r.online >= 1 && r.games >= 0 && r.seeking === 0, r);
+
+// the day's activity: hello counts as 'open' (with the platform), the app adds what was played; anything else is refused
+await ok(A, { action: 'hello', platform: 'ios' });
+await ok(A, { action: 'act', what: 'bot', platform: 'ios' });
+await ok(A, { action: 'act', what: 'bot', platform: 'ios' });
+r = await call(A, { action: 'act', what: 'drop table' });
+check('act: unknown kind refused', r.body.error === 'bad_kind', r.body);
+{ const act = await inspect.activity(A);
+  check('act: one row a day, open and bot once each, the platform', act.length === 1 && act[0].platform === 'ios' && act[0].kinds.join() === 'open,bot', act); }
 
 // glicko sanity
 const gw = glicko2(1500, 350, 0.06, 1500, 350, 1);

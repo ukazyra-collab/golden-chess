@@ -210,6 +210,9 @@ export function createLogic(opts) {
   }
   const settled = async (g, seen) => { try { return { game: await settle(g, seen) }; } catch (e) { if (e.code === 'conflict') return { game: e.extra }; throw e; } };
 
+  const ACT_KINDS = new Set(['open', 'bot', 'online', 'learn', 'local', 'friend']);
+  const platformOf = (b) => (['ios', 'android', 'web'].includes(b && b.platform) ? b.platform : 'web');
+
   // ---- actions ----
   const A = {};
 
@@ -223,8 +226,18 @@ export function createLogic(opts) {
     if (!prof) throw new Fail('profile');
     // a guest who has since saved the account with an email (or Google) login
     if (guest !== null && prof.is_guest !== guest) prof = (await repo.setGuest(uid, guest)) || Object.assign(prof, { is_guest: guest });
-    const [ratings, live, admin] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid), repo.isAdmin ? repo.isAdmin(uid) : false, repo.touchSeen ? repo.touchSeen(uid) : null]);
+    const [ratings, live, admin] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid), repo.isAdmin ? repo.isAdmin(uid) : false, repo.touchSeen ? repo.touchSeen(uid) : null,
+      repo.noteActivity ? repo.noteActivity(uid, platformOf(b), 'open').catch(() => null) : null]);
     return { profile: prof, ratings: ratings || [], live: live || null, now: now(), admin: !!admin || undefined };
+  };
+
+  // the day's activity of a player (the owner's retention numbers): what they did today, on which platform. The app sends
+  // each kind at most once a day; hello counts as 'open'.
+  A.act = async (uid, b) => {
+    const what = String(b.what || '');
+    if (!ACT_KINDS.has(what)) throw new Fail('bad_kind');
+    if (repo.noteActivity) await repo.noteActivity(uid, platformOf(b), what);
+    return { ok: true };
   };
 
   // who is around: for the search dialog ("12 players online · 3 games on")

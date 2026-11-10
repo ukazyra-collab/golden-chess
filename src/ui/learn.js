@@ -366,7 +366,11 @@ var GCLearn = (function () {
       var ui = {
         status: function (text, cls) { status.className = 'try-status' + (cls ? ' ' + cls : ''); status.textContent = text; },
         goodText: function (p) { return p.good ? T(p.good) : p.mate ? T('pzMate', { n: p.mate }) : T('pzGood'); },
-        solved: function () { done[PUZZLES[pIndex].id] = 1; saveDone(); drawHead(); actions('solved'); },
+        solved: function () {
+          var first = !done[PUZZLES[pIndex].id];
+          done[PUZZLES[pIndex].id] = 1; saveDone(); drawHead(); actions('solved');
+          if (ctx.track) ctx.track('puzzle_solved', { puzzle: PUZZLES[pIndex].id, first: first, solved: solvedCount() });
+        },
         wrong: function () { /* keep the message until the next try */ },
         // right or wrong, said on the board itself, where the eyes are
         flash: function (text, cls) {

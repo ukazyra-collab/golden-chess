@@ -122,6 +122,15 @@ export function createPgRepo(sql) {
       if (!UUID.test(String(uid))) return;
       try { await sql`update public.profiles set last_seen = now() where id = ${uid}`; } catch (e) { /* older schema */ }
     },
+    // one row per player per day (UTC): the platform last used and the kinds of play seen that day
+    async noteActivity(uid, platform, kind) {
+      if (!UUID.test(String(uid))) return;
+      try {
+        await sql`insert into public.activity as a (user_id, day, platform, kinds) values (${uid}, (now() at time zone 'utc')::date, ${platform}, array[${kind}]::text[])
+          on conflict (user_id, day) do update set platform = excluded.platform,
+            kinds = case when ${kind} = any(a.kinds) then a.kinds else a.kinds || excluded.kinds end`;
+      } catch (e) { /* older schema */ }
+    },
     // who is around right now: people seen by the app in the last minutes, heartbeating in a game or looking for a
     // game, and the house players whose hours these are (about half of them at any moment, a different half every half
     // minute, so the number lives); faces: a handful of them for the search dialog's carousel

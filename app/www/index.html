@@ -657,6 +657,13 @@ html { overscroll-behavior: none; overflow: hidden; }
   opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .22s cubic-bezier(.2, .9, .3, 1.1); text-align: center; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.gold { background: var(--gold); color: #2a1c03; }
+.consent { position: fixed; z-index: 55; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 72px);
+  max-width: 460px; margin: 0 auto; box-sizing: border-box; padding: 14px 16px; border-radius: 18px; background: rgba(52, 58, 55, .92); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, .1); box-shadow: 0 14px 40px rgba(0, 0, 0, .45); display: flex; flex-direction: column; gap: 12px; }
+.consent p { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--bone); }
+.consent-acts { display: flex; gap: 10px; justify-content: flex-end; }
+.consent-acts .sbtn { height: 42px; min-width: 112px; }
+.shell[data-view="game"] ~ .consent { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
 .credit { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
 .privacy-link { align-self: flex-start; text-decoration: underline; text-underline-offset: 3px; margin-top: -12px; }
 
@@ -717,6 +724,18 @@ html { overscroll-behavior: none; overflow: hidden; }
 .st-chart { width: 100%; height: 86px; display: block; }
 .st-chart .bar { fill: var(--brand-hi); opacity: .85; }
 .st-chart .dot { fill: var(--bone); opacity: .8; }
+.st-h { margin: 16px 0 8px; font-size: 13px; font-weight: 800; color: var(--muted); }
+.stats-card .st-grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.st-dau .pf-ios, .st-pf .pf-ios { fill: var(--bone); background: var(--bone); }
+.st-dau .pf-android, .st-pf .pf-android { fill: var(--brand-hi); background: var(--brand-hi); }
+.st-dau .pf-web, .st-pf .pf-web { fill: var(--gold); background: var(--gold); }
+.st-pf { display: inline-flex; align-items: center; gap: 4px; }
+.st-pf i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.st-table-wrap { overflow-x: auto; }
+.st-table { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.st-table th { text-align: right; font-weight: 700; color: var(--muted); padding: 4px 6px; }
+.st-table td { text-align: right; padding: 5px 6px; border-top: 1px solid rgba(255, 255, 255, .06); }
+.st-table th:first-child, .st-table td:first-child { text-align: left; }
 .st-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 2px; }
 .house-note { font-size: 12.5px; color: var(--muted); padding: 8px 10px; border-radius: 10px; background: var(--raise); }
 .pl-head { display: flex; align-items: center; gap: 14px; margin: 4px 0 14px; }
@@ -5178,7 +5197,11 @@ var GCLearn = (function () {
       var ui = {
         status: function (text, cls) { status.className = 'try-status' + (cls ? ' ' + cls : ''); status.textContent = text; },
         goodText: function (p) { return p.good ? T(p.good) : p.mate ? T('pzMate', { n: p.mate }) : T('pzGood'); },
-        solved: function () { done[PUZZLES[pIndex].id] = 1; saveDone(); drawHead(); actions('solved'); },
+        solved: function () {
+          var first = !done[PUZZLES[pIndex].id];
+          done[PUZZLES[pIndex].id] = 1; saveDone(); drawHead(); actions('solved');
+          if (ctx.track) ctx.track('puzzle_solved', { puzzle: PUZZLES[pIndex].id, first: first, solved: solvedCount() });
+        },
         wrong: function () { /* keep the message until the next try */ },
         // right or wrong, said on the board itself, where the eyes are
         flash: function (text, cls) {
@@ -5511,7 +5534,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       goldenWhiteOnce: 'White: once per game', goldenBlackOnce: 'Black: once per game',
       goldenOnly: 'Only a queen, rook, bishop or knight can make the Joker Move', goldenGone: 'Your Joker Move is already used',
       goldenArmedToast: 'Joker Move on: pick a piece, then a joker dot', goldenPlayed: '{side} played the Joker Move {san}',
-      you: 'You', bot: 'Joker Bot', white: 'White', black: 'Black', level: 'Level {n}', haptics: 'Vibration',
+      you: 'You', bot: 'Joker Bot', white: 'White', black: 'Black', level: 'Level {n}', haptics: 'Vibration', usageStats: 'Usage statistics',
+      gaAsk: 'May we count visits? Google Analytics shows us which videos bring players and what to improve. No ads, nothing sold.', gaYes: 'Allow', gaNo: 'No thanks',
       lv1: 'Beginner', lv2: 'Casual', lv3: 'Club player', lv4: 'Strong club', lv5: 'Expert', lv6: 'Master', lv7: 'Grandmaster', lv8: 'Maximum',
       opponent: 'Opponent', computer: 'Computer', twoPlayers: 'Two players, one device', playAs: 'Play as', random: 'Random',
       timeControl: 'Time control', noClock: 'No clock', strength: 'Bot strength', play: 'Play',
@@ -5580,7 +5604,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       stats: 'Statistics', loading: 'Loading', stAccounts: 'accounts', stRegistered: '{n} registered', stGuests: '{n} guests', stNew7: 'new this week', stNew30: '{n} in 30 days',
       stActive7: 'played online this week', stActive30: '{n} in 30 days', stGames7: 'online games this week', stGames30: '{n} in 30 days', stTotal: '{n} in all',
       stMethods: 'Google / Apple / email', stReturned: 'came back another day', stLive: '{n} playing now', stHouseShare: '{n} vs house players in 30 days',
-      stPools: 'Last 30 days: bullet {bullet}, blitz {blitz}, rapid {rapid}', stLegend: 'games per day (top {g}), dots: new accounts',
+      stPools: 'Last 30 days: bullet {bullet}, blitz {blitz}, rapid {rapid}', stRetH: 'Retention', stD1: 'back the next day', stD7: 'back on day 7', stBack: 'came back at all', stOf: '{n} of {of}',
+      stDauH: 'People a day, two weeks', stDauLegend: 'iOS · Android · web', stCohortH: 'By first day', stCohortCols: 'day|new|D1|D7|back', stKinds: 'This week: online {online}, bots {bot}, puzzles {learn}, one phone {local}', stLegend: 'games per day (top {g}), dots: new accounts',
       guestNote: 'Guest: your rating is kept on this device only.', saveProgress: 'Save progress',
       guestRatingNote: 'Your rating is kept on this device only. Add your email to keep it.',
       playH: 'Play online',
@@ -5678,7 +5703,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       goldenWhiteOnce: 'Белые: один раз за партию', goldenBlackOnce: 'Чёрные: один раз за партию',
       goldenOnly: 'Джокер делают только ферзь, ладья, слон или конь', goldenGone: 'Ваш джокер уже сделан',
       goldenArmedToast: 'Джокер: выберите фигуру, затем точку джокера', goldenPlayed: '{side}: джокер {san}',
-      you: 'Вы', bot: 'Joker Bot', white: 'Белые', black: 'Чёрные', level: 'Уровень {n}', haptics: 'Вибрация',
+      you: 'Вы', bot: 'Joker Bot', white: 'Белые', black: 'Чёрные', level: 'Уровень {n}', haptics: 'Вибрация', usageStats: 'Статистика использования',
+      gaAsk: 'Можно считать визиты? Google Analytics покажет, какие ролики приводят игроков и что улучшить. Без рекламы и продажи данных.', gaYes: 'Разрешить', gaNo: 'Не надо',
       lv1: 'Новичок', lv2: 'Любитель', lv3: 'Клубный игрок', lv4: 'Сильный клубный', lv5: 'Эксперт', lv6: 'Мастер', lv7: 'Гроссмейстер', lv8: 'Максимум',
       opponent: 'Соперник', computer: 'Компьютер', twoPlayers: 'Двое на одном устройстве', playAs: 'Играть за', random: 'Случайно',
       timeControl: 'Контроль времени', noClock: 'Без часов', strength: 'Сила бота', play: 'Играть',
@@ -5749,7 +5775,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       stats: 'Статистика', loading: 'Загрузка', stAccounts: 'аккаунтов', stRegistered: 'зарегистрировано {n}', stGuests: 'гостей {n}', stNew7: 'новых за неделю', stNew30: '{n} за 30 дней',
       stActive7: 'играли онлайн за неделю', stActive30: '{n} за 30 дней', stGames7: 'онлайн-партий за неделю', stGames30: '{n} за 30 дней', stTotal: 'всего {n}',
       stMethods: 'Google / Apple / почта', stReturned: 'вернулись в другой день', stLive: 'сейчас играют: {n}', stHouseShare: '{n} с ботами за 30 дней',
-      stPools: 'За 30 дней: пуля {bullet}, блиц {blitz}, рапид {rapid}', stLegend: 'партий в день (максимум {g}), точки: новые аккаунты',
+      stPools: 'За 30 дней: пуля {bullet}, блиц {blitz}, рапид {rapid}', stRetH: 'Удержание', stD1: 'вернулись на следующий день', stD7: 'вернулись на 7-й день', stBack: 'вернулись хоть раз', stOf: '{n} из {of}',
+      stDauH: 'Людей в день, две недели', stDauLegend: 'iOS · Android · сайт', stCohortH: 'По дню прихода', stCohortCols: 'день|новых|D1|D7|вернулись', stKinds: 'За неделю: онлайн {online}, боты {bot}, задачи {learn}, вдвоём {local}', stLegend: 'партий в день (максимум {g}), точки: новые аккаунты',
       guestNote: 'Гость: рейтинг хранится только на этом устройстве.', saveProgress: 'Сохранить прогресс',
       guestRatingNote: 'Рейтинг хранится только на этом устройстве. Добавьте почту, чтобы не потерять его.',
       playH: 'Играть онлайн',
@@ -5836,7 +5863,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       t_knight: 'коня', t_bishop: 'слона', t_rook: 'ладью', t_queen: 'ферзя', sideGenW: 'белых', sideGenB: 'чёрных'
     }
   };
-  var settings = Object.assign({ sound: true, haptics: true, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
+  var settings = Object.assign({ sound: true, haptics: true, stats: true, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
   var lang = settings.lang || (/^ru\b/i.test(navigator.language || '') ? 'ru' : 'en');
   function T(key, vars) {
     var s = (STR[lang] && STR[lang][key]) || STR.en[key] || key;
@@ -6406,6 +6433,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     moveSound(rec);
     // the special moments, felt: a Joker Move by either side, a check against me
     if (rec.golden) haptic('joker'); else if (rec.check && theirs) haptic('check');
+    if (rec.golden && !theirs && wasLive) Track.event('joker_move', { mode: game.online ? 'online' : game.cfg.mode, ply: game.records.length });
     if (rec.golden && (theirs || !oppGame())) toast(T('goldenPlayed', { side: sideLabel(rec.color), san: rec.san }), 'gold');
     if (analysis.on) setAnalysis(false);
     if (onlineGame() && !theirs) sendMove(rec);
@@ -7005,6 +7033,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     board.setOrientation(orient);
     board.sync(game.pos.board, []);
     Sound.play('start');
+    Track.event('game_start', { mode: setup.mode, level: setup.mode === 'bot' ? setup.level : 0, tc: setup.tc || 'none' });
+    noteAct(setup.mode === 'bot' ? 'bot' : 'local');
     go('game');
     renderAll(); persist();
     if (setup.mode === 'bot' && game.pos.side !== human) requestBot();
@@ -7015,6 +7045,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     setGoldenArmed(false);
     board.sync(displayBoard(), []);
     var outcome = humanOutcome();
+    if (!spectating() && !game.tracked) {
+      game.tracked = true;
+      Track.event('game_end', { mode: game.online ? 'online' : game.cfg.mode, result: game.reason === 'abort' ? 'abort' : oppGame() ? (outcome === 1 ? 'win' : outcome === 0 ? 'draw' : 'loss') : 'played', reason: game.reason || '', moves: game.records.length });
+    }
     if (!game.online && !game.histKey && game.reason !== 'abort' && game.records.length >= 2) saveLocalGame();
     if (game.online) hist.at = 0;
     if (botGame() && !game.counted && game.reason !== 'abort') {
@@ -7597,6 +7631,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     }
     sw(T('sound'), 'sound', function () { Sound.setEnabled(settings.sound); if (settings.sound) { Sound.unlock(); Sound.play('move'); } }, 'set-sound');
     if (hapticsAvailable()) sw(T('haptics'), 'haptics', function () { if (settings.haptics) haptic('found'); }, 'set-haptics');
+    if (Track.live) sw(T('usageStats'), 'stats', function () { Track.setOn(settings.stats); }, 'set-stats');
     var fa = h('div', { class: 'field' }); fa.appendChild(h('div', { class: 'lbl' }, esc(T('animation'))));
     fa.appendChild(seg([{ v: 'fast', label: T('animFast'), id: 'anfast' }, { v: 'normal', label: T('animNormal'), id: 'annormal' }, { v: 'off', label: T('animOff'), id: 'anoff' }], settings.anim, function (v) { settings.anim = v; applySettings(); saveSettings(); }));
     card.appendChild(fa);
@@ -7844,6 +7879,59 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       return call('Browser', 'open', { url: url, presentationStyle: 'popover' }).catch(function () { location.assign(url); });
     }
     return { on: on, platform: platform, redirect: 'goldenchess://auth', call: call, listen: listen, has: has, openUrl: openUrl };
+  })();
+
+  // ---- usage statistics (Google Analytics 4): how many people come, from where (links under videos carry utm_ tags) and
+  // what they play. Only on the real site and in the apps that show it; Google signals and ad features off. In Europe
+  // (told by the time zone) it starts once the player allows it; anywhere it can be turned off in Settings.
+  var Track = (function () {
+    var GA_ID = 'G-7H6JEWRSN5';
+    var live = /(^|\.)(joker-chess|golden-chess)\.com$/.test(location.hostname) && !window.GC_APP_OFFLINE;
+    var tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* old browser */ }
+    var europe = /^Europe\//.test(tz) || /^Atlantic\/(Reykjavik|Canary|Madeira|Azores|Faroe)$/.test(tz);
+    var started = false, queue = [], firstPage = true;
+    function answer() { return load('gaConsent', null); } // 'yes' | 'no' | null (not asked)
+    function allowed() { return live && settings.stats !== false && (europe ? answer() === 'yes' : answer() !== 'no'); }
+    function start() {
+      if (started || !allowed()) return;
+      started = true;
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () { window.dataLayer.push(arguments); };
+      window.gtag('js', new Date());
+      window.gtag('config', GA_ID, { send_page_view: false, allow_google_signals: false, allow_ad_personalization_signals: false, cookie_flags: 'SameSite=None;Secure' });
+      window.gtag('set', 'user_properties', { platform: NATIVE.platform, app_lang: lang });
+      var sc = document.createElement('script'); sc.async = true; sc.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+      document.head.appendChild(sc);
+      queue.splice(0).forEach(function (a) { window.gtag.apply(null, a); });
+    }
+    function event(name, params) {
+      if (!live || settings.stats === false) return;
+      var a = ['event', name, params || {}];
+      if (started) window.gtag.apply(null, a); else if (queue.length < 40) queue.push(a);
+    }
+    // a tab is a page: /play, /learn …; the first one keeps the address's utm_ tags, which say where the visit came from
+    function page(v) {
+      event('page_view', { page_title: v, page_location: location.origin + '/' + v + (firstPage ? location.search : '') });
+      firstPage = false;
+    }
+    function setOn(on) {
+      if (on) { if (europe) save('gaConsent', 'yes'); start(); }
+      else if (started && window.gtag) window.gtag('consent', 'update', { analytics_storage: 'denied' });
+    }
+    // Europe, not asked yet: one small card above the tab bar, one bright button
+    function ask() {
+      if (!live || !europe || answer() !== null || settings.stats === false || document.getElementById('consent')) return;
+      var c = h('div', { class: 'consent', id: 'consent', role: 'dialog', 'aria-live': 'polite' });
+      c.appendChild(h('p', {}, esc(T('gaAsk'))));
+      var row = h('div', { class: 'consent-acts' });
+      var no = h('button', { class: 'sbtn', type: 'button', id: 'consent-no' }, esc(T('gaNo')));
+      var yes = h('button', { class: 'sbtn hot', type: 'button', id: 'consent-yes' }, esc(T('gaYes')));
+      no.addEventListener('click', function () { save('gaConsent', 'no'); c.remove(); });
+      yes.addEventListener('click', function () { save('gaConsent', 'yes'); c.remove(); start(); });
+      row.appendChild(no); row.appendChild(yes); c.appendChild(row);
+      document.body.appendChild(c);
+    }
+    return { live: live, start: start, event: event, page: page, setOn: setOn, ask: ask };
   })();
 
   // ---- haptics: a few special moments are felt, never every move — the opponent found, a Joker Move, a check
@@ -8119,7 +8207,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     if (!NETCFG) return Promise.reject(new Error('offline'));
     if (netReady) return netReady;
     try { getClient(); } catch (e) { return Promise.reject(e); }
-    netReady = net.ready().then(function () { return Promise.all([net.call('hello'), net.account().catch(function () { return null; })]); }).then(function (rr) {
+    netReady = net.ready().then(function () { return Promise.all([net.call('hello', { platform: NATIVE.platform }), net.account().catch(function () { return null; })]); }).then(function (rr) {
       var r = rr[0], a = rr[1];
       me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest, gname: a && a.gname || '', admin: !!r.admin };
       noteAvatars([r.profile]);
@@ -8129,6 +8217,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     });
     netReady.catch(function () { netReady = null; });
     return netReady;
+  }
+  // the day log (the owner's retention numbers): what a player with an account did today, each kind once a day
+  function noteAct(kind) {
+    if (!NETCFG || !hasNetSession()) return;
+    var day = new Date().toISOString().slice(0, 10), seen = load('act', {});
+    if (seen[kind] === day) return;
+    seen[kind] = day; save('act', seen);
+    ensureNet().then(function () { return net.call('act', { what: kind, platform: NATIVE.platform }); }).catch(function () { /* a lost note is fine */ });
   }
   function refreshMe() {
     if (!net || !me) return Promise.resolve();
@@ -8213,6 +8309,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   function startSeek(tc, rated) {
     if (lobby && lobby.kind === 'invite') cancelLobby(); else stopLobby(); // a search takes the place of an open invite
     var L = lobby = { kind: 'seek', tc: tc, rated: rated, t0: perf(), timer: 0, tick: 0, span: seekSpan(), houseTimer: 0 };
+    Track.event('search_start', { tc: tc, rated: !!rated });
     showLobbyDialog();
     ensureNet().then(function () {
       seekTick(L);
@@ -8981,6 +9078,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     }).then(function (how) {
       // another player: start over as that one (as after an email code for another account)
       if (how === 'other') { save('online', null); save('notice', 'signedIn'); setUrl(null); location.reload(); return; }
+      Track.event('login', { method: provider });
       return refreshMe().then(function () {
         if (currentDialog && currentDialog.dataset.kind === 'account') closeDialog();
         toast(T('signedInAs', { email: (me && me.email) || '' }));
@@ -9175,6 +9273,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     if (analysis.on) setAnalysis(false);
     closeDialog();
     var color = s.white_id === me.uid ? 0 : s.black_id === me.uid ? 1 : -1;
+    if (color >= 0 && s.status === 'playing' && !(s.moves && s.moves.length)) noteAct('online'); Track.event('game_start', { mode: 'online', rated: !!s.rated, tc: (s.tc_base / 60000) + '+' + (s.tc_inc / 1000), opponent: s.house ? 'house' : 'person' });
     var o = online = { id: s.id, s: null, color: color, pending: null, sub: null, connected: false, lastEvent: perf(), oppHere: s.house ? true : null,
       claimBusy: false, claimNext: 0, reading: false, firstSec: -1, peer: null, peerMoves: [], houseAt: -1, houseReq: 0, houseTimers: [],
       seenTimer: 0, awayAt: 0, awaySec: -1, houseAway: false };
@@ -9625,6 +9724,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   function showView(v) {
     var prev = curView;
     curView = v; shellEl.dataset.view = v;
+    if (prev !== v) Track.page(v);
     VIEWS.forEach(function (x) { var el = viewEl(x); if (el) el.hidden = x !== v; });
     // a short fade as the tab comes in (not for the game, whose board sits still)
     if (prev !== null && prev !== v && v !== 'game') { var ve = viewEl(v); if (ve) { ve.classList.remove('view-in'); void ve.offsetWidth; ve.classList.add('view-in'); } }
@@ -9678,7 +9778,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     game.paused = false; if (game.clock) game.clock.since = perf();
   }
   function kit() {
-    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
+    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ track: function (n, p) { Track.event(n, p); if (n === 'puzzle_solved') noteAct('learn'); }, T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
     return learnKit;
   }
 
@@ -10086,6 +10186,34 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
         tile((m.google || 0) + ' / ' + (m.apple || 0) + ' / ' + (m.email || 0), T('stMethods'), '') +
         tile(st.returned, T('stReturned'), T('stLive', { n: st.live }) + ', ' + T('stHouseShare', { n: st.games_house30 })) + '</div>';
       html += '<div class="st-sub">' + esc(T('stPools', { bullet: pools.bullet || 0, blitz: pools.blitz || 0, rapid: pools.rapid || 0 })) + '</div>';
+      // from the day log: retention, people a day by platform, cohorts by first day
+      if (st.ret) {
+        var pc = function (x) { return x && x.of ? Math.round(x.n / x.of * 100) + '%' : '–'; };
+        html += '<h3 class="st-h">' + esc(T('stRetH')) + '</h3><div class="st-grid st-grid3">' +
+          tile(pc(st.ret.d1), T('stD1'), T('stOf', { n: st.ret.d1.n, of: st.ret.d1.of })) +
+          tile(pc(st.ret.d7), T('stD7'), T('stOf', { n: st.ret.d7.n, of: st.ret.d7.of })) +
+          tile(pc(st.ret.back), T('stBack'), T('stOf', { n: st.ret.back.n, of: st.ret.back.of })) + '</div>';
+      }
+      if (st.dau && st.dau.length) {
+        var maxD = 1; st.dau.forEach(function (d) { maxD = Math.max(maxD, d.n); });
+        var DW = 300, DH = 60, dw = DW / st.dau.length, dsvg = '<svg class="st-chart st-dau" viewBox="0 0 ' + DW + ' ' + DH + '" preserveAspectRatio="none" aria-hidden="true">';
+        st.dau.forEach(function (d, i) {
+          var y = DH, x = (i * dw + 1).toFixed(1), w = Math.max(1, dw - 2).toFixed(1), other = d.n - d.ios - d.android - d.web;
+          [['ios', d.ios], ['android', d.android], ['web', d.web + Math.max(0, other)]].forEach(function (p) {
+            if (!p[1]) return; var hh = p[1] / maxD * DH; y -= hh;
+            dsvg += '<rect x="' + x + '" y="' + y.toFixed(1) + '" width="' + w + '" height="' + hh.toFixed(1) + '" class="pf-' + p[0] + '"/>';
+          });
+        });
+        dsvg += '</svg>';
+        html += '<h3 class="st-h">' + esc(T('stDauH')) + '</h3><div class="st-chart-wrap">' + dsvg + '<div class="st-axis"><span>' + esc(st.dau[0].d.slice(5).replace('-', '.')) +
+          '</span><span class="st-pf"><i class="pf-ios"></i><i class="pf-android"></i><i class="pf-web"></i>' + esc(T('stDauLegend')) + '</span><span>' + esc(String(maxD)) + '</span></div></div>';
+      }
+      if (st.cohorts && st.cohorts.length) {
+        var cols = T('stCohortCols').split('|');
+        html += '<h3 class="st-h">' + esc(T('stCohortH')) + '</h3><div class="st-table-wrap"><table class="st-table"><thead><tr>' + cols.map(function (c) { return '<th>' + esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+          st.cohorts.slice(0, 14).map(function (c) { return '<tr><td>' + esc(c.d.slice(5).replace('-', '.')) + '</td><td>' + c.size + '</td><td>' + c.d1 + '</td><td>' + c.d7 + '</td><td>' + c.back + '</td></tr>'; }).join('') + '</tbody></table></div>';
+      }
+      if (st.kinds7) { var k7 = st.kinds7; html += '<div class="st-sub">' + esc(T('stKinds', { online: k7.online || 0, bot: k7.bot || 0, learn: k7.learn || 0, local: k7.local || 0 })) + '</div>'; }
       // a month by day: online games as bars, new accounts as dots on top
       var days = st.days || [], maxG = 1, maxN = 1;
       days.forEach(function (d) { maxG = Math.max(maxG, d.games); maxN = Math.max(maxN, d.new); });
@@ -10544,6 +10672,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     if (game.status === 'playing' && botGame() && !game.idle && game.pos.side !== game.cfg.human) requestBot();
     loop();
     bootOnline();
+    Track.start();
+    setTimeout(Track.ask, 2500);
   }
   var hot = window.claude && window.claude.hot;
   if (hot && typeof hot.snapshot === 'function') { try { hot.snapshot(function () { return { game: game && !game.online ? game.serialize() : null }; }); } catch (e) { /* ignore */ } }

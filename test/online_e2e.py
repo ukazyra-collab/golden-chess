@@ -362,11 +362,15 @@ async def main():
             await D.evaluate('window.__gcStatsRefresh = 1')
             await D.reload(); await D.evaluate(HELPERS); await D.wait_for_timeout(600)
             await D.evaluate('__gc.go("profile")')
-            ok('stats: the owner gets the Statistics card', await wait_for(D, '!!document.getElementById("stats-card") && document.querySelectorAll("#stats-card .st-tile").length === 6', 8000))
-            tiles = await D.evaluate('[...document.querySelectorAll("#stats-card .st-tile b")].map(b => b.textContent)')
+            ok('stats: the owner gets the Statistics card', await wait_for(D, '!!document.getElementById("stats-card") && document.querySelectorAll("#stats-card .st-grid:not(.st-grid3) .st-tile").length === 6', 8000))
+            tiles = await D.evaluate('[...document.querySelectorAll("#stats-card .st-grid:not(.st-grid3) .st-tile b")].map(b => b.textContent)')
             ok('stats: accounts, games and active players counted (house players left out)', int(tiles[0]) >= 3 and int(tiles[3]) >= 2 and int(tiles[2]) >= 1, tiles)
             ok('stats: a month of bars', await D.evaluate('document.querySelectorAll("#stats-card .st-chart .bar").length') == 31)
+            ok('stats: retention (next day, day 7, came back) from the day log', await D.evaluate('document.querySelectorAll("#stats-card .st-grid3 .st-tile").length') == 3)
+            ok('stats: people a day for two weeks, by platform', await D.evaluate('document.querySelectorAll("#stats-card .st-dau rect").length') >= 1)
+            ok('stats: cohorts by first day', await D.evaluate('document.querySelectorAll("#stats-card .st-table tbody tr").length') >= 1)
             await D.screenshot(path=os.path.join(ROOT, 'test/shots/profile-stats.png'))
+            await D.locator('#stats-card').screenshot(path=os.path.join(ROOT, 'test/shots/profile-stats-card.png'))
 
             # ---- 16. leaving: away during the opponent's turn is fine (the game waits); on one's own turn 20 s away loses,
             #          with a countdown on the other screen; coming back in time just goes on

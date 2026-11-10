@@ -52,6 +52,12 @@ The site has five tabs, like a chess site: **Play** (time control, Play, Play a 
 - A review is kept on the device (`goldenchess.reviewCache`, last 40 games; accuracy per game in `goldenchess.reviewSums`), so a reviewed game opens at once and its row in the history shows the accuracy.
 - **History**: Profile shows the latest games, All games lists them (online games from the `games` table, newest first, 50 at a time; games against the bots and on one device are kept on the device, newest 200). Chips above the list (and in Profile) give the score against each opponent over all games (`head_to_head()` in the database), in points as a match is counted (a draw is ½ each), and open that opponent's games with a score card (You 34 : 28 Boris, 32 wins, 4 draws, 26 losses). The result card of an online game shows the same score with the game just finished counted (asked for when the game opens, so it is there at once); a tap opens the games against that opponent. A row opens the game on the board with its report; back returns to the list, and a game in progress on the device is left as it was.
 
+## Usage statistics
+
+- **Google Analytics 4**: property "Joker Chess" (account "Hutka"), web stream joker-chess.com, measurement ID `G-7H6JEWRSN5`. The tag lives in the page (`Track` in app.js), so the site and both apps (which show the site) count alike; the `platform` user property says ios / android / web. Only on joker-chess.com / golden-chess.com (never on localhost, the mock server or the app's offline copy). Google signals and ad personalisation are off. In Europe (by the time zone) it waits for "Allow" on a small card; Settings → Usage statistics turns it off anywhere. Tabs are page views (`/play`, `/learn` …; the first keeps the utm_ tags, so links under videos show as sources). Events: `game_start` (mode, level / tc, opponent), `game_end` (mode, result, reason, moves), `joker_move`, `search_start`, `puzzle_solved`, `login` (method).
+- **The day log** (`public.activity`, migration 20261110180000): one row per player per day with the platform and what they did (open, bot, online, learn, local). `hello` writes `open`; the app sends `act` once a day per kind (players with an account). Profile → Statistics (owner only) shows retention (next day, day 7, came back at all), people a day by platform for two weeks, cohorts by first day and what was played this week.
+- Test: `python3 test/analytics_e2e.py` (the tag, consent in Europe, events, the switch).
+
 ## Tests
 
 - `node test/perft.js` — move generator vs reference perft counts

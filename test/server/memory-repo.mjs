@@ -162,6 +162,12 @@ export function createMemoryRepo(now) {
       if (!r || !r.games) return null;
       return { uid, name: db.profiles.get(uid)?.username || '?', avatar_v: db.profiles.get(uid)?.avatar_v || 0, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses };
     },
+    async noteActivity(uid, platform, kind) {
+      db.activity = db.activity || new Map();
+      const key = uid + '|' + iso(now()).slice(0, 10), row = db.activity.get(key) || { user_id: uid, day: iso(now()).slice(0, 10), platform, kinds: [] };
+      row.platform = platform; if (!row.kinds.includes(kind)) row.kinds.push(kind);
+      db.activity.set(key, row);
+    },
     async touchSeen(uid) { const p = db.profiles.get(uid); if (p) p.last_seen = iso(now()); },
     async lobby() {
       const t = now(), fresh = (x) => x && t - Date.parse(x) < 5 * 60000;
