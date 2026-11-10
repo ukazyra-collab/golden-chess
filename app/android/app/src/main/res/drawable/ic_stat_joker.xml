@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The status bar icon of the reminders (white on transparent, as Android draws it): a jester's cap, the Joker. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M5,16 L3.6,7.9 L8.2,11.2 L12,4.9 L15.8,11.2 L20.4,7.9 L19,16 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M1.8,6.5 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0 Z M10.5,3.2 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0 Z M19.2,6.5 a1.5,1.5 0 1,0 3,0 a1.5,1.5 0 1,0 -3,0 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M5,17.2 h14 v2.6 a0.8,0.8 0 0,1 -0.8,0.8 h-12.4 a0.8,0.8 0 0,1 -0.8,-0.8 Z" />
+</vector>

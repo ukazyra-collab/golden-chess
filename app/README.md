@@ -82,3 +82,19 @@ jarsigner -verify golden-chess-unsigned.aab   # jar verified.
 - Android: `AndroidManifest.xml` (возврат по `goldenchess://auth`), `MainActivity.java` (телефоны вертикально), `res/values/styles.xml` (заставка), адаптивная иконка с монохромным вариантом для тем Android 13.
 - Сайт: `NATIVE`, `nativeUrl`, `nativeBack`, `nativeInit` в `src/ui/app.js`; проверка — `python3 test/native_app.py`.
 - Сборки: `.github/workflows/app.yml`.
+
+## Напоминания (прототип, нужна версия приложения 1.4)
+
+Напоминания о задаче дня и серии — локальные уведомления, которые планирует сам сайт (`planReminders` в
+`src/ui/app.js`, расписание в `src/habits.js`): без сервера и без ключей пушей. Плагин должен быть вшит в приложение,
+поэтому они заработают со следующей сборкой в сторы:
+
+- `@capacitor/local-notifications` 8.3.1 уже в `package.json`, `npx cap sync` добавил его в оба проекта
+  (`ios/App/CapApp-SPM/Package.swift`, `android/capacitor.settings.gradle`).
+- `capacitor.config.json` → `plugins.LocalNotifications`: иконка в строке состояния Android `ic_stat_joker`
+  (`android/app/src/main/res/drawable/ic_stat_joker.xml`, белая на прозрачном) и золотой акцент.
+- Android 13+ спрашивает разрешение на уведомления, когда игрок соглашается в приложении (плагин объявляет
+  `POST_NOTIFICATIONS`). Точные будильники не нужны: напоминание может прийти на пару минут позже, а
+  `SCHEDULE_EXACT_ALARM` Google Play для таких приложений не разрешает.
+- iOS: для локальных уведомлений ничего добавлять не нужно (capability Push не нужна), система спросит сама.
+- Пока не установлена 1.4, сайт не видит плагина и ничего про напоминания не показывает.

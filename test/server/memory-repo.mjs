@@ -7,7 +7,9 @@ export function createMemoryRepo(now) {
   // as gc_house_pair's house_wait; the browser suites set MOCK_HOUSE_WAIT=0 (their other pages are always "around")
   const HOUSE_WAIT = process.env.MOCK_HOUSE_WAIT != null ? +process.env.MOCK_HOUSE_WAIT : 5000;
   const iso = (t) => new Date(t).toISOString();
-  const db = { games: new Map(), profiles: new Map(), ratings: new Map(), seeks: new Map(), house: new Map(), admins: new Set(), seen: new Map() };
+  const db = { games: new Map(), profiles: new Map(), ratings: new Map(), seeks: new Map(), house: new Map(), admins: new Set(), seen: new Map(),
+    blurs: [], reports: [], fairScores: [], refunds: new Set() };
+  const closed = (uid) => (db.profiles.get(uid) || {}).fair === 'closed'; // out of the leaderboard (fair play)
   const GAME_DEFAULTS = { status: 'playing', white_id: null, black_id: null, white_name: null, black_name: null, white_rating: null, black_rating: null,
     host_id: null, host_color: null, rated: true, moves: [], sans: [], turn_started_at: null, result: null, reason: null, white_diff: null, black_diff: null,
     white_after: null, black_after: null, draw_offer: null, rematch_offer: null, rematch_game: null, version: 0, house: null, house_style: null, code: null };
@@ -148,19 +150,76 @@ export function createMemoryRepo(now) {
     },
     async deleteSeek(uid) { db.seeks.delete(uid); },
     async top(pool, n) {
-      return [...db.ratings.values()].filter((r) => r.pool === pool && r.games > 0).sort((a, b) => b.rating - a.rating).slice(0, n)
+      return [...db.ratings.values()].filter((r) => r.pool === pool && r.games > 0 && !closed(r.user_id)).sort((a, b) => b.rating - a.rating).slice(0, n)
         .map((r) => ({ uid: r.user_id, name: db.profiles.get(r.user_id)?.username || '?', avatar_v: db.profiles.get(r.user_id)?.avatar_v || 0, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses }));
     },
     async rankOf(uid, pool) {
       const r = db.ratings.get(uid + '|' + pool);
-      if (!r || !r.games) return null;
-      return [...db.ratings.values()].filter((x) => x.pool === pool && x.games > 0 && x.rating > r.rating).length + 1;
+      if (!r || !r.games || closed(uid)) return null;
+      return [...db.ratings.values()].filter((x) => x.pool === pool && x.games > 0 && x.rating > r.rating && !closed(x.user_id)).length + 1;
     },
-    async poolSize(pool) { return [...db.ratings.values()].filter((x) => x.pool === pool && x.games > 0).length; },
+    async poolSize(pool) { return [...db.ratings.values()].filter((x) => x.pool === pool && x.games > 0 && !closed(x.user_id)).length; },
     async rowOf(uid, pool) {
       const r = db.ratings.get(uid + '|' + pool);
-      if (!r || !r.games) return null;
+      if (!r || !r.games || closed(uid)) return null;
       return { uid, name: db.profiles.get(uid)?.username || '?', avatar_v: db.profiles.get(uid)?.avatar_v || 0, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses };
+    },
+    async setPrefs(uid, lang, tz, opt) {
+      const p = db.profiles.get(uid);
+      if (lang) p.lang = lang;
+      if (tz) p.tz = tz;
+      if (opt !== null && opt !== p.email_opt) { p.email_opt = opt; p.email_opt_at = iso(now()); }
+      return { lang: p.lang || 'en', tz: p.tz || null, email_opt: p.email_opt == null ? null : p.email_opt };
+    },
+    // ---- fair play (as supabase/pending/*_fair_play.sql)
+    async noteBlur(row) { db.blurs.push(Object.assign({ at: iso(now()) }, row)); },
+    async addReport(o) {
+      if (db.reports.some((x) => x.reporter === o.reporter && x.game_id === o.game_id)) return { again: true };
+      const day = now() - 86400000;
+      if (db.reports.filter((x) => x.reporter === o.reporter && Date.parse(x.at) > day).length >= o.limit) return { limited: true };
+      db.reports.push({ id: db.reports.length + 1, at: iso(now()), reporter: o.reporter, accused: o.accused, game_id: o.game_id, why: o.why, note: o.note, status: 'open' });
+      return {};
+    },
+    async fairList(n) {
+      const by = new Map();
+      for (const x of db.reports) {
+        const p = db.profiles.get(x.accused) || {};
+        const e = by.get(x.accused) || { uid: x.accused, name: p.username || '?', fair: p.fair || 'ok', open: 0, reports: 0, reporters: new Set(), why: {}, games: [], last_at: null, score: null };
+        e.reports++; if (x.status === 'open') e.open++;
+        e.reporters.add(x.reporter); e.why[x.why] = (e.why[x.why] || 0) + 1;
+        if (!e.games.includes(x.game_id)) e.games.push(x.game_id);
+        if (!e.last_at || x.at > e.last_at) e.last_at = x.at;
+        by.set(x.accused, e);
+      }
+      for (const sc of db.fairScores) {
+        const p = db.profiles.get(sc.user_id) || {};
+        const e = by.get(sc.user_id) || { uid: sc.user_id, name: p.username || '?', fair: p.fair || 'ok', open: 0, reports: 0, reporters: new Set(), why: {}, games: [], last_at: null, score: null };
+        if (!e.score || sc.at > e.score.at) e.score = clone(sc);
+        by.set(sc.user_id, e);
+      }
+      return [...by.values()].map((e) => Object.assign(e, { reporters: e.reporters.size }))
+        .filter((e) => e.open > 0 || (e.score && e.score.verdict !== 'ok') || e.fair === 'watch')
+        .sort((a, b) => b.open - a.open || (b.score ? b.score.z : 0) - (a.score ? a.score.z : 0)).slice(0, n);
+    },
+    async fairSet(uid, state, by) {
+      const p = db.profiles.get(uid);
+      p.fair = state;
+      let refunds = 0;
+      for (const x of db.reports) if (x.accused === uid && x.status === 'open' && state !== 'watch') { x.status = state === 'closed' ? 'confirmed' : 'cleared'; x.handled_by = by; x.handled_at = iso(now()); }
+      if (state === 'closed') {
+        // the rating its opponents lost to it in the last 30 days goes back to them (once per game)
+        for (const g of db.games.values()) {
+          if (g.status !== 'over' || !g.rated || Date.parse(g.updated_at) < now() - 30 * 86400000) continue;
+          const side = g.white_id === uid ? 'w' : g.black_id === uid ? 'b' : null;
+          if (!side) continue;
+          const victim = side === 'w' ? g.black_id : g.white_id, lost = side === 'w' ? g.black_diff : g.white_diff;
+          if (!(lost < 0) || db.refunds.has(g.id + '|' + victim) || closed(victim)) continue;
+          const r = db.ratings.get(victim + '|' + g.pool);
+          if (!r) continue;
+          db.refunds.add(g.id + '|' + victim); r.rating -= lost; refunds++;
+        }
+      }
+      return { refunds };
     },
     async noteActivity(uid, platform, kind) {
       db.activity = db.activity || new Map();

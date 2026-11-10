@@ -19,14 +19,18 @@ const D = PG ? 'dddddddd-0000-4000-8000-000000000004' : 'dave';
 const H = PG ? 'eeeeeeee-0000-4000-8000-000000000005' : 'house1';
 const [E, F, G] = PG ? ['ffffffff-0000-4000-8000-000000000006', 'ffffffff-0000-4000-8000-000000000007', 'ffffffff-0000-4000-8000-000000000008'] : ['erin', 'frank', 'grace'];
 const [M1, M2, M3] = PG ? ['99999999-0000-4000-8000-000000000011', '99999999-0000-4000-8000-000000000012', '99999999-0000-4000-8000-000000000013'] : ['mona', 'milo', 'mira'];
+const [X1, X2] = PG ? ['77777777-0000-4000-8000-000000000021', '77777777-0000-4000-8000-000000000022'] : ['xena', 'xavi']; // fair play
 let repo, inspect, cleanup = async () => {}, addHouse, pg;
 // test knobs for matchmaking: when a player last opened the app (null: not lately), how long a search has run, a rating
 let setSeen, quietAll, ageSeek, setRating, playedAgo;
 // playedAgo(u, v, ms): the finished games between two players ended ms ago (the search keeps just-met players apart)
 if (PG) {
   const { setupPg } = await import('./pg-harness.mjs');
-  ({ repo, inspect, cleanup, pg } = await setupPg([A, B, C, D, H, E, F, G, M1, M2, M3]));
+  ({ repo, inspect, cleanup, pg } = await setupPg([A, B, C, D, H, E, F, G, M1, M2, M3, X1, X2]));
   inspect.activity = async (uid) => (await pg.query('select platform, kinds from public.activity where user_id = $1', [uid])).rows;
+  inspect.blurs = async (gid) => (await pg.query('select user_id, ply, n, away_ms from public.fair_blurs where game_id = $1', [gid])).rows;
+  inspect.houseGame = async () => (await pg.query('select id from public.games where house is not null limit 1')).rows[0]?.id;
+  inspect.makeAdmin = (uid) => pg.query('insert into public.admins (user_id) values ($1) on conflict do nothing', [uid]);
   setSeen = (uid, on) => pg.query('update public.profiles set last_seen = ' + (on ? 'now()' : 'null') + ' where id = $1', [uid]);
   quietAll = () => pg.query('update public.profiles set last_seen = null');
   ageSeek = (uid, ms) => pg.query('update public.seeks set since = since - make_interval(secs => $2) where user_id = $1', [uid, ms / 1000]);
@@ -43,7 +47,9 @@ if (PG) {
   const m = createMemoryRepo(now);
   repo = m.repo;
   inspect = { profiles: async () => [...m.db.profiles.values()], ratings: async () => [...m.db.ratings.values()], game: async (id) => m.db.games.get(id),
-    activity: async (uid) => [...(m.db.activity || new Map()).values()].filter((x) => x.user_id === uid) };
+    activity: async (uid) => [...(m.db.activity || new Map()).values()].filter((x) => x.user_id === uid),
+    blurs: async (gid) => m.db.blurs.filter((x) => x.game_id === gid), houseGame: async () => [...m.db.games.values()].find((g) => g.house)?.id,
+    makeAdmin: async (uid) => m.db.admins.add(uid) };
   addHouse = async (o) => m.addHouse(o);
   setSeen = async (uid, on) => { const p = m.db.profiles.get(uid); if (p) p.last_seen = on ? new Date(T).toISOString() : null; };
   quietAll = async () => { for (const p of m.db.profiles.values()) p.last_seen = null; };
@@ -52,7 +58,7 @@ if (PG) {
   setRating = async (uid, pool, rating) => { const k = uid + '|' + pool; m.db.ratings.set(k, Object.assign(m.db.ratings.get(k) || { user_id: uid, pool, rd: 80, vol: 0.06, games: 10, wins: 0, draws: 0, losses: 0 }, { rating })); };
 }
 const sent = [];
-const logic = createLogic({ repo, GC, now, broadcast: async (topic, event, payload) => { sent.push({ topic, event, payload }); } });
+const logic = createLogic({ repo, GC, now, fair: true, mail: true, broadcast: async (topic, event, payload) => { sent.push({ topic, event, payload }); } });
 const call = async (uid, body) => { const r = await logic.handle(Promise.resolve(uid), body); return r; };
 const ok = async (uid, body) => { const r = await call(uid, body); if (r.status !== 200 || r.body.error) throw new Error(body.action + ' failed: ' + JSON.stringify(r.body)); return r.body; };
 
@@ -615,6 +621,86 @@ r = await call(A, { action: 'act', what: 'drop table' });
 check('act: unknown kind refused', r.body.error === 'bad_kind', r.body);
 { const act = await inspect.activity(A);
   check('act: one row a day, open and bot once each, the platform', act.length === 1 && act[0].platform === 'ios' && act[0].kinds.join() === 'open,bot', act); }
+
+// ---- fair play (prototype): the time each move took, the device's away counts, reports, the owner's decision
+{
+  T = Math.max(T, Date.now()); // the database's own clock judges "the last 30 days" of a closed account's games
+  r = await ok(X1, { action: 'hello' });
+  await ok(X2, { action: 'hello' });
+  check('fair: hello says reports are on', r.fair === true, r.fair);
+  r = await ok(X1, { action: 'challenge', tc: '3+2', color: 'w', rated: true });
+  r = await ok(X2, { action: 'join', code: r.game.code });
+  const fg = r.game;
+  check('fair: a rated game, X1 white', fg.white_id === X1 && fg.black_id === X2 && fg.rated && fg.pool === 'blitz', [fg.white_id, fg.rated, fg.pool]);
+  T += 2000; await ok(X1, { action: 'move', game: fg.id, uci: 'e2e4', ply: 0 });
+  T += 3000; await ok(X2, { action: 'move', game: fg.id, uci: 'e7e5', ply: 1 });
+  T += 4000; await ok(X1, { action: 'move', game: fg.id, uci: 'g1f3', ply: 2, bl: 2, aw: 3500 });
+  T += 1500; r = await ok(X2, { action: 'move', game: fg.id, uci: 'b8c6', ply: 3 });
+  check('fair: the time each move took, measured by the server', JSON.stringify(r.game.mt) === '[2000,3000,4000,1500]', r.game.mt);
+  const bl = await inspect.blurs(fg.id);
+  check('fair: the device left the game twice during move 3, kept apart from the game', bl.length === 1 && bl[0].user_id === X1 && bl[0].ply === 2 && bl[0].n === 2 && bl[0].away_ms === 3500, bl);
+  check('fair: away counts are not in the game everyone can read', !('bl' in r.game) && !('aw' in r.game) && !('fair_blurs' in r.game));
+  r = await call(A, { action: 'report', game: fg.id, why: 'engine' });
+  check('fair: only a player of the game reports it', r.body.error === 'not_player', r.body);
+  r = await ok(X2, { action: 'report', game: fg.id, why: 'engine', note: '  far   too good ' });
+  check('fair: a report taken', r.ok === true && !r.again, r);
+  r = await ok(X2, { action: 'report', game: fg.id, why: 'abuse' });
+  check('fair: once a game', r.again === true, r);
+  check('fair: a few a day', (await repo.addReport({ reporter: X2, accused: X1, game_id: g1.id, why: 'engine', note: '', limit: 1 })).limited === true);
+  const hgid = await inspect.houseGame();
+  if (hgid) { r = await call(D, { action: 'report', game: hgid, why: 'engine' }); check('fair: not a house player (the developer\'s own)', ['house', 'not_player'].includes(r.body.error), r.body); }
+  // X2 resigns: the points X2 lost come back when X1's account is closed
+  r = await ok(X2, { action: 'resign', game: fg.id });
+  const lost = r.game.black_diff;
+  check('fair: rated, X2 lost points', r.game.status === 'over' && lost < 0, [r.game.status, lost]);
+  const ratingOf = async (u) => (await inspect.ratings()).find((x) => x.user_id === u && x.pool === 'blitz').rating;
+  const before = await ratingOf(X2);
+  r = await call(X2, { action: 'fair_list' });
+  check('fair: the list is the owner\'s', r.body.error === 'not_admin', r.body);
+  r = await call(X2, { action: 'fair_set', user: X1, state: 'closed' });
+  check('fair: so is the decision', r.body.error === 'not_admin', r.body);
+  await inspect.makeAdmin(A);
+  r = await ok(A, { action: 'fair_list' });
+  let row = r.players.find((x) => x.uid === X1);
+  check('fair: the reported player listed, with the report', row && row.open === 1 && row.reporters === 1 && row.why.engine === 1 && row.games.includes(fg.id) && row.fair === 'ok', r.players);
+  r = await call(A, { action: 'fair_set', user: X1, state: 'banned' });
+  check('fair: unknown decision refused', r.body.error === 'bad_state', r.body);
+  r = await ok(A, { action: 'fair_set', user: X1, state: 'watch' });
+  row = (await ok(A, { action: 'fair_list' })).players.find((x) => x.uid === X1);
+  check('fair: on watch, the reports stay open', r.state === 'watch' && row && row.open === 1 && row.fair === 'watch', row);
+  r = await ok(A, { action: 'fair_set', user: X1, state: 'closed' });
+  check('fair: closed, one game refunded', r.state === 'closed' && r.refunds === 1, r);
+  const after = await ratingOf(X2);
+  check('fair: the points X2 lost came back', Math.abs(after - before + lost) < 0.001, [before, after, lost]);
+  r = await ok(A, { action: 'fair_set', user: X1, state: 'closed' });
+  check('fair: never refunded twice', r.refunds === 0, r);
+  r = await ok(X1, { action: 'top', pool: 'blitz' });
+  check('fair: a closed account is out of the leaderboard', !r.rows.some((x) => x.uid === X1) && r.rank === null && r.me === null, [r.rank, r.me]);
+  for (const action of ['seek', 'house', 'challenge']) {
+    r = await call(X1, { action, tc: '3+2', rated: true });
+    check('fair: a closed account can\'t play people: ' + action, r.body.error === 'closed', r.body);
+  }
+  r = await ok(C, { action: 'challenge', tc: '3+2' });
+  r = await call(X1, { action: 'join', code: r.game.code });
+  check('fair: ... nor join an invite', r.body.error === 'closed', r.body);
+  r = await ok(A, { action: 'fair_list' });
+  check('fair: handled reports leave the list', !r.players.some((x) => x.uid === X1), r.players.map((x) => x.name));
+  r = await ok(A, { action: 'fair_set', user: X1, state: 'ok' });
+  r = await ok(X1, { action: 'top', pool: 'blitz' });
+  check('fair: cleared, back on the board', r.rows.some((x) => x.uid === X1) || r.rank > 0, [r.rank]);
+}
+
+// ---- emails (prototype): language, time zone, the yes / no; a guest has no address to say yes with
+{
+  r = await ok(X2, { action: 'hello' });
+  check('mail: hello says emails are on', r.mail === true, r.mail);
+  r = await ok(X2, { action: 'prefs', lang: 'ru', tz: 'Europe/Moscow' });
+  check('mail: language and zone kept, no answer yet', r.prefs.lang === 'ru' && r.prefs.tz === 'Europe/Moscow' && r.prefs.email_opt === null, r.prefs);
+  r = await ok(X2, { action: 'prefs', email_opt: true, tz: 'not a zone; drop table' });
+  check('mail: the yes kept, a junk zone ignored', r.prefs.email_opt === true && r.prefs.tz === 'Europe/Moscow', r.prefs);
+  r = await logic.handle(Promise.resolve({ sub: X2, guest: true }), { action: 'prefs', email_opt: true });
+  check('mail: not from a guest', r.body.error === 'guest', r.body);
+}
 
 // glicko sanity
 const gw = glicko2(1500, 350, 0.06, 1500, 350, 1);

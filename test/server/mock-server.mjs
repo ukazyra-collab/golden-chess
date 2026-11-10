@@ -42,7 +42,7 @@ function presence(topic) {
   for (const c of set) send(c.res, 'presence', uids);
 }
 
-const logic = createLogic({ repo, broadcast, GC, now });
+const logic = createLogic({ repo, broadcast, GC, now, fair: process.env.GC_FAIR !== 'off', mail: process.env.GC_MAIL !== 'off' });
 
 // ---- "Supabase Auth": a guest links an email (same account), or an email signs in (existing or new account).
 // Same answers as the real service: 422 email_exists / otp_disabled, 403 otp_expired, 429 when a code is

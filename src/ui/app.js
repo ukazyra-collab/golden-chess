@@ -18,6 +18,29 @@
       goldenOnly: 'Only a queen, rook, bishop or knight can make the Joker Move', goldenGone: 'Your Joker Move is already used',
       goldenArmedToast: 'Joker Move on: pick a piece, then a joker dot', goldenPlayed: '{side} played the Joker Move {san}',
       you: 'You', bot: 'Joker Bot', white: 'White', black: 'Black', level: 'Level {n}', haptics: 'Vibration', usageStats: 'Usage statistics',
+      dailyH: 'Daily puzzle', dailyN: 'Daily puzzle #{n}', dailyFind: 'find the Joker Move', dailySolvedCap: 'Solved! New puzzle tomorrow',
+      dailyDone: 'Solved! A new daily puzzle comes tomorrow.', dailyOpen: 'Open', dailySolvedLine: 'Solved', morePuzzles: 'More puzzles',
+      streakN: '{n}-day streak', streakRu: '{n} {d}', streakStart: 'Start a streak', streakHow: 'A game or a puzzle every day keeps it going. Missed a day? It waits two days for you.',
+      streakBest: 'Best: {n}.', streakDone: 'Today counts.', streakDue: 'Play a game or solve the daily puzzle to keep it today.',
+      streakPaused: 'Paused: play today and it goes on.', streakLost: 'Your {n}-day streak ended. A new one starts today.', saveStreak: 'Save your streak to an account',
+      wdShort: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+      remindT: 'Never miss the daily puzzle', remindSub: 'One reminder a day at most, never at night. Turn it off any time in Settings.', remindOn: 'Turn on reminders', notNowBtn: 'Not now',
+      reminders: 'Reminders', remindPlanH: 'Reminder plan on this device', remindNone: 'Nothing planned: reminders are off or there is nothing to remind.',
+      guestSaveRating: 'Your rating {r} and your streak live on this device only. Save them to an account: it takes ten seconds.',
+      reportPlayer: 'Report {name}', reportT: 'Report {name}', reportSub: 'We check the game with our engine and look at how each move was played. {name} is not told who reported.',
+      reportEngine: 'Used an engine or outside help', reportAbuse: 'Rude name or behaviour', reportOther: 'Something else', reportNote: 'Anything to add (optional)',
+      reportSend: 'Send report', reportSent: 'Thanks. We’ll check this game.', reportAgain: 'You have already reported this game.', reportMany: 'That’s a lot of reports for one day. Try again tomorrow.',
+      fairLine: 'Fair play: no engines, no outside help. Games are checked.',
+      closedT: 'This account can’t play people online', closedB: 'It broke the fair play rules. Bots, puzzles and games on one device are still open.',
+      fairH: 'Fair play', fairSub: 'Players reported or flagged by the nightly check. Close an account only when the numbers and the games agree.',
+      fairNone: 'No reports, nothing flagged.', fairReports: 'Reports: {n}', fairNums: 'Engine’s first choice {t1}% over {n} moves, avg loss {acpl}, z {z}', fairNoScan: 'Not checked yet',
+      fairJoker: 'Missed winning Joker Moves: {n} of {of}', fairWhy_engine: 'engine', fairWhy_abuse: 'abuse', fairWhy_other: 'other',
+      fairState_watch: 'On watch', fairState_closed: 'Closed', fairClear: 'Clear', fairWatch: 'Watch', fairClose: 'Close account', fairSure: 'Tap again to close',
+      fairClosedToast: 'Closed. Rating given back for {n} games.', fairDone: 'Done', fairOpen: 'Reports and checks',
+      emailOptLabel: 'Email me a weekly summary of my games. Stop any time.', emailsSw: 'Emails about my games',
+      emailsNote: 'A summary on Sundays, and a puzzle if you’ve been away a week. Never more than one a week.',
+      emailAskT: 'Your week by email?', emailAskB: 'Your games, rating and best win of the week, every Sunday evening. One email a week at most; stop any time.',
+      emailAskYes: 'Yes, send it',
       gaAsk: 'May we count visits? Google Analytics shows us which videos bring players and what to improve. No ads, nothing sold.', gaYes: 'Allow', gaNo: 'No thanks',
       lv1: 'Beginner', lv2: 'Casual', lv3: 'Club player', lv4: 'Strong club', lv5: 'Expert', lv6: 'Master', lv7: 'Grandmaster', lv8: 'Maximum',
       opponent: 'Opponent', computer: 'Computer', twoPlayers: 'Two players, one device', playAs: 'Play as', random: 'Random',
@@ -187,6 +210,29 @@
       goldenOnly: 'Джокер делают только ферзь, ладья, слон или конь', goldenGone: 'Ваш джокер уже сделан',
       goldenArmedToast: 'Джокер: выберите фигуру, затем точку джокера', goldenPlayed: '{side}: джокер {san}',
       you: 'Вы', bot: 'Joker Bot', white: 'Белые', black: 'Чёрные', level: 'Уровень {n}', haptics: 'Вибрация', usageStats: 'Статистика использования',
+      dailyH: 'Задача дня', dailyN: 'Задача дня #{n}', dailyFind: 'найди ход-джокер', dailySolvedCap: 'Решено! Новая задача завтра',
+      dailyDone: 'Решено! Новая задача дня — завтра.', dailyOpen: 'Открыть', dailySolvedLine: 'Решена', morePuzzles: 'Ещё задачи',
+      streakN: '{n}-day streak', streakRu: 'Серия: {n} {d}', streakStart: 'Начни серию', streakHow: 'Партия или задача каждый день продлевают серию. Пропустил день? Она подождёт два дня.',
+      streakBest: 'Рекорд: {n}.', streakDone: 'Сегодня засчитано.', streakDue: 'Сыграй партию или реши задачу дня, чтобы сегодня засчиталось.',
+      streakPaused: 'На паузе: сыграй сегодня, и серия продолжится.', streakLost: 'Серия из {n} дн. закончилась. Новая начнётся сегодня.', saveStreak: 'Сохранить серию в аккаунт',
+      wdShort: ['П', 'В', 'С', 'Ч', 'П', 'С', 'В'],
+      remindT: 'Не пропусти задачу дня', remindSub: 'Не больше одного напоминания в день и никогда ночью. Выключить можно в настройках.', remindOn: 'Включить напоминания', notNowBtn: 'Не сейчас',
+      reminders: 'Напоминания', remindPlanH: 'План напоминаний на этом устройстве', remindNone: 'Ничего не запланировано: напоминания выключены или напоминать не о чем.',
+      guestSaveRating: 'Рейтинг {r} и серия хранятся только на этом устройстве. Сохрани их в аккаунт — это десять секунд.',
+      reportPlayer: 'Пожаловаться на {name}', reportT: 'Жалоба на {name}', reportSub: 'Мы проверим партию движком и посмотрим, как делался каждый ход. {name} не узнает, кто пожаловался.',
+      reportEngine: 'Играл с движком или подсказками', reportAbuse: 'Грубое имя или поведение', reportOther: 'Другое', reportNote: 'Что добавить (необязательно)',
+      reportSend: 'Отправить жалобу', reportSent: 'Спасибо! Мы проверим эту партию.', reportAgain: 'Ты уже жаловался на эту партию.', reportMany: 'Слишком много жалоб за день. Попробуй завтра.',
+      fairLine: 'Честная игра: без движков и подсказок. Партии проверяются.',
+      closedT: 'Этот аккаунт не может играть онлайн', closedB: 'Он нарушил правила честной игры. Боты, задачи и игра на одном устройстве по-прежнему открыты.',
+      fairH: 'Честная игра', fairSub: 'Игроки с жалобами или замеченные ночной проверкой. Закрывай аккаунт, только когда цифры и партии говорят одно и то же.',
+      fairNone: 'Жалоб нет, проверка ничего не нашла.', fairReports: 'Жалоб: {n}', fairNums: 'Первый выбор движка {t1}% на {n} ходах, ср. потеря {acpl}, z {z}', fairNoScan: 'Ещё не проверен',
+      fairJoker: 'Пропущено выигрывающих джокеров: {n} из {of}', fairWhy_engine: 'движок', fairWhy_abuse: 'грубость', fairWhy_other: 'другое',
+      fairState_watch: 'Под наблюдением', fairState_closed: 'Закрыт', fairClear: 'Снять', fairWatch: 'Наблюдать', fairClose: 'Закрыть аккаунт', fairSure: 'Нажми ещё раз, чтобы закрыть',
+      fairClosedToast: 'Закрыт. Рейтинг возвращён за партий: {n}.', fairDone: 'Готово', fairOpen: 'Жалобы и проверки',
+      emailOptLabel: 'Присылать раз в неделю сводку моих партий. Можно отключить в любой момент.', emailsSw: 'Письма о моих партиях',
+      emailsNote: 'Сводка по воскресеньям и задача, если тебя не было неделю. Не чаще раза в неделю.',
+      emailAskT: 'Твоя неделя на почту?', emailAskB: 'Партии, рейтинг и лучшая победа недели — каждое воскресенье вечером. Не больше одного письма в неделю, отписаться можно в любой момент.',
+      emailAskYes: 'Да, присылайте',
       gaAsk: 'Можно считать визиты? Google Analytics покажет, какие ролики приводят игроков и что улучшить. Без рекламы и продажи данных.', gaYes: 'Разрешить', gaNo: 'Не надо',
       lv1: 'Новичок', lv2: 'Любитель', lv3: 'Клубный игрок', lv4: 'Сильный клубный', lv5: 'Эксперт', lv6: 'Мастер', lv7: 'Гроссмейстер', lv8: 'Максимум',
       opponent: 'Соперник', computer: 'Компьютер', twoPlayers: 'Двое на одном устройстве', playAs: 'Играть за', random: 'Случайно',
@@ -346,7 +392,7 @@
       t_knight: 'коня', t_bishop: 'слона', t_rook: 'ладью', t_queen: 'ферзя', sideGenW: 'белых', sideGenB: 'чёрных'
     }
   };
-  var settings = Object.assign({ sound: true, haptics: true, stats: true, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
+  var settings = Object.assign({ sound: true, haptics: true, stats: true, reminders: null, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
   var lang = settings.lang || (/^ru\b/i.test(navigator.language || '') ? 'ru' : 'en');
   function T(key, vars) {
     var s = (STR[lang] && STR[lang][key]) || STR.en[key] || key;
@@ -1135,6 +1181,7 @@
     return revPool.slice(0, k);
   }
   function startReview() {
+    noteDay('review');
     if (!game || !game.records.length) return;
     stopReview();
     var id = ++reqSeq, n = game.records.length, key = gameKey(), cached = key ? reviewCacheGet(key, n) : null;
@@ -1528,6 +1575,11 @@
     setGoldenArmed(false);
     board.sync(displayBoard(), []);
     var outcome = humanOutcome();
+    if (!spectating() && !game.tracked && game.reason !== 'abort' && game.records.length >= 2) {
+      noteDay(game.online ? 'online' : game.cfg.mode);
+      if (outcome === 1 && returningPlayer()) setTimeout(function () { askReminders('win'); }, 4200);
+      else if (game.online) setTimeout(function () { askEmailOpt('game'); }, 4200);
+    }
     if (!spectating() && !game.tracked) {
       game.tracked = true;
       Track.event('game_end', { mode: game.online ? 'online' : game.cfg.mode, result: game.reason === 'abort' ? 'abort' : oppGame() ? (outcome === 1 ? 'win' : outcome === 0 ? 'draw' : 'loss') : 'played', reason: game.reason || '', moves: game.records.length });
@@ -1954,9 +2006,10 @@
         card.appendChild(h('div', { class: 'faceoff' }, faceoffHtml()));
         if (st && !st.rated && st.status === 'over') card.appendChild(h('div', { class: 'dlg-note' }, esc(T('casualNote'))));
         if (st && st.rated && st.status === 'over' && !spectating() && me && me.guest) {
-          var nudge = h('div', { class: 'dlg-note acct-nudge', id: 'acct-nudge' }, '<span>' + esc(T('guestRatingNote')) + '</span>');
+          var nudge = h('div', { class: 'dlg-note acct-nudge', id: 'acct-nudge' }, '<span>' + esc(T('guestSaveRating', { r: ratingText(st.pool || 'blitz') })) + '</span>');
+          Track.event('save_prompt', { where: 'result' });
           var sp = h('button', { type: 'button', class: 'linkbtn', id: 'btn-save-progress' }, esc(T('saveProgress')));
-          sp.addEventListener('click', function () { showAccount(showOver); });
+          sp.addEventListener('click', function () { Track.event('save_tap', { where: 'result' }); showAccount(showOver); });
           nudge.appendChild(sp); card.appendChild(nudge);
         }
         var ms = h('div', { id: 'over-h2h-slot' }); card.appendChild(ms); renderMatch(ms);
@@ -1973,6 +2026,13 @@
           var no = h('button', { class: 'linkbtn center', type: 'button', id: 'btn-new-opp' }, esc(T('newOpponent')));
           no.addEventListener('click', function () { closeDialog(); newOpponent(); });
           card.appendChild(no);
+          // a person (not a house player), a game that was played: a quiet way to report them
+          if (fairOn() && st && !st.house && st.status === 'over' && (st.moves || []).length >= 2) {
+            var oppName = game.cfg.names[online.color ^ 1], gid = st.id;
+            var rp = h('button', { class: 'linkbtn center quiet', type: 'button', id: 'btn-report' }, esc(T('reportPlayer', { name: oppName })));
+            rp.addEventListener('click', function () { closeDialog(); setTimeout(function () { reportSheet(gid, oppName, showOver); }, 220); });
+            card.appendChild(rp);
+          }
         }
         return;
       }
@@ -2115,6 +2175,13 @@
     sw(T('sound'), 'sound', function () { Sound.setEnabled(settings.sound); if (settings.sound) { Sound.unlock(); Sound.play('move'); } }, 'set-sound');
     if (hapticsAvailable()) sw(T('haptics'), 'haptics', function () { if (settings.haptics) haptic('found'); }, 'set-haptics');
     if (Track.live) sw(T('usageStats'), 'stats', function () { Track.setOn(settings.stats); }, 'set-stats');
+    if (remindersAvailable()) sw(T('reminders'), 'reminders', function () {
+      if (settings.reminders && NATIVE.on && NATIVE.has('LocalNotifications')) NATIVE.call('LocalNotifications', 'requestPermissions').then(function (p) { if (!p || p.display !== 'granted') { settings.reminders = false; saveSettings(); } planReminders(); }, function () { /* refused */ });
+      else planReminders();
+      Track.event('reminders', { on: !!settings.reminders, reason: 'settings' });
+    }, 'set-reminders');
+    if (mailOn() && me && !me.guest) emailSwitch(card);
+    if (me && me.admin) { var rp = h('button', { type: 'button', class: 'linkbtn', id: 'btn-remind-plan' }, esc(T('remindPlanH'))); rp.addEventListener('click', remindPlanSheet); card.appendChild(rp); }
     var fa = h('div', { class: 'field' }); fa.appendChild(h('div', { class: 'lbl' }, esc(T('animation'))));
     fa.appendChild(seg([{ v: 'fast', label: T('animFast'), id: 'anfast' }, { v: 'normal', label: T('animNormal'), id: 'annormal' }, { v: 'off', label: T('animOff'), id: 'anoff' }], settings.anim, function (v) { settings.anim = v; applySettings(); saveSettings(); }));
     card.appendChild(fa);
@@ -2125,7 +2192,7 @@
     sw(T('premoves'), 'premoves', function () { if (!settings.premoves) cancelPremoves(false); }, 'set-pre');
     sw(T('autoQueen'), 'autoQueen', null, 'set-aq');
     var fl = h('div', { class: 'field' }); fl.appendChild(h('div', { class: 'lbl' }, esc(T('language'))));
-    fl.appendChild(seg([{ v: 'en', label: 'English' }, { v: 'ru', label: 'Русский' }], lang, function (v) { lang = settings.lang = v; saveSettings(); applyLang(); if (redraw) redraw(); }));
+    fl.appendChild(seg([{ v: 'en', label: 'English' }, { v: 'ru', label: 'Русский' }], lang, function (v) { lang = settings.lang = v; saveSettings(); applyLang(); syncPrefs(); if (redraw) redraw(); }));
     card.appendChild(fl);
   }
 
@@ -2417,6 +2484,353 @@
     return { live: live, start: start, event: event, page: page, setOn: setOn, ask: ask };
   })();
 
+  // ---- habits: the days played, the daily puzzle, the streak and the reminders on the phone (the rules: src/habits.js).
+  // A day counts once: a finished game of any kind, a solved puzzle, a game review. Kept on the device (the day log on
+  // the server counts the same days for players with an account).
+  var habitDays = load('days', []), habitHours = load('hours', []), dailyDone = load('dailyDone', {});
+  var FLAME_SVG = '<svg class="flame" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.2c.6 3.1-1.6 4.6-1.6 7 0 1.3.9 2.3 2.1 2.3 1.5 0 2.3-1.2 2.1-2.9 2.1 1.5 3.4 3.9 3.4 6.3A6.6 6.6 0 0 1 12 21.6a6.6 6.6 0 0 1-6.6-6.7c0-4.6 4.1-7.6 7.2-12.7z" fill="currentColor"/><path d="M12.2 13.3c.3 1.3-.7 1.9-.7 2.9 0 .7.5 1.2 1.1 1.2.8 0 1.2-.6 1.1-1.5 1 .7 1.6 1.7 1.6 2.7a3.2 3.2 0 0 1-6.4 0c0-2 1.6-3.3 3.3-5.3z" fill="rgba(42,28,3,.35)"/></svg>';
+  var DAILY_LIST = typeof JOKER_DAILY !== 'undefined' && JOKER_DAILY.length ? JOKER_DAILY : typeof JOKER_PUZZLES !== 'undefined' ? JOKER_PUZZLES : [];
+  function todayStr() { return Habits.dayOf(new Date()); }
+  function streakNow() { return Habits.streak(habitDays, todayStr()); }
+  function dailyToday() { var d = Habits.dailyFor(todayStr(), DAILY_LIST); if (d) d.solved = dailyDone[d.day] === d.p.id; return d; }
+  function returningPlayer() { return Habits.returning(habitDays, todayStr()); }
+  function streakText(n) { return lang === 'ru' ? T('streakRu', { n: n, d: ruForm(n, ['день подряд', 'дня подряд', 'дней подряд']) }) : T('streakN', { n: n }); }
+  function noteDay(kind) {
+    var t = todayStr();
+    if (habitDays.indexOf(t) >= 0) return false;
+    habitDays.push(t); habitDays = habitDays.slice(-400); save('days', habitDays);
+    var st = streakNow();
+    Track.event('streak_day', { count: st.count, kind: kind });
+    if (st.count >= 2) setTimeout(function () { toast(streakText(st.count), 'gold'); }, 1100);
+    if (curView === 'play') refreshView();
+    planReminders();
+    return true;
+  }
+  // the hours the player comes (the reminders go out at the usual one); one note per visit of three hours
+  function noteVisit() {
+    if (Date.now() - load('visitAt', 0) < 3 * 3600e3) return;
+    save('visitAt', Date.now());
+    habitHours.push(new Date().getHours()); habitHours = habitHours.slice(-20); save('hours', habitHours);
+  }
+  function solveDaily(d) {
+    if (!d || dailyDone[d.day] === d.p.id) return;
+    dailyDone[d.day] = d.p.id;
+    var keep = {}; Object.keys(dailyDone).sort().slice(-60).forEach(function (k) { keep[k] = dailyDone[k]; }); dailyDone = keep;
+    save('dailyDone', dailyDone);
+    Track.event('daily_solved', { n: d.n, lvl: d.lvl });
+    noteAct('learn');
+    noteDay('daily');
+    setTimeout(function () { askReminders('daily'); }, 2600);
+  }
+  function openDaily() { go('learn'); }
+  function streakChip() {
+    var st = streakNow();
+    if (st.count < 2) return null;
+    var b = h('button', { type: 'button', class: 'streak-chip' + (st.state === 'done' ? ' on' : st.state === 'paused' ? ' paused' : ''), id: 'streak-chip', 'aria-label': streakText(st.count) }, FLAME_SVG + '<b>' + st.count + '</b>');
+    b.addEventListener('click', streakSheet);
+    return b;
+  }
+  // the streak: the flame and its number, this week day by day, what keeps it today (the one bright action)
+  function streakSheet() {
+    var st = streakNow(), d = dailyToday();
+    Track.event('streak_open', { count: st.count, state: st.state });
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'streak';
+      card.classList.add('streak-card');
+      card.appendChild(h('div', { class: 'streak-big' + (st.state === 'done' ? ' on' : '') }, FLAME_SVG + '<b>' + st.count + '</b>'));
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(st.count ? streakText(st.count) : T('streakStart'))));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(st.state === 'done' ? T('streakDone') : st.state === 'paused' ? T('streakPaused') : st.lost ? T('streakLost', { n: st.lost }) : T('streakDue'))));
+      var wk = h('div', { class: 'streak-week', id: 'streak-week' }), names = T('wdShort');
+      st.week.forEach(function (x, i) { wk.appendChild(h('div', { class: 'wd' + (x.on ? ' on' : '') + (x.today ? ' today' : '') + (x.future ? ' future' : '') }, '<i>' + (x.on ? FLAME_SVG : '') + '</i><span>' + esc(names[i]) + '</span>')); });
+      card.appendChild(wk);
+      card.appendChild(h('div', { class: 'dlg-note' }, esc(T('streakHow')) + (st.best > 1 ? ' ' + esc(T('streakBest', { n: st.best })) : '')));
+      if (st.state !== 'done') {
+        if (d && !d.solved) card.appendChild(bigBtn('start-btn', T('dailyH'), 'btn-streak-daily', function () { closeDialog(); openDaily(); }));
+        else card.appendChild(bigBtn('start-btn', T('playMain'), 'btn-streak-play', function () { closeDialog(); go('play'); }));
+      }
+      if (NETCFG && !signedIn() && st.count >= 2) {
+        var sv = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-save-streak' }, esc(T('saveStreak')));
+        sv.addEventListener('click', function () { Track.event('save_prompt', { where: 'streak' }); showAccount(streakSheet); });
+        card.appendChild(sv);
+      }
+    });
+  }
+  // ---- reminders: notifications the phone itself shows at set times (Capacitor's LocalNotifications, in the app from
+  // the build that carries the plugin; nothing on the web). No server, no push keys: the plan (Habits.plan) is made
+  // again on every visit and every time the app goes to the background, so it always starts from the last visit.
+  var REMIND_IDS = []; (function () { for (var i = 7000; i <= 7030; i++) REMIND_IDS.push({ id: i }); })();
+  function remindersAvailable() { return (NATIVE.on && NATIVE.has('LocalNotifications')) || !!window.GC_PROTO; }
+  function remindPlan() { return settings.reminders ? Habits.plan({ now: new Date(), lang: lang, days: habitDays, hours: habitHours, hasGame: load('history', []).length > 0 || !!(hist && hist.online && hist.online.length) }) : []; }
+  var remindChannel = false;
+  function planReminders() {
+    if (!NATIVE.on || !NATIVE.has('LocalNotifications')) return;
+    var items = remindPlan();
+    var ch = NATIVE.platform === 'android' && !remindChannel ? NATIVE.call('LocalNotifications', 'createChannel', { id: 'reminders', name: T('reminders'), importance: 3, visibility: 1 }).then(function () { remindChannel = true; }, function () { /* the default channel then */ }) : Promise.resolve();
+    ch.then(function () { return NATIVE.call('LocalNotifications', 'cancel', { notifications: REMIND_IDS }); }).catch(function () { /* nothing pending */ }).then(function () {
+      if (!items.length) return null;
+      return NATIVE.call('LocalNotifications', 'schedule', { notifications: items.map(function (x) {
+        var n = { id: x.id, title: x.title, body: x.body, schedule: { at: x.at.toISOString(), allowWhileIdle: true }, extra: { go: x.go, kind: x.kind }, smallIcon: 'ic_stat_joker', iconColor: '#F0B941' };
+        if (NATIVE.platform === 'android' && remindChannel) n.channelId = 'reminders';
+        return n;
+      }) });
+    }).catch(function () { /* the plugin refused: no reminders this time */ });
+  }
+  // asked at a good moment (a solved daily puzzle, a won game), at most three times, five days apart
+  function askReminders(reason, force) {
+    if (!remindersAvailable() || (settings.reminders != null && !force) || currentDialog) return;
+    var a = load('remindAsk', { n: 0, at: 0 });
+    if (!force && (a.n >= 3 || Date.now() - a.at < 5 * 864e5)) return;
+    save('remindAsk', { n: a.n + 1, at: Date.now() });
+    Track.event('reminders_ask', { reason: reason });
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'remind';
+      card.classList.add('remind-card');
+      card.appendChild(h('div', { class: 'remind-art', 'aria-hidden': 'true' }, '<span class="bell">' + jokerPiece() + '</span>'));
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('remindT'))));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('remindSub'))));
+      card.appendChild(bigBtn('start-btn', T('remindOn'), 'btn-remind-on', function () {
+        closeDialog();
+        var req = NATIVE.on && NATIVE.has('LocalNotifications') ? NATIVE.call('LocalNotifications', 'requestPermissions') : Promise.resolve({ display: 'granted' });
+        req.then(function (p) { settings.reminders = !!p && p.display === 'granted'; }, function () { settings.reminders = false; }).then(function () {
+          saveSettings(); planReminders(); Track.event('reminders', { on: !!settings.reminders, reason: reason });
+        });
+      }));
+      var later = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-remind-later' }, esc(T('notNowBtn')));
+      later.addEventListener('click', function () { closeDialog(); Track.event('reminders_later', { reason: reason }); });
+      card.appendChild(later);
+    });
+  }
+  // ---- the prototype's preview (dist/proto.html only): made-up days to see each new screen without waiting for them
+  function protoTour() {
+    var pill = h('button', { type: 'button', class: 'proto-pill', id: 'proto-pill' }, esc(lang === 'ru' ? 'Прототип' : 'Prototype'));
+    pill.addEventListener('click', protoSheet);
+    document.body.appendChild(pill);
+  }
+  function protoSet(rel, solved) {
+    var t = todayStr();
+    habitDays = rel.map(function (k) { return Habits.addDays(t, k); }); save('days', habitDays);
+    dailyDone = {};
+    if (solved) { var d = Habits.dailyFor(t, DAILY_LIST); dailyDone[t] = d.p.id; }
+    save('dailyDone', dailyDone);
+    closeDialog(); go('play'); refreshView();
+  }
+  function protoSheet() {
+    var ru = lang === 'ru';
+    var rows = [
+      [ru ? 'День 1: новичок (ролик на главной)' : 'Day 1: a newcomer (the reel on Play)', function () { protoSet([]); }],
+      [ru ? 'День 4: вернулся, серия 3 дня, задача дня ждёт' : 'Day 4: back with a 3-day streak, daily puzzle waiting', function () { protoSet([-3, -2, -1]); }],
+      [ru ? 'Сегодня уже сыграно и задача решена' : 'Played today, daily puzzle solved', function () { protoSet([-2, -1, 0], true); }],
+      [ru ? 'Пропустил вчера: серия на паузе' : 'Missed yesterday: streak paused', function () { protoSet([-4, -3, -2]); }],
+      [ru ? 'Три дня не заходил: серия сгорела' : 'Three days away: streak lost', function () { protoSet([-8, -7, -6]); }],
+      [ru ? 'Окно серии' : 'The streak sheet', function () { closeDialog(); setTimeout(streakSheet, 250); }],
+      [ru ? 'Просьба включить напоминания' : 'The reminders ask', function () { closeDialog(); setTimeout(function () { askReminders('proto', true); }, 250); }],
+      [ru ? 'План напоминаний: тексты и время' : 'Reminder plan: texts and times', function () { closeDialog(); setTimeout(remindPlanSheet, 250); }],
+      [ru ? 'Письма: согласие при сохранении аккаунта' : 'Emails: the yes while saving the account', function () { closeDialog(); setTimeout(function () { showAccount(null); }, 250); }],
+      [ru ? 'Письма: вопрос после партии' : 'Emails: the ask after a game', function () { closeDialog(); setTimeout(function () { askEmailOpt('proto', true); }, 250); }],
+      [ru ? 'Честная игра: жалоба на соперника' : 'Fair play: reporting an opponent', function () { closeDialog(); setTimeout(function () { reportSheet('proto', 'NightOwlGM', null); }, 250); }],
+      [ru ? 'Честная игра: список владельца' : 'Fair play: the owner\'s list', function () { closeDialog(); setTimeout(fairListSheet, 250); }],
+      [ru ? 'Честная игра: закрытый аккаунт' : 'Fair play: a closed account', function () { closeDialog(); setTimeout(closedSheet, 250); }]
+    ];
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'proto';
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(ru ? 'Прототип: удержание' : 'Prototype: retention')));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(ru ? 'Дни выдуманы и живут только на этом устройстве. Ничего из этого не выкачено.' : 'Made-up days, on this device only. None of this is live.')));
+      var list = h('div', { class: 'proto-list' });
+      rows.forEach(function (r, i) { var b = h('button', { type: 'button', class: 'second-btn proto-row', id: 'proto-' + i }, esc(r[0])); b.addEventListener('click', r[1]); list.appendChild(b); });
+      card.appendChild(list);
+    });
+  }
+  // the owner's look at the plan: when each reminder would go out and what it says
+  function remindPlanSheet() {
+    var items = Habits.plan({ now: new Date(), lang: lang, days: habitDays, hours: habitHours, hasGame: true });
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'remind-plan';
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('remindPlanH'))));
+      if (!items.length) { card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('remindNone')))); return; }
+      var ul = h('div', { class: 'remind-list', id: 'remind-list' });
+      items.forEach(function (x) {
+        var when = x.at.toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ', ' + x.at.toLocaleTimeString(lang === 'ru' ? 'ru-RU' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
+        ul.appendChild(h('div', { class: 'remind-item' }, '<span class="when">' + esc(when) + '</span><b>' + esc(x.title) + '</b><span class="body">' + esc(x.body) + '</span>'));
+      });
+      card.appendChild(ul);
+    });
+  }
+
+  // ---- emails (prototype; the server says it keeps the yes / no in hello: me.mail)
+  function mailOn() { return !!((me && me.mail) || (window.GC_PROTO && !NETCFG)); }
+  // the server keeps the player's language and time zone (sent again only when they change) and the yes given while
+  // saving the account (sent once the account is saved)
+  function syncPrefs() {
+    if (!me || !me.mail || !net) return;
+    var tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* an old browser */ }
+    var key = lang + '|' + tz, pend = load('emailOptPending', null), body = {};
+    if (load('prefsSent', '') !== key) { body.lang = lang; if (tz) body.tz = tz; }
+    if (pend != null && !me.guest) body.email_opt = !!pend;
+    if (!Object.keys(body).length) return;
+    net.call('prefs', body).then(function (r) {
+      save('prefsSent', key);
+      if (body.email_opt != null) save('emailOptPending', null);
+      if (r && r.prefs && me && me.profile) me.profile.email_opt = r.prefs.email_opt;
+    }, function () { /* next time */ });
+  }
+  function setEmailOpt(on, where) {
+    if (window.GC_PROTO && !NETCFG) { if (me && me.profile) me.profile.email_opt = on; return Promise.resolve(); }
+    return ensureNet().then(function () { return net.call('prefs', { email_opt: on }); }).then(function (r) {
+      if (me && me.profile) me.profile.email_opt = r.prefs.email_opt;
+      Track.event('email_opt', { on: on, where: where });
+    });
+  }
+  function emailSwitch(card) {
+    var on = !!(me && me.profile && me.profile.email_opt);
+    var row = h('div', { class: 'toggle-row' }), lab = h('span', { id: 'set-email-l' }); lab.textContent = T('emailsSw');
+    var b = h('button', { class: 'sw', type: 'button', role: 'switch', id: 'set-email', 'aria-labelledby': 'set-email-l', 'aria-checked': String(on) });
+    b.addEventListener('click', function () {
+      var next = b.getAttribute('aria-checked') !== 'true';
+      b.setAttribute('aria-checked', String(next));
+      setEmailOpt(next, 'settings').catch(function () { b.setAttribute('aria-checked', String(!next)); toast(T('netError')); });
+    });
+    row.appendChild(lab); row.appendChild(b); card.appendChild(row);
+    card.appendChild(h('div', { class: 'set-note', id: 'set-email-note' }, esc(T('emailsNote'))));
+  }
+  // a saved account that never answered (signed in with Google or Apple: no checkbox there): asked after a game,
+  // twice at most, two weeks apart
+  function askEmailOpt(reason, force) {
+    if (!force && (!mailOn() || !me || me.guest || !me.profile || me.profile.email_opt != null || currentDialog)) return;
+    var a = load('emailAsk', { n: 0, at: 0 });
+    if (!force && (a.n >= 2 || Date.now() - a.at < 14 * 864e5)) return;
+    save('emailAsk', { n: a.n + 1, at: Date.now() });
+    Track.event('email_ask', { reason: reason });
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'email-ask';
+      card.classList.add('remind-card');
+      card.appendChild(h('div', { class: 'remind-art mail-art', 'aria-hidden': 'true' }, '<span class="env">' + jokerPiece() + '</span>'));
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('emailAskT'))));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('emailAskB'))));
+      card.appendChild(bigBtn('start-btn', T('emailAskYes'), 'btn-email-yes', function () {
+        closeDialog();
+        setEmailOpt(true, reason).catch(function () { toast(T('netError')); });
+      }));
+      var later = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-email-later' }, esc(T('notNowBtn')));
+      later.addEventListener('click', function () { closeDialog(); Track.event('email_later', { reason: reason }); });
+      card.appendChild(later);
+    });
+  }
+
+  // ---- fair play (prototype; the server says it takes reports in hello: me.fair)
+  function fairOn() { return !!((me && me.fair) || window.GC_PROTO); }
+  var protoOffline = function () { return !!window.GC_PROTO && !NETCFG; }; // the preview page: no server behind it
+  // a player reports the opponent of the game just played: what happened, a note if they like
+  function reportSheet(gid, name, back) {
+    var why = 'engine';
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'report';
+      card.classList.add('report-card');
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('reportT', { name: name }))));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('reportSub', { name: name }))));
+      var list = h('div', { class: 'report-why', role: 'radiogroup', id: 'report-why' });
+      [['engine', 'reportEngine'], ['abuse', 'reportAbuse'], ['other', 'reportOther']].forEach(function (x) {
+        var b = h('button', { type: 'button', class: 'report-opt' + (x[0] === why ? ' on' : ''), role: 'radio', 'aria-checked': String(x[0] === why), 'data-why': x[0] }, '<i></i><span>' + esc(T(x[1])) + '</span>');
+        b.addEventListener('click', function () {
+          why = x[0];
+          list.querySelectorAll('.report-opt').forEach(function (o) { var on = o.dataset.why === why; o.classList.toggle('on', on); o.setAttribute('aria-checked', String(on)); });
+        });
+        list.appendChild(b);
+      });
+      card.appendChild(list);
+      var note = h('textarea', { class: 'report-note', id: 'report-note', rows: '2', maxlength: '300', placeholder: T('reportNote') });
+      card.appendChild(note);
+      var send = bigBtn('start-btn', T('reportSend'), 'btn-report-send', function () {
+        send.disabled = true;
+        var done = function (msg) { closeDialog(); toast(msg); if (back) setTimeout(back, 2400); };
+        var call = protoOffline() ? Promise.resolve({ ok: true }) : ensureNet().then(function () { return net.call('report', { game: gid, why: why, note: note.value }); });
+        call.then(function (r) { Track.event('report', { why: why }); done(r && r.again ? T('reportAgain') : T('reportSent')); }, function (e) {
+          send.disabled = false;
+          toast(e && e.data && e.data.error === 'too_many' ? T('reportMany') : T('netError'));
+        });
+      });
+      card.appendChild(send);
+      var cancel = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-report-cancel' }, esc(T('cancel')));
+      cancel.addEventListener('click', function () { closeDialog(); if (back) setTimeout(back, 220); });
+      card.appendChild(cancel);
+    });
+  }
+  // the server refused a closed account (search, invite, join): say why, once
+  function fairClosed(e) {
+    if (!(e && e.data && e.data.error === 'closed')) return false;
+    if (lobby) stopLobby();
+    if (currentDialog) closeDialog();
+    setTimeout(closedSheet, 230);
+    return true;
+  }
+  function closedSheet() {
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'closed';
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('closedT'))));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('closedB'))));
+      card.appendChild(bigBtn('second-btn', 'OK', 'btn-closed-ok', closeDialog));
+    });
+  }
+  // the owner: players with open reports or flagged by the nightly check, with the check's numbers and a decision
+  function fairListSheet() {
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'fair-list';
+      card.classList.add('fair-card');
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('fairH'))));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('fairSub'))));
+      var box = h('div', { class: 'fair-list', id: 'fair-list' }, '<div class="skel fair-skel"></div><div class="skel fair-skel"></div>');
+      card.appendChild(box);
+      var load = protoOffline() ? Promise.resolve({ players: protoFairData() }) : ensureNet().then(function () { return net.call('fair_list'); });
+      load.then(function (r) { renderFairList(box, r.players || []); }, function () { box.innerHTML = ''; box.appendChild(h('div', { class: 'dlg-sub' }, esc(T('netError')))); });
+    });
+  }
+  function renderFairList(box, rows) {
+    box.innerHTML = ''; box._rows = rows;
+    if (!rows.length) { box.appendChild(h('div', { class: 'dlg-sub' }, esc(T('fairNone')))); return; }
+    rows.forEach(function (p) {
+      var sc = p.score, lines = [];
+      var why = Object.keys(p.why || {}).map(function (k) { return T('fairWhy_' + k) + ' ' + p.why[k]; }).join(', ');
+      lines.push(T('fairReports', { n: p.open || 0 }) + (why ? ' (' + why + ')' : ''));
+      lines.push(sc ? T('fairNums', { t1: Math.round(sc.t1 * 100), n: sc.moves, acpl: Math.round(sc.acpl), z: (+sc.z).toFixed(1) }) : T('fairNoScan'));
+      if (sc && sc.joker_chances) lines.push(T('fairJoker', { n: sc.joker_blind, of: sc.joker_chances }));
+      var row = h('div', { class: 'fair-row' + (sc && sc.verdict === 'review' ? ' hot' : sc && sc.verdict === 'watch' ? ' warm' : '') },
+        '<div class="fair-top">' + avatarHtml(p.uid, p.name, 'fair-ava') + '<b>' + esc(p.name) + '</b>' + (p.fair && p.fair !== 'ok' ? '<span class="fair-state">' + esc(T('fairState_' + p.fair)) + '</span>' : '') + '</div>' +
+        lines.map(function (l) { return '<div class="fair-meta">' + esc(l) + '</div>'; }).join(''));
+      var acts = h('div', { class: 'fair-acts' });
+      [['ok', 'fairClear'], ['watch', 'fairWatch'], ['closed', 'fairClose']].forEach(function (x) {
+        if (p.fair === x[0]) return;
+        var b = h('button', { type: 'button', class: 'second-btn' + (x[0] === 'closed' ? ' danger' : ''), 'data-state': x[0] }, esc(T(x[1])));
+        b.addEventListener('click', function () { fairDecide(box, p, x[0], row, b); });
+        acts.appendChild(b);
+      });
+      row.appendChild(acts);
+      box.appendChild(row);
+    });
+  }
+  // the decision: Watch keeps the player on the list (marked), Clear and Close take them off it
+  function fairDecide(box, p, state, row, b) {
+    if (state === 'closed' && !b.dataset.sure) { b.dataset.sure = '1'; b.textContent = T('fairSure'); return; } // a second tap closes
+    b.disabled = true;
+    var call = protoOffline() ? Promise.resolve({ refunds: state === 'closed' ? 3 : 0 }) : net.call('fair_set', { user: p.uid, state: state });
+    call.then(function (r) {
+      toast(state === 'closed' ? T('fairClosedToast', { n: (r && r.refunds) || 0 }) : T('fairDone'));
+      if (state === 'watch') { p.fair = 'watch'; renderFairList(box, box._rows); return; }
+      row.classList.add('gone');
+      setTimeout(function () { renderFairList(box, box._rows.filter(function (x) { return x !== p; })); }, 240);
+    }, function () { b.disabled = false; toast(T('netError')); });
+  }
+  // the preview page's made-up players (nothing here is a real account)
+  function protoFairData() {
+    var ago = function (h) { return new Date(Date.now() - h * 3600e3).toISOString(); };
+    return [
+      { uid: 'proto-1', name: 'NightOwlGM', fair: 'ok', open: 3, reports: 3, reporters: 3, why: { engine: 3 }, games: [], last_at: ago(5),
+        score: { games: 11, moves: 236, t1: 0.71, acpl: 14, big: 0, joker_chances: 5, joker_found: 0, joker_blind: 5, z: 6.2, verdict: 'review' } },
+      { uid: 'proto-2', name: 'FastBishop', fair: 'watch', open: 1, reports: 1, reporters: 1, why: { engine: 1 }, games: [], last_at: ago(30),
+        score: { games: 7, moves: 131, t1: 0.55, acpl: 29, big: 1, joker_chances: 2, joker_found: 1, joker_blind: 1, z: 3.1, verdict: 'watch' } },
+      { uid: 'proto-3', name: 'QuietRook7', fair: 'ok', open: 1, reports: 1, reporters: 1, why: { abuse: 1 }, games: [], last_at: ago(52),
+        score: { games: 15, moves: 318, t1: 0.38, acpl: 57, big: 6, joker_chances: 3, joker_found: 2, joker_blind: 0, z: 0.4, verdict: 'ok' } }
+    ];
+  }
+
   // ---- haptics: a few special moments are felt, never every move — the opponent found, a Joker Move, a check
   // against me, the end of a game, the 20-second warning (the phone's own engine in the app; vibration on the web)
   var HAPTIC = { found: ['notification', 'SUCCESS', [30]], joker: ['impact', 'HEAVY', [18, 40, 30]], check: ['impact', 'LIGHT', [14]],
@@ -2692,7 +3106,7 @@
     try { getClient(); } catch (e) { return Promise.reject(e); }
     netReady = net.ready().then(function () { return Promise.all([net.call('hello', { platform: NATIVE.platform }), net.account().catch(function () { return null; })]); }).then(function (rr) {
       var r = rr[0], a = rr[1];
-      me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest, gname: a && a.gname || '', admin: !!r.admin };
+      me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest, gname: a && a.gname || '', admin: !!r.admin, fair: !!r.fair, mail: !!r.mail };
       noteAvatars([r.profile]);
       (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; });
       if (!userSub) userSub = net.sub('u:' + net.uid, { event: function (ev, p) { if (ev === 'paired' && p && p.game && lobby) onPaired(p.game); } });
@@ -2713,7 +3127,7 @@
     if (!net || !me) return Promise.resolve();
     return Promise.all([net.call('hello'), net.account().catch(function () { return null; })]).then(function (rr) {
       var r = rr[0], a = rr[1];
-      me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; }); me.admin = !!r.admin;
+      me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; }); me.admin = !!r.admin; me.fair = !!r.fair; me.mail = !!r.mail; syncPrefs();
       noteAvatars([r.profile]);
       if (a) { me.email = a.email || null; me.guest = a.guest; me.gname = a.gname || ''; }
     }, function () { /* ignore */ });
@@ -2804,14 +3218,14 @@
     net.call('seek', { tc: L.tc, rated: L.rated }).then(function (r) {
       if (r.game) { if (lobby === L || (online && online.id === r.game.id) || !online) onPaired(r.game.id); return; }
       if (lobby === L) L.timer = setTimeout(function () { seekTick(L); }, 2000);
-    }, function () { if (lobby === L) L.timer = setTimeout(function () { seekTick(L); }, 5000); });
+    }, function (e) { if (fairClosed(e)) return; if (lobby === L) L.timer = setTimeout(function () { seekTick(L); }, 5000); });
   }
   function houseSeek(L) {
     if (lobby !== L) return;
     net.call('house', { tc: L.tc, rated: L.rated }).then(function (r) {
       if (r.game) { if (lobby === L || (online && online.id === r.game.id) || !online) onPaired(r.game.id); return; }
       if (lobby === L) L.houseTimer = setTimeout(function () { houseSeek(L); }, 1000);
-    }, function () { if (lobby === L) L.houseTimer = setTimeout(function () { houseSeek(L); }, 6000); });
+    }, function (e) { if (fairClosed(e)) return; if (lobby === L) L.houseTimer = setTimeout(function () { houseSeek(L); }, 6000); });
   }
   function newOpponent() {
     var tc = game && game.cfg.tc ? game.cfg.tc.label : (lastSetup.otc || '3+2');
@@ -2826,7 +3240,7 @@
       if (lobby !== L) { net.call('resign', { game: r.game.id }).catch(function () { /* ignore */ }); return; }
       L.code = r.game.code || null;
       watchInvite(L, r.game.id);
-    }, function () { if (lobby === L) { stopLobby(); closeDialog(); toast(T('netError')); } });
+    }, function (e) { if (fairClosed(e)) return; if (lobby === L) { stopLobby(); closeDialog(); toast(T('netError')); } });
   }
   function watchInvite(L, id) {
     L.gameId = id;
@@ -2874,6 +3288,7 @@
         var moods = T('lobbyMoods'), mi = Math.floor(Math.random() * moods.length);
         var mood = h('div', { class: 'lobby-mood', id: 'lobby-mood' }, esc(moods[mi] + '\u2026'));
         card.appendChild(mood);
+        if (fairOn()) card.appendChild(h('div', { class: 'lobby-fair', id: 'lobby-fair' }, esc(T('fairLine'))));
         var n = 0;
         var upd = function () {
           if (lobby !== L) return;
@@ -3169,6 +3584,12 @@
           autocapitalize: 'off', spellcheck: 'false', placeholder: 'you@example.com', 'aria-label': T('emailLabel') });
         inp.value = st.email;
         form.appendChild(inp);
+        // the yes to emails is the player's to give: unticked until they tick it (sent once the account is saved)
+        if (mailOn()) {
+          var opt = h('label', { class: 'acct-opt', id: 'acct-opt' }, '<input type="checkbox" id="acct-opt-box"' + (st.opt ? ' checked' : '') + '><span>' + esc(T('emailOptLabel')) + '</span>');
+          opt.querySelector('input').addEventListener('change', function (e) { st.opt = !!e.target.checked; });
+          form.appendChild(opt);
+        }
         if (err) form.appendChild(err);
         var go2 = h('button', { type: 'submit', class: 'primary', id: 'btn-send-code' }, esc(st.busy ? T('sending') + '…' : T('sendCode')));
         go2.disabled = st.busy;
@@ -3243,6 +3664,7 @@
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { st.email = email; st.err = T('emailInvalid'); render(); return; }
       if (NETCFG && NETCFG.reviewEmail && email.toLowerCase() === NETCFG.reviewEmail) { st.email = email; st.err = ''; st.step = 'password'; render(); return; }
       st.busy = true; st.err = ''; st.email = email; render();
+      if (mailOn()) { save('emailOptPending', st.opt ? true : null); if (st.opt) Track.event('email_opt', { on: true, where: 'save' }); }
       ensureNet().then(function () { return net.account(); }).then(function (a) {
         if (a && a.guest) {
           // a guest: the email is added to this same account, so the name, rating and games stay
@@ -3729,6 +4151,7 @@
       startOnline(r.game);
     }, function (e) {
       var d = e && e.data;
+      if (fairClosed(e)) { setUrl(null); return; }
       if (d && d.error === 'taken' && d.game && d.game.status === 'aborted') { setUrl(null); toast(T('inviteGone')); return; }
       if (d && d.error === 'taken' && d.game) { startOnline(d.game); toast(T('gameTaken')); return; }
       setUrl(null);
@@ -3871,8 +4294,24 @@
     o.reading = true;
     net.read(o.id).then(function (g) { o.reading = false; o.lastEvent = perf(); if (online === o && g) onServerState(g, { force: true }); }, function () { o.reading = false; });
   }
+  // ---- fair play: how often this device left the game during the player's own turn in an online game (another window
+  // or app in front), and for how long; it goes with the move (the server keeps it apart from the game, for the checks)
+  var FairEye = { n: 0, ms: 0, at: 0 };
+  function fairAway() { return document.visibilityState === 'hidden' || (typeof document.hasFocus === 'function' && !document.hasFocus()); }
+  function fairOwnTurn() { return !!(online && game && game.online && game.status === 'playing' && online.color >= 0 && game.pos.side === online.color && !spectating()); }
+  function fairTick() {
+    var away = fairAway();
+    if (away && !FairEye.at && fairOwnTurn()) { FairEye.n++; FairEye.at = perf(); }
+    else if (!away && FairEye.at) { FairEye.ms += perf() - FairEye.at; FairEye.at = 0; }
+  }
+  function fairTake() {
+    var o = { bl: FairEye.n, aw: Math.round(FairEye.ms + (FairEye.at ? perf() - FairEye.at : 0)) };
+    FairEye.n = 0; FairEye.ms = 0; FairEye.at = 0;
+    return o;
+  }
   function sendMove(rec) {
-    var p = { ply: game.records.length - 1, uci: rec.uci, tries: 0 };
+    var f = fairTake();
+    var p = { ply: game.records.length - 1, uci: rec.uci, tries: 0, bl: f.bl || undefined, aw: f.aw || undefined };
     online.pending = p;
     if (online.peer && online.peer.send) online.peer.send('move', { ply: p.ply, uci: p.uci });
     pushMove(online, p);
@@ -3895,7 +4334,7 @@
   }
   function pushMove(o, p) {
     if (online !== o || o.pending !== p) return;
-    net.call('move', { game: o.id, uci: p.uci, ply: p.ply }).then(function (r) {
+    net.call('move', { game: o.id, uci: p.uci, ply: p.ply, bl: p.bl, aw: p.aw }).then(function (r) {
       if (online !== o) return;
       if (o.pending === p) o.pending = null;
       onServerState(r.game);
@@ -3980,7 +4419,7 @@
     });
   }
   function onVisibility() {
-    if (hiddenNow()) Sound.revive(); // the first touch after coming back makes a fresh audio context
+    if (hiddenNow()) { Sound.revive(); planReminders(); } else noteVisit(); // the first touch after coming back makes a fresh audio context
     var o = online;
     if (!o) return;
     var hidden = hiddenNow();
@@ -4050,6 +4489,7 @@
     if (playing ? idle > (o.connected ? 12000 : 2500) : idle > 15000) resyncOnline();
   }, 1000);
   document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('blur', fairTick); window.addEventListener('focus', fairTick); document.addEventListener('visibilitychange', fairTick);
   // The app shows the live site, and the phone keeps a copy of the page for a while: when the app opens or comes back,
   // a newer build on the site (version.json) loads at once, unless a game is on. One try per build.
   function checkUpdate() {
@@ -4261,7 +4701,7 @@
     game.paused = false; if (game.clock) game.clock.since = perf();
   }
   function kit() {
-    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ track: function (n, p) { Track.event(n, p); if (n === 'puzzle_solved') noteAct('learn'); }, T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
+    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ daily: function () { return dailyToday(); }, solveDaily: solveDaily, streakSheet: streakSheet, streakLine: function () { var st = streakNow(); return st.count >= 2 ? { n: st.count, html: FLAME_SVG + '<b>' + st.count + '</b>' } : null; }, newcomer: function () { return !returningPlayer(); }, track: function (n, p) { Track.event(n, p); if (n === 'puzzle_solved') { noteAct('learn'); noteDay('puzzle'); } }, T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
     return learnKit;
   }
 
@@ -4299,8 +4739,10 @@
       if (me && me.profile && signedIn()) chip = h('button', { type: 'button', class: 'acct-chip', id: 'acct-chip' }, avatarHtml(me.uid, me.profile.username, 'av') + '<span>' + esc(me.profile.username) + '</span>');
       else chip = h('button', { type: 'button', class: 'acct-chip out', id: 'acct-chip' }, '<span>' + esc(T('signIn')) + '</span>');
       chip.addEventListener('click', function () { if (signedIn()) go('profile'); else { setPending({ kind: 'view', v: 'play' }); go('signin'); } });
-      head.appendChild(chip);
-    }
+      var hr = h('div', { class: 'head-r' }), fl = streakChip();
+      if (fl) hr.appendChild(fl);
+      hr.appendChild(chip); head.appendChild(hr);
+    } else { var fl2 = streakChip(); if (fl2) head.appendChild(fl2); }
     col.appendChild(head);
     var main = h('div', { class: 'play-main' }); col.appendChild(main);
     // the reel of Joker Moves: on a board beside the menu on wide screens, above the menu otherwise; the layout follows
@@ -4348,7 +4790,17 @@
       } else if (window.GC_SITE) acts.appendChild(h('div', { class: 'offline-note' }, esc(T('onlineElsewhere')) + ' <a class="site-link" href="' + esc(window.GC_SITE) + '" target="_blank" rel="noopener">' + esc(window.GC_SITE.replace(/^https?:\/\//, '').replace(/\/$/, '')) + '</a>'));
     }
     // the reel plays on the Play tab only (learnKit.active pauses it elsewhere)
-    if (kit()) { learnKit.heroBoard(reelHost, reelCap); reelHost.appendChild(reelCap); }
+    // the hero: the reel of Joker Moves for a newcomer; from the second day on, the daily puzzle (a reason to come back)
+    if (kit()) {
+      var dd = returningPlayer() ? dailyToday() : null;
+      if (dd && learnKit.dailyBoard) {
+        learnKit.dailyBoard(reelHost, dd, function () { Track.event('daily_open', { from: 'play' }); openDaily(); });
+        reelCap.classList.add('daily-cap'); reelCap.id = 'daily-cap';
+        reelCap.innerHTML = dd.solved ? '<b>\u2713</b> ' + esc(T('dailySolvedCap')) : '<b>' + esc(T('dailyN', { n: dd.n })) + '</b> \u00b7 ' + esc(T('dailyFind'));
+        reelCap.addEventListener('click', function () { openDaily(); });
+      } else learnKit.heroBoard(reelHost, reelCap);
+      reelHost.appendChild(reelCap);
+    }
   }
   function onlineTc() { return ONLINE_TCS.indexOf(lastSetup.otc) >= 0 ? lastSetup.otc : '3+2'; }
   function bigBtn(cls, label, id, fn) {
@@ -4436,6 +4888,7 @@
           startOnline(r.game);
         }, function (e) {
           busy = false; go2.disabled = false;
+          if (fairClosed(e)) return;
           var d = e && e.data;
           sub.textContent = d && d.error === 'no_code' ? T('noCode') : T('netError'); sub.classList.add('bad');
           inp.value = ''; inp.focus();
@@ -4658,6 +5111,7 @@
     card.appendChild(h('h2', null, esc(T('stats'))));
     var body = h('div', { class: 'stats-body' }, '<div class="muted">' + esc(T('loading')) + '…</div>');
     card.appendChild(body);
+    if (me && me.fair) { var fb = h('button', { type: 'button', class: 'linkbtn', id: 'btn-fair-list' }, esc(T('fairOpen'))); fb.addEventListener('click', fairListSheet); card.appendChild(fb); }
     var draw = function (st) {
       var m = st.methods || {}, pools = st.pools || {};
       var tile = function (n, label, sub) { return '<div class="st-tile"><b>' + esc(String(n)) + '</b><span>' + esc(label) + '</span>' + (sub ? '<em>' + esc(sub) + '</em>' : '') + '</div>'; };
@@ -5155,6 +5609,14 @@
     if (game.status === 'playing' && botGame() && !game.idle && game.pos.side !== game.cfg.human) requestBot();
     loop();
     bootOnline();
+    noteVisit();
+    setTimeout(planReminders, 1500);
+    NATIVE.listen('LocalNotifications', 'localNotificationActionPerformed', function (e) {
+      var x = e && e.notification && e.notification.extra, v = x && x.go;
+      Track.event('reminder_open', { kind: (x && x.kind) || '' });
+      if (v && allowed(v) && !liveOnlineGame() && curView !== 'game') go(v);
+    });
+    if (window.GC_PROTO) protoTour();
     Track.start();
     setTimeout(Track.ask, 2500);
   }

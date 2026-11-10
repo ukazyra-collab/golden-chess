@@ -317,6 +317,24 @@ var GCLearn = (function () {
       ht.appendChild(el('p', 'lead', esc(T('learnLead'))));
       ts.appendChild(ht);
       // which puzzle, how hard, how many solved: one line (there are too many for a row of numbers)
+      // the daily puzzle: the same for everyone today. Played first when it isn't solved yet (a newcomer starts with the
+      // easy ones and finds it on the line above them); once solved, the line says so and opens the streak
+      var dailyNow = ctx.daily ? ctx.daily() : null, inDaily = false;
+      var dLine = el('button', 'daily-line'); dLine.type = 'button'; dLine.id = 'daily-line';
+      if (dailyNow) ts.appendChild(dLine);
+      function drawDailyLine() {
+        if (!dailyNow) return;
+        var sl = ctx.streakLine ? ctx.streakLine() : null;
+        dLine.classList.toggle('done', !!dailyNow.solved); dLine.classList.toggle('here', inDaily);
+        dLine.innerHTML = '<span class="dl-t"><b>' + esc(T('dailyN', { n: dailyNow.n })) + '</b><span class="try-lvl l' + dailyNow.lvl + '">' + esc(T(['', 'lvlEasy', 'lvlMedium', 'lvlHard'][dailyNow.lvl])) + '</span></span>' +
+          '<span class="dl-s">' + (sl ? '<span class="dl-flame">' + sl.html + '</span>' : '') + (dailyNow.solved ? '<span class="dl-ok">\u2713 ' + esc(T('dailySolvedLine')) + '</span>' : inDaily ? '' : '<span class="dl-go">' + esc(T('dailyOpen')) + '</span>') + '</span>';
+      }
+      dLine.addEventListener('click', function () {
+        if (!dailyNow) return;
+        if (dailyNow.solved || inDaily) { if (ctx.streakSheet) ctx.streakSheet(); return; }
+        if (ctx.track) ctx.track('daily_open', { from: 'learn' });
+        openDaily();
+      });
       var head = el('div', 'try-head'), tTitle = el('div', 'try-title'), tCount = el('div', 'try-count');
       head.appendChild(tTitle); head.appendChild(tCount); ts.appendChild(head);
       // how far along: a thin bar of solved puzzles, the Joker walking along it; where Medium and Hard begin, marked
@@ -337,6 +355,14 @@ var GCLearn = (function () {
       var LVL = ['', 'lvlEasy', 'lvlMedium', 'lvlHard'];
       function solvedCount() { return PUZZLES.filter(function (p) { return done[p.id]; }).length; }
       function drawHead() {
+        drawDailyLine();
+        prog.style.visibility = inDaily ? 'hidden' : '';
+        dLine.hidden = inDaily;
+        if (inDaily) {
+          tTitle.innerHTML = esc(T('dailyN', { n: dailyNow.n })) + '<span class="try-lvl l' + dailyNow.lvl + '">' + esc(T(['', 'lvlEasy', 'lvlMedium', 'lvlHard'][dailyNow.lvl])) + '</span>';
+          var dt = new Date(); try { tCount.textContent = dt.toLocaleDateString(document.documentElement.lang === 'ru' ? 'ru-RU' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { tCount.textContent = ''; }
+          return;
+        }
         var p = PUZZLES[pIndex];
         tTitle.innerHTML = esc(T('puzzleN', { n: pIndex + 1 })) + '<span class="try-lvl l' + (p.lvl || 1) + '">' + esc(T(LVL[p.lvl || 1])) + '</span>';
         tCount.textContent = T('solvedOf', { n: solvedCount(), total: PUZZLES.length });
@@ -350,6 +376,10 @@ var GCLearn = (function () {
       }
       function actions(kind) {
         acts.innerHTML = '';
+        if (kind === 'daily-solved') {
+          acts.appendChild(btn(T('morePuzzles'), 'hot', function () { inDaily = false; open(pIndex); }, 'try-next'));
+          return;
+        }
         if (kind === 'solved') {
           if (solvedCount() < PUZZLES.length) acts.appendChild(btn(T('nextPuzzle'), 'hot', function () { open(nextIndex()); }, 'try-next'));
           else { status.textContent = ui.goodText(PUZZLES[pIndex]) + ' ' + T('allSolved'); acts.appendChild(btn(T('learnCta'), 'hot', function () { ctx.go('bots'); }, 'try-play')); }
@@ -357,7 +387,7 @@ var GCLearn = (function () {
           return;
         }
         acts.appendChild(btn(T('puzzleHint'), '', function () {
-          var p = PUZZLES[pIndex];
+          var p = inDaily ? dailyNow.p : PUZZLES[pIndex];
           status.className = 'try-status'; status.textContent = p.hint ? T(p.hint) : T('pzHint');
           if (!p.hint) puzzle.hint();
         }, 'try-hint'));
@@ -367,6 +397,13 @@ var GCLearn = (function () {
         status: function (text, cls) { status.className = 'try-status' + (cls ? ' ' + cls : ''); status.textContent = text; },
         goodText: function (p) { return p.good ? T(p.good) : p.mate ? T('pzMate', { n: p.mate }) : T('pzGood'); },
         solved: function () {
+          if (inDaily) {
+            if (ctx.solveDaily) ctx.solveDaily(dailyNow);
+            dailyNow.solved = true;
+            status.textContent = T('dailyDone');
+            drawHead(); actions('daily-solved');
+            return;
+          }
           var first = !done[PUZZLES[pIndex].id];
           done[PUZZLES[pIndex].id] = 1; saveDone(); drawHead(); actions('solved');
           if (ctx.track) ctx.track('puzzle_solved', { puzzle: PUZZLES[pIndex].id, first: first, solved: solvedCount() });
@@ -382,7 +419,18 @@ var GCLearn = (function () {
           setTimeout(function () { f.remove(); }, cls === 'good' ? 1700 : 1100);
         }
       };
+      function openDaily() {
+        inDaily = true;
+        if (puzzle) puzzle.clearTimers();
+        bhost.innerHTML = '';
+        puzzle = new Puzzle(bhost, dailyNow.p, ctx, ui);
+        puzzle.mb.wrap.classList.add('try-board'); puzzle.mb.wrap.id = 'try-board';
+        prompt.textContent = T(puzzle.pos.side ? 'pzBlack' : 'pzWhite');
+        ui.status('', '');
+        drawHead(); actions('open'); fitTry();
+      }
       function open(i) {
+        inDaily = false;
         pIndex = i; savePlace();
         if (puzzle) puzzle.clearTimers();
         bhost.innerHTML = '';
@@ -398,11 +446,13 @@ var GCLearn = (function () {
         if (!inn.isConnected) return;
         if (window.innerWidth >= 760) { bhost.style.removeProperty('--try-board'); return; }
         var H = host.clientHeight - 18 - 12;
-        var used = ht.offsetHeight + head.offsetHeight + prog.offsetHeight + 26 + side.offsetHeight + 14 * 4;
+        var used = ht.offsetHeight + head.offsetHeight + prog.offsetHeight + 26 + side.offsetHeight + 14 * 4 + (dailyNow ? dLine.offsetHeight + 14 : 0);
         bhost.style.setProperty('--try-board', Math.max(240, Math.min(bhost.clientWidth || 9999, H - used)) + 'px');
       }
       if (typeof ResizeObserver !== 'undefined') { var tro = new ResizeObserver(function () { fitTry(); }); tro.observe(host); }
-      open(Math.min(pIndex, PUZZLES.length - 1));
+      // the daily puzzle first, unless it is solved or this is someone's first day (they start with the easy ones)
+      if (dailyNow && !dailyNow.solved && !(ctx.newcomer && ctx.newcomer() && !solvedCount())) openDaily();
+      else open(Math.min(pIndex, PUZZLES.length - 1));
 
       // the rule
       var rs = section(T('ruleH')), grid = el('div', 'rule-grid');
@@ -448,13 +498,27 @@ var GCLearn = (function () {
       else { playDemo = new Demo(host, REEL[0], ctx, cap || null); watch(playDemo); }
       playDemo.wanted = view === 'play'; playDemo.update();
     }
+    // the Play tab for a returning player: today's daily puzzle on the board (the pieces that can jump glowing), a tap
+    // opens it on the Learn tab
+    function dailyBoard(host, d, onTap) {
+      if (playDemo) { playDemo.stop(); playDemo.wanted = false; }
+      var mb = new MiniBoard(host, { demo: true }), pos = new GC.Position(d.p.fen);
+      mb.view.speed = 0;
+      mb.view.setOrientation(pos.side);
+      mb.show(pos, [], true);
+      if (!d.solved) { mb.el.classList.add('pz-glow'); mb.view.markGolden(pos.side); }
+      mb.wrap.classList.add('daily-board'); mb.wrap.id = 'daily-board';
+      if (d.solved) mb.wrap.appendChild(el('div', 'daily-done', '<i>\u2713</i>'));
+      mb.wrap.addEventListener('click', onTap);
+      return mb;
+    }
     function active(v) {
       view = v;
       demos.forEach(function (d) { d.wanted = v === 'learn'; d.update(); });
       if (playDemo) { playDemo.wanted = v === 'play' && playDemo.mb.wrap.isConnected; playDemo.update(); }
       if (puzzle && v !== 'learn') puzzle.clearTimers();
     }
-    return { render: render, active: active, heroBoard: heroBoard, PUZZLES: PUZZLES };
+    return { render: render, active: active, heroBoard: heroBoard, dailyBoard: dailyBoard, PUZZLES: PUZZLES };
   }
   return { create: create, DEMOS: DEMOS, PUZZLES: PUZZLES, REEL: REEL };
 })();
