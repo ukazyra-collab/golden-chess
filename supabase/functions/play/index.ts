@@ -20,13 +20,46 @@ const DB_URL = Deno.env.get('SUPABASE_DB_URL');
 const ISSUER = SUPABASE_URL.replace(/\/+$/, '') + '/auth/v1';
 
 // ---- storage
-const sql = DB_URL ? postgres(DB_URL, { prepare: false, max: +(Deno.env.get('PG_POOL_MAX') || 4), idle_timeout: 120, connect_timeout: 6, onnotice: () => {} }) : null;
-const pgRepo = sql ? createPgRepo(sql) : null;
+// Under a crowd the platform runs many workers at once, and each keeps its own connections: straight to Postgres they
+// would use up the database's few (60 on the current compute). So a direct address is moved to the project's own
+// PgBouncer (same host, port 6543, transaction mode), which shares a small pool among every worker. If the pooler can't
+// be reached the direct address still serves. GC_DB_POOL=off keeps the direct address.
+function pooledUrl(u: string): string | null {
+  try {
+    const x = new URL(u);
+    if ((x.port === '5432' || x.port === '') && (/^db\.[a-z0-9]+\.supabase\.co$/.test(x.hostname) || /\.pooler\.supabase\.com$/.test(x.hostname))) {
+      x.port = '6543';
+      return x.toString();
+    }
+  } catch { /* not a URL */ }
+  return null;
+}
+const POOL_URL = DB_URL && Deno.env.get('GC_DB_POOL') !== 'off' ? pooledUrl(DB_URL) : null;
+const POOL_MAX = +(Deno.env.get('PG_POOL_MAX') || (POOL_URL ? 3 : 4));
+const openPg = (url: string, wait: number) => postgres(url, { prepare: false, max: POOL_MAX, idle_timeout: 120, connect_timeout: wait, onnotice: () => {} });
+const portOf = (u: string) => { try { return new URL(u).port; } catch { return ''; } };
+// deno-lint-ignore no-explicit-any
+let pgRepo: any = null;
+let dbKind = 'none';
 const t0module = performance.now();
 let tConnect = -1;
-const pgReady: Promise<boolean> = sql
-  ? sql`select 1`.then(() => { tConnect = performance.now() - t0module; return true; }, (e: unknown) => { console.error('pg connect failed', String(e)); return false; })
-  : Promise.resolve(false);
+const pgReady: Promise<boolean> = (async () => {
+  if (!DB_URL) return false;
+  const tries: [string | null, string, number][] = [[POOL_URL, 'pooler', 3], [DB_URL, portOf(DB_URL) === '6543' ? 'pooler' : 'direct', 6]];
+  for (const [url, kind, wait] of tries) {
+    if (!url) continue;
+    const s = openPg(url, wait);
+    try {
+      await s`select 1`;
+      pgRepo = createPgRepo(s); dbKind = kind; tConnect = performance.now() - t0module;
+      return true;
+    } catch (e) {
+      console.error('pg connect failed', kind, String(e));
+      s.end({ timeout: 0 }).catch(() => {});
+    }
+  }
+  return false;
+})();
 
 // per-request view of the repo that adds up time spent in the database
 // deno-lint-ignore no-explicit-any
@@ -152,10 +185,10 @@ Deno.serve(async (req) => {
   let tAuth = 0, how = 'none';
   const ta = performance.now();
   const authP = userId(token).then((r) => { how = r.how; return { sub: r.sub, guest: r.guest }; }).finally(() => { tAuth = performance.now() - ta; });
+  authP.catch(() => {}); // a refused token is answered below (401); unhandled, it would end the worker (503) while the database connects
   const acc = { db: 0, n: 0 };
   let status: number, out: unknown;
-  if (!pgRepo || !(await pgReady)) {
-    authP.catch(() => {});
+  if (!(await pgReady) || !pgRepo) {
     status = 503; out = { error: 'unavailable' };
   } else {
     const logic = createLogic({ repo: timed(pgRepo, acc), broadcast, GC, background });
@@ -163,6 +196,6 @@ Deno.serve(async (req) => {
   }
   const total = performance.now() - t0;
   const timing = `body;dur=${tBody.toFixed(1)}, auth;dur=${tAuth.toFixed(1)};desc="${how}", db;dur=${acc.db.toFixed(1)};desc="${acc.n} queries", ` +
-    `total;dur=${total.toFixed(1)}, worker;desc="${WORKER} #${nth}${tConnect >= 0 ? ' pg ' + tConnect.toFixed(0) + 'ms' : ''}"`;
+    `total;dur=${total.toFixed(1)}, worker;desc="${WORKER} #${nth}${tConnect >= 0 ? ' ' + dbKind + ' ' + tConnect.toFixed(0) + 'ms' : ''}"`;
   return new Response(JSON.stringify(out), { status, headers: { ...HEADERS, 'Server-Timing': timing } });
 });
