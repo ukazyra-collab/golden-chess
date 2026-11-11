@@ -51,7 +51,7 @@ if (/'/.test(PIECE)) throw new Error('piece.svg contains a single quote');
 // each copy put in the page gets its own ids (clip paths, masks)
 let uniqN = 0;
 const uniq = (svg) => { const n = 'b' + (++uniqN); return svg.replace(/id="([^"]+)"/g, 'id="$1' + n + '"').replace(/url\(#([^)]+)\)/g, 'url(#$1' + n + ')'); };
-const mainSrc = [core, engine, rd('src/book.js'), rd('src/review.js'), rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/puzzles.js'), (fs.existsSync(path.join(__dirname, 'src/daily.js')) ? rd('src/daily.js') : ''), rd('src/habits.js'), rd('src/ui/learn.js'), rd('src/ui/bots.js'), rd('src/ui/app.js').replace("'__LOGO_SVG__'", () => "'" + LOGO + "'").replace("'__WORDMARK__'", () => "'" + WORDMARK + "'")].join('\n;\n').split("'__PIECE_SVG__'").join("'" + PIECE + "'");
+const mainSrc = [core, engine, rd('src/book.js'), rd('src/review.js'), rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/puzzles.js'), (fs.existsSync(path.join(__dirname, 'src/daily.js')) ? rd('src/daily.js') : ''), rd('src/habits.js'), rd('src/progress.js'), rd('src/ui/learn.js'), rd('src/ui/bots.js'), rd('src/ui/app.js').replace("'__LOGO_SVG__'", () => "'" + LOGO + "'").replace("'__WORDMARK__'", () => "'" + WORDMARK + "'")].join('\n;\n').split("'__PIECE_SVG__'").join("'" + PIECE + "'");
 const supa = rd('vendor/supabase-js-2.117.2.umd.js');
 for (const [name, src] of [['worker', workerSrc], ['main', mainSrc], ['supabase', supa]]) if (/<\/script/i.test(src)) throw new Error(name + ' contains </script');
 

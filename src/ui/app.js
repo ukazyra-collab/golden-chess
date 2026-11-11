@@ -41,6 +41,12 @@
       emailsNote: 'A summary on Sundays, and a puzzle if you’ve been away a week. Never more than one a week.',
       emailAskT: 'Your week by email?', emailAskB: 'Your games, rating and best win of the week, every Sunday evening. One email a week at most; stop any time.',
       emailAskYes: 'Yes, send it', puzzleSeries: 'Puzzle series',
+      careerTab: 'Joker Road', freeTab: 'All bots', chapterN: 'Chapter {n}', stageN: 'Stage {n}', boss: 'Boss', starsOf: '{a} of {b} stars',
+      carryOn: 'Play on: {ch}, {st}', careerLocked: 'Beat the boss of chapter {n} to open it', playStage: 'Play this stage', youWhite: 'You play White', youBlack: 'You play Black',
+      bossNote: 'The boss gives one star for a win with your Joker Move and one for a win without it: three stars take two wins.',
+      nextStage: 'Next stage', tryAgain: 'Try again', newStars: '+{n} ★', levelUp: 'Level {n}!', newRewards: 'New rewards', great: 'Great', lvlSee: 'See',
+      questsToday: 'Today’s quests', nextRewardAt: 'Level {n}: {what}', collection: 'Collection', jokerCards: 'Joker Moves found: {a} of {b}', rewardsH: 'Rewards',
+      equip: 'Use', equipped: 'In use', lockedAt: 'level {n}', lockedStars: '{n} career stars', newCard: 'New card: {name}', progressH: 'Your progress',
       gaAsk: 'May we count visits? Google Analytics shows us which videos bring players and what to improve. No ads, nothing sold.', gaYes: 'Allow', gaNo: 'No thanks',
       lv1: 'Beginner', lv2: 'Casual', lv3: 'Club player', lv4: 'Strong club', lv5: 'Expert', lv6: 'Master', lv7: 'Grandmaster', lv8: 'Maximum',
       opponent: 'Opponent', computer: 'Computer', twoPlayers: 'Two players, one device', playAs: 'Play as', random: 'Random',
@@ -233,6 +239,12 @@
       emailsNote: 'Сводка по воскресеньям и задача, если тебя не было неделю. Не чаще раза в неделю.',
       emailAskT: 'Твоя неделя на почту?', emailAskB: 'Партии, рейтинг и лучшая победа недели — каждое воскресенье вечером. Не больше одного письма в неделю, отписаться можно в любой момент.',
       emailAskYes: 'Да, присылайте', puzzleSeries: 'Задачи по порядку',
+      careerTab: 'Путь Джокера', freeTab: 'Все боты', chapterN: 'Глава {n}', stageN: 'Этап {n}', boss: 'Босс', starsOf: 'Звёзд: {a} из {b}',
+      carryOn: 'Дальше: {ch}, {st}', careerLocked: 'Победи босса главы {n}, чтобы открыть', playStage: 'Играть этап', youWhite: 'Ты играешь белыми', youBlack: 'Ты играешь чёрными',
+      bossNote: 'Босс даёт звезду за победу с ходом-джокером и звезду за победу без него: для трёх звёзд нужны две победы.',
+      nextStage: 'Следующий этап', tryAgain: 'Ещё раз', newStars: '+{n} ★', levelUp: 'Уровень {n}!', newRewards: 'Новые награды', great: 'Отлично', lvlSee: 'Смотреть',
+      questsToday: 'Задания на сегодня', nextRewardAt: 'Уровень {n}: {what}', collection: 'Коллекция', jokerCards: 'Найдено ходов-джокеров: {a} из {b}', rewardsH: 'Награды',
+      equip: 'Выбрать', equipped: 'Выбрано', lockedAt: 'уровень {n}', lockedStars: 'звёзд карьеры: {n}', newCard: 'Новая карта: {name}', progressH: 'Твой прогресс',
       gaAsk: 'Можно считать визиты? Google Analytics покажет, какие ролики приводят игроков и что улучшить. Без рекламы и продажи данных.', gaYes: 'Разрешить', gaNo: 'Не надо',
       lv1: 'Новичок', lv2: 'Любитель', lv3: 'Клубный игрок', lv4: 'Сильный клубный', lv5: 'Эксперт', lv6: 'Мастер', lv7: 'Гроссмейстер', lv8: 'Максимум',
       opponent: 'Соперник', computer: 'Компьютер', twoPlayers: 'Двое на одном устройстве', playAs: 'Играть за', random: 'Случайно',
@@ -393,6 +405,8 @@
     }
   };
   var settings = Object.assign({ sound: true, haptics: true, stats: true, reminders: null, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
+  // progress (prototype; src/progress.js): XP, quests, the career against the bots, Joker cards, what is equipped
+  var prog = Object.assign({ xp: 0, career: {}, cards: {}, q: null, firstWin: '', equip: {}, seen: { lv: 1, stars: 0 }, up: null, reviewed: [] }, load('prog', {}));
   var lang = settings.lang || (/^ru\b/i.test(navigator.language || '') ? 'ru' : 'en');
   function T(key, vars) {
     var s = (STR[lang] && STR[lang][key]) || STR.en[key] || key;
@@ -512,7 +526,7 @@
   };
   Game.prototype.serialize = function () {
     return {
-      v: 1, cfg: { mode: this.cfg.mode, level: this.cfg.level, human: this.cfg.human, tc: this.cfg.tc ? this.cfg.tc.label : 'none' },
+      v: 1, cfg: { mode: this.cfg.mode, level: this.cfg.level, human: this.cfg.human, tc: this.cfg.tc ? this.cfg.tc.label : 'none', career: this.cfg.career || null },
       startFen: this.startFen, moves: this.records.map(function (r) { return r.uci; }),
       clocks: this.records.map(function (r) { return r.clock; }), clock: this.clock ? this.clock.t.slice() : null,
       status: this.status, result: this.result, reason: this.reason, counted: !!this.counted, histKey: this.histKey || null
@@ -521,7 +535,7 @@
   Game.restore = function (d) {
     if (!d || d.v !== 1) return null;
     try {
-      var cfg = { mode: d.cfg.mode, level: d.cfg.level, human: d.cfg.human, tc: parseTc(d.cfg.tc) };
+      var cfg = { mode: d.cfg.mode, level: d.cfg.level, human: d.cfg.human, tc: parseTc(d.cfg.tc), career: d.cfg.career || null };
       var g = new Game(cfg, d.startFen), now = perf();
       var savedClock = g.clock;
       g.clock = null; // replay without time accounting
@@ -1182,6 +1196,7 @@
   }
   function startReview() {
     noteDay('review');
+    if (game && game.records.length >= 2 && game.status === 'over') { var rk = (game.online && online ? online.id : game.histKey) || game.fens[game.fens.length - 1]; var fresh = prog.reviewed.indexOf(rk) < 0; if (fresh) { prog.reviewed = prog.reviewed.concat([rk]).slice(-60); } progSmall('review', fresh ? Progress.XP.review : 0); }
     if (!game || !game.records.length) return;
     stopReview();
     var id = ++reqSeq, n = game.records.length, key = gameKey(), cached = key ? reviewCacheGet(key, n) : null;
@@ -1579,6 +1594,7 @@
       noteDay(game.online ? 'online' : game.cfg.mode);
       if (outcome === 1 && returningPlayer()) askWhenCalm(function () { askReminders('win'); }, 4200);
     }
+    if (!spectating() && !game.progDone && game.reason !== 'abort' && game.records.length >= 2) progGame();
     if (!spectating() && !game.tracked) {
       game.tracked = true;
       Track.event('game_end', { mode: game.online ? 'online' : game.cfg.mode, result: game.reason === 'abort' ? 'abort' : oppGame() ? (outcome === 1 ? 'win' : outcome === 0 ? 'draw' : 'loss') : 'played', reason: game.reason || '', moves: game.records.length });
@@ -1997,6 +2013,7 @@
       if (reason) sub.push(reason.charAt(0).toUpperCase() + reason.slice(1));
       sub.push(T('movesN', { n: Math.ceil(game.records.length / 2) }));
       card.appendChild(h('div', { class: 'over-head' }, (o === 1 && !spectating() ? '<span class="over-joker' + (motionOK() ? ' drop' : '') + '">' + jokerPiece() + '</span>' : '') + '<div class="dlg-title over-title' + (o === 1 && !spectating() ? ' win' : '') + '">' + esc(resultTitle()) + '</div><div class="over-sub">' + esc(sub.join(' · ')) + '</div>'));
+      var opb = overProg(); if (opb) card.appendChild(opb);
       var acts = h('div', { class: 'over-acts' });
       var rv = h('button', { class: 'second-btn', type: 'button', id: 'btn-over-review' }, esc(T('review')));
       rv.addEventListener('click', function () { closeDialog(); showReport(); renderSide(); });
@@ -2041,15 +2058,22 @@
         if (bs && bs.w + bs.d + bs.l) card.appendChild(h('div', { class: 'over-match one' }, '<div class="om"><span>' + esc(T('vsBotScore', { name: botName() })) + '</span><b>' + pts(bs.w, bs.d) + ' : ' + pts(bs.l, bs.d) + '</b><em>' + esc(wdlText({ w: bs.w, d: bs.d, l: bs.l })) + '</em></div>'));
       }
       // a game against the bot or on one device: play again (colours swap with the bot), or look through the game
-      var again = h('button', { class: 'start-btn primary', type: 'button', id: 'btn-again' }, esc(T('againBot')));
+      // a career stage: on to the next one once it is open, otherwise the same stage again
+      var cr = botGame() && game.cfg.career, cand = cr && (cr.st < 3 ? { ch: cr.ch, st: cr.st + 1 } : { ch: cr.ch + 1, st: 1 });
+      var nxs = cand && Progress.isOpen(prog.career, cand.ch, cand.st) ? cand : null;
+      var again = h('button', { class: 'start-btn primary', type: 'button', id: 'btn-again' }, esc(cr ? (nxs ? T('nextStage') : T('tryAgain')) : T('againBot')));
       again.addEventListener('click', function () {
         closeDialog();
+        if (cr) { var to = nxs || cr; startCareer(to.ch, to.st); return; }
         var s = { mode: game.cfg.mode, level: game.cfg.level, tc: game.cfg.tc ? game.cfg.tc.label : 'none', color: 'w' };
         startGame(s, { human: botGame() ? game.cfg.human ^ 1 : 0 });
       });
       acts.appendChild(again); acts.appendChild(rv);
       card.appendChild(acts);
     });
+    // the keyboard starts on the main action (not on the level-up line above it)
+    var pf = currentDialog && currentDialog.querySelector('.over-acts .primary');
+    if (pf) try { pf.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
   }
 
   // the score against this opponent over all their games together, the one just finished included (the result card);
@@ -2249,6 +2273,7 @@
   function saveSettings() { save('settings', settings); }
   function applySettings() {
     $('shell').dataset.board = settings.board;
+    $('shell').dataset.jdot = (prog.equip && prog.equip.jdot) || ''; $('shell').dataset.frame = (prog.equip && prog.equip.frame) || '';
     board.speed = settings.anim === 'off' ? 0 : settings.anim === 'fast' ? 0.6 : 1;
     board.setCoords(settings.coords);
     Sound.setEnabled(settings.sound);
@@ -2514,6 +2539,7 @@
   function solveDaily(d) {
     if (!d || dailyDone[d.day] === d.p.id) return;
     dailyDone[d.day] = d.p.id;
+    progSmall('daily', Progress.XP.daily);
     var keep = {}; Object.keys(dailyDone).sort().slice(-60).forEach(function (k) { keep[k] = dailyDone[k]; }); dailyDone = keep;
     save('dailyDone', dailyDone);
     Track.event('daily_solved', { n: d.n, lvl: d.lvl });
@@ -2624,6 +2650,12 @@
       [ru ? 'Окно серии' : 'The streak sheet', function () { closeDialog(); setTimeout(streakSheet, 250); }],
       [ru ? 'Просьба включить напоминания' : 'The reminders ask', function () { closeDialog(); setTimeout(function () { askReminders('proto', true); }, 250); }],
       [ru ? 'План напоминаний: тексты и время' : 'Reminder plan: texts and times', function () { closeDialog(); setTimeout(remindPlanSheet, 250); }],
+      [ru ? 'Игра: уровень, задания, прогресс' : 'Game: level, quests, progress', function () { protoProg(); closeDialog(); go('play'); refreshView(); setTimeout(progressSheet, 300); }],
+      [ru ? 'Игра: Путь Джокера (карьера с ботами)' : 'Game: Joker Road (the career against the bots)', function () { protoProg(); closeDialog(); botsUi.tab = 'career'; go('bots'); }],
+      [ru ? 'Игра: этап карьеры' : 'Game: a career stage', function () { protoProg(); closeDialog(); setTimeout(function () { stageSheet(3, 1); }, 250); }],
+      [ru ? 'Игра: победа в этапе (звёзды, опыт, уровень)' : 'Game: a stage won (stars, XP, a level)', function () { protoProg(); closeDialog(); setTimeout(protoStageWin, 250); }],
+      [ru ? 'Игра: новый уровень и награды' : 'Game: a new level and its rewards', function () { protoProg(); closeDialog(); setTimeout(function () { levelUpSheet({ lv: 7, stars: 26 }, { lv: 8, stars: 26 }); }, 250); }],
+      [ru ? 'Игра: коллекция ходов-джокеров и награды' : 'Game: the Joker Move collection and rewards', function () { protoProg(); closeDialog(); setTimeout(collectionSheet, 250); }],
       [ru ? 'Письма: согласие при сохранении аккаунта' : 'Emails: the yes while saving the account', function () { closeDialog(); setTimeout(function () { showAccount(null); }, 250); }],
       [ru ? 'Письма: карточка в Профиле' : 'Emails: the card on the Profile tab', function () { closeDialog(); setTimeout(emailCardSheet, 250); }],
       [ru ? 'Честная игра: жалоба на соперника' : 'Fair play: reporting an opponent', function () { closeDialog(); setTimeout(function () { reportSheet('proto', 'NightOwlGM', null); }, 250); }],
@@ -2653,6 +2685,279 @@
       });
       card.appendChild(ul);
     });
+  }
+
+  // ---- progress (prototype; src/progress.js): XP and levels, three quests a day, the career against the bots, the
+  // Joker cards. A game of its own on this device: it never touches the rating or the online pairing.
+  function saveProg() { save('prog', prog); }
+  function progLevel() { return Progress.levelOf(prog.xp); }
+  function progStars() { return Progress.careerStars(prog.career); }
+  function PT(key, vars) { return Progress.t(lang, key, vars); }
+  function progEvent(ev) {
+    var fin = Progress.applyQuests(prog, todayStr(), ev), xp = 0;
+    fin.forEach(function (id) { xp += Progress.QUESTS[id][1]; });
+    return { quests: fin, xp: xp };
+  }
+  // a level or a reward reached: celebrated once nothing is open and no game is on (never over a game)
+  // a new level (or a reward for career stars): no sheet pops up by itself, where it could catch a tap meant for something
+  // else. The result card shows it, and the header's level gets a dot until the celebration is opened.
+  function progAfter() {
+    var lv = progLevel().level, stars = progStars(), seen = prog.seen || { lv: 1, stars: 0 }, up = null;
+    if (lv > seen.lv || Progress.newRewards(seen.lv, lv, seen.stars, stars).length) {
+      up = { from: prog.up ? prog.up.from : { lv: seen.lv, stars: seen.stars }, to: { lv: lv, stars: stars } };
+      prog.up = up; prog.seen = { lv: lv, stars: stars }; saveProg();
+    }
+    refreshLevelChip();
+    return up;
+  }
+  function refreshLevelChip() { var c = $('lvl-chip'); if (c && c.parentNode) c.parentNode.replaceChild(levelChip(), c); }
+  // the celebration of a level-up: from the header's dot, or from the result card (back: to the result card again)
+  function openLevelUp(u, back) {
+    if (!u) return;
+    if (prog.up) { prog.up = null; saveProg(); refreshLevelChip(); }
+    levelUpSheet(u.from, u.to, back);
+  }
+  // a puzzle, the daily puzzle, a review: a little XP and the quests
+  function progSmall(kind, n) {
+    var q = progEvent({ type: kind }), total = (n || 0) + q.xp;
+    if (!total) { saveProg(); return; }
+    prog.xp += total; saveProg();
+    var up = progAfter();
+    toast(PT('xpGain', { n: total }) + (q.quests.length ? ' · ' + PT('x_quest') : '') + (up && up.to.lv > up.from.lv ? ' · ' + T('levelUp', { n: up.to.lv }) : ''));
+  }
+  // a finished game: XP, the career stage's stars, Joker cards found, quests
+  function progGame() {
+    game.progDone = true;
+    var mode = game.online ? 'online' : game.cfg.mode, human = game.online ? online.color : botGame() ? game.cfg.human : -1;
+    var outcome = mode === 'local' ? 0 : humanOutcome(), win = game.result === '1-0' ? 0 : game.result === '0-1' ? 1 : -1;
+    var mated = game.reason === 'checkmate' && win >= 0 && (human < 0 || win === human);
+    var p = new GC.Position(game.startFen), joker = false, cards = [], own = 0;
+    for (var i = 0; i < game.records.length; i++) {
+      var r = game.records[i], mine = human < 0 || r.color === human;
+      if (mine) own++;
+      if (r.golden && mine) {
+        joker = true;
+        try { cards = cards.concat(Progress.classify(GC, p, r.m, i, mated && r.color === win ? game.records.length - 1 - i : null)); } catch (e) { /* a card less */ }
+      }
+      p.makeMove(r.m);
+    }
+    var queenKept = false;
+    if (human >= 0) for (var sq = 0; sq < 128; sq++) { if (sq & 0x88) { sq += 7; continue; } if (p.board[sq] === ((human << 3) | 5)) queenKept = true; }
+    var day = todayStr(), firstWin = outcome === 1 && mode !== 'local' && prog.firstWin !== day;
+    if (firstWin) prog.firstWin = day;
+    var gx = Progress.gameXp({ mode: mode, level: game.cfg.level, outcome: outcome, joker: joker, firstWin: firstWin });
+    var total = gx.xp, lines = gx.lines.slice(), stage = null, cr = botGame() && game.cfg.career;
+    if (cr) {
+      var rec = Progress.recordStage(prog.career, cr.ch, cr.st, { outcome: outcome, joker: joker, queenKept: queenKept, moves: own });
+      stage = { ch: cr.ch, st: cr.st, bits: rec.bits, best: rec.best, newStars: rec.newStars };
+      if (rec.newStars) { total += rec.newStars * Progress.XP.star; lines.push({ k: 'star', n: rec.newStars * Progress.XP.star }); }
+      Track.event('career_end', { ch: cr.ch, st: cr.st, stars: Progress.starsOf(rec.bits) });
+    }
+    var fresh = [];
+    cards.forEach(function (id) { if (!prog.cards[id] && fresh.indexOf(id) < 0) fresh.push(id); prog.cards[id] = (prog.cards[id] || 0) + 1; });
+    fresh.forEach(function (id) { var x = Progress.CARD_XP[Progress.rarityOf(id)]; total += x; lines.push({ k: 'card', n: x }); });
+    var q = progEvent({ type: 'game', mode: mode, outcome: outcome, joker: joker, queenKept: queenKept, stars: stage ? stage.newStars : 0 });
+    if (q.xp) { total += q.xp; lines.push({ k: 'quest', n: q.xp }); }
+    var before = progLevel();
+    prog.xp += total; saveProg();
+    game.prog = { xp: total, lines: lines, stage: stage, cards: fresh, quests: q.quests, before: before, after: progLevel() };
+    Track.event('xp', { n: total, mode: mode });
+    game.prog.up = progAfter();
+  }
+  // the result card's part: the stage's goals, the XP, new Joker cards
+  function overProg() {
+    var gp = game && game.prog;
+    if (!gp || spectating()) return null;
+    var box = h('div', { class: 'over-prog', id: 'over-prog' });
+    if (gp.stage) {
+      var sg = Progress.stage(gp.stage.ch, gp.stage.st), gl = '';
+      sg.goals.forEach(function (g, k) { gl += '<div class="goal' + ((gp.stage.bits >> k) & 1 ? ' got' : '') + '"><i>★</i><span>' + esc(Progress.goalText(lang, g)) + '</span></div>'; });
+      box.appendChild(h('div', { class: 'op-stage' }, '<div class="op-st-h">' + esc(T('chapterN', { n: gp.stage.ch }) + ', ' + (sg.boss ? T('boss') : T('stageN', { n: gp.stage.st }))) +
+        (gp.stage.newStars ? '<span class="new-stars">' + esc(T('newStars', { n: gp.stage.newStars })) + '</span>' : '') + '</div>' + gl));
+    }
+    var L = gp.after;
+    if (gp.up) {
+      var u = gp.up, lvUp = u.to.lv > u.from.lv, news = Progress.newRewards(u.from.lv, u.to.lv, u.from.stars, u.to.stars);
+      var what = news.map(function (r) { return PT('r_' + r.kind) + ' «' + Progress.rewardName(lang, r) + '»'; }).join(', ');
+      var ub = h('button', { type: 'button', class: 'op-lvlup' + (motionOK() ? ' pop' : ''), id: 'btn-over-lvlup' }, rankBadge(u.to.lv) +
+        '<span class="op-lu-t"><b>' + esc(lvUp ? T('levelUp', { n: u.to.lv }) : T('newRewards')) + '</b><span>' + esc(what || Progress.rankName(lang, u.to.lv)) + '</span></span>' +
+        '<span class="op-lu-go">' + esc(T('lvlSee')) + '</span>');
+      ub.addEventListener('click', function () { var g0 = game; openLevelUp(u, function () { if (game === g0 && game.status === 'over') showOver(); else closeDialog(); }); });
+      box.appendChild(ub);
+    }
+    box.appendChild(h('div', { class: 'op-xp' }, '<span class="op-gain">' + esc(PT('xpGain', { n: gp.xp })) + '</span><span class="op-lv">' + esc(PT('level', { n: L.level })) + '</span>' +
+      '<span class="xp-bar mini"><i style="width:' + Math.round(L.into / L.need * 100) + '%"></i></span>'));
+    if (gp.cards.length) box.appendChild(h('div', { class: 'op-cards' }, gp.cards.map(function (id) { return '<span class="jc-chip r' + Progress.rarityOf(id) + '">' + esc(T('newCard', { name: PT('c_' + id) })) + '</span>'; }).join('')));
+    return box;
+  }
+  var RANK_PC = { pawn: 'P', knight: 'N', bishop: 'B', rook: 'R', queen: 'Q', king: 'K' };
+  function rankBadge(level, cls) {
+    var rk = Progress.rankOf(level), pc = RANK_PC[rk.key];
+    return '<span class="rank-badge rk-' + rk.key + (cls ? ' ' + cls : '') + '">' + (pc ? '<i class="pc-ic p-w' + pc + '"></i>' : jokerPiece()) + '</span>';
+  }
+  // the header's level: a ring filling up to the next level; a tap opens the progress
+  function levelChip() {
+    var L = progLevel(), rk = Progress.rankOf(L.level);
+    var b = h('button', { type: 'button', class: 'lvl-chip rk-' + rk.key + (prog.up ? ' has-new' : ''), id: 'lvl-chip',
+      'aria-label': PT('level', { n: L.level }) + ', ' + Progress.rankName(lang, L.level) + (prog.up ? '. ' + T('newRewards') : '') },
+      '<span class="lvl-ring" style="--p:' + Math.round(L.into / L.need * 100) + '%"><span class="lvl-n">' + L.level + '</span></span>');
+    b.addEventListener('click', function () { if (prog.up) openLevelUp(prog.up); else progressSheet(); });
+    return b;
+  }
+  function progressSheet() {
+    var L = progLevel(), nx = Progress.nextReward(L.level), today = todayStr();
+    var q = prog.q && prog.q.day === today ? prog.q : { ids: Progress.questsFor(today), p: {}, done: {} };
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'progress';
+      card.classList.add('prog-card');
+      card.appendChild(h('div', { class: 'prog-top' }, rankBadge(L.level, 'big') + '<div><div class="dlg-title">' + esc(PT('level', { n: L.level })) + '</div><div class="prog-rank">' +
+        esc(Progress.rankName(lang, L.level)) + (prog.equip.title ? ' · «' + esc(PT('t_' + prog.equip.title)) + '»' : '') + '</div></div>'));
+      card.appendChild(h('div', { class: 'xp-bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(L.need), 'aria-valuenow': String(L.into) },
+        '<i style="width:' + Math.round(L.into / L.need * 100) + '%"></i><span>' + esc(PT('xpOf', { a: L.into, b: L.need })) + '</span>'));
+      if (nx) card.appendChild(h('div', { class: 'prog-next' }, esc(T('nextRewardAt', { n: nx.lv, what: PT('r_' + nx.kind) + ' «' + Progress.rewardName(lang, nx) + '»' }))));
+      card.appendChild(h('div', { class: 'prog-h' }, esc(T('questsToday'))));
+      var ql = h('div', { class: 'quest-list', id: 'quest-list' });
+      q.ids.forEach(function (id) {
+        var n = Progress.QUESTS[id][0], have = Math.min(n, q.p[id] || 0), done = !!q.done[id];
+        ql.appendChild(h('div', { class: 'quest' + (done ? ' done' : '') }, '<span class="q-check">' + (done ? '✓' : '') + '</span><span class="q-t"><span>' + esc(Progress.questText(lang, id)) + '</span><i><b style="width:' +
+          Math.round(have / n * 100) + '%"></b></i></span><span class="q-n">' + (done ? '' : have + '/' + n + ' · ') + '+' + Progress.QUESTS[id][1] + '</span>'));
+      });
+      card.appendChild(ql);
+      card.appendChild(bigBtn('start-btn', T('careerTab'), 'btn-career', function () { closeDialog(); botsUi.tab = 'career'; go('bots'); }));
+      var cl = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-collection' }, esc(T('collection')));
+      cl.addEventListener('click', function () { closeDialog(); setTimeout(collectionSheet, 230); });
+      card.appendChild(cl);
+    });
+  }
+  function levelUpSheet(from, to, back) {
+    var news = Progress.newRewards(from.lv, to.lv, from.stars, to.stars), up = to.lv > from.lv;
+    Sound.play('win'); haptic('win');
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'level-up';
+      currentDialog.classList.add('center');
+      card.classList.add('lvlup-card');
+      card.appendChild(h('div', { class: 'lvlup-badge' + (motionOK() ? ' pop' : '') }, rankBadge(to.lv, 'huge')));
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(up ? T('levelUp', { n: to.lv }) : T('newRewards'))));
+      if (up) card.appendChild(h('div', { class: 'dlg-sub' }, esc(Progress.rankName(lang, to.lv))));
+      if (news.length) {
+        var list = h('div', { class: 'reward-list' });
+        var draw = function () { list.innerHTML = ''; news.forEach(function (r) { list.appendChild(rewardRow(r, true, draw)); }); };
+        draw(); card.appendChild(list);
+      }
+      card.appendChild(bigBtn('start-btn', T('great'), 'btn-lvl-ok', function () { if (back) back(); else closeDialog(); }));
+    });
+  }
+  function rewardSwatch(r) {
+    if (r.kind === 'board') return '<span class="rsw sw-board" data-board="' + r.id + '"><i></i><i></i><i></i><i></i></span>';
+    if (r.kind === 'jdot') return '<span class="rsw sw-jdot" data-jdot="' + r.id + '"><i></i></span>';
+    if (r.kind === 'frame') return '<span class="rsw sw-frame" data-frame="' + r.id + '"><span class="ava av"><i>' + esc(initial(me && me.profile ? me.profile.username : 'J')) + '</i></span></span>';
+    return '<span class="rsw sw-title">«»</span>';
+  }
+  function isEquipped(r) { return r.kind === 'board' ? settings.board === r.id : prog.equip[r.kind] === r.id; }
+  function equipReward(r) {
+    if (r.kind === 'board') { settings.board = isEquipped(r) ? 'slate' : r.id; saveSettings(); }
+    else { prog.equip[r.kind] = isEquipped(r) ? null : r.id; saveProg(); }
+    applySettings();
+  }
+  function rewardRow(r, own, redraw) {
+    var row = h('div', { class: 'reward-row' + (own ? '' : ' locked') }, rewardSwatch(r) + '<span class="rw-t"><b>' + esc(Progress.rewardName(lang, r)) + '</b><span>' + esc(PT('r_' + r.kind)) +
+      (own ? '' : ' · ' + esc(r.lv ? T('lockedAt', { n: r.lv }) : T('lockedStars', { n: r.stars }))) + '</span></span>');
+    if (own) {
+      var b = h('button', { type: 'button', class: 'second-btn rw-use' + (isEquipped(r) ? ' on' : '') }, esc(isEquipped(r) ? T('equipped') : T('equip')));
+      b.addEventListener('click', function () { equipReward(r); if (redraw) redraw(); });
+      row.appendChild(b);
+    }
+    return row;
+  }
+  function collectionSheet() {
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'collection';
+      card.classList.add('coll-card');
+      var L = progLevel(), stars = progStars(), found = Progress.CARDS.filter(function (c) { return prog.cards[c[0]]; }).length;
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('collection'))));
+      card.appendChild(h('div', { class: 'prog-h' }, esc(T('jokerCards', { a: found, b: Progress.CARDS.length }))));
+      var grid = h('div', { class: 'jcard-grid', id: 'jcard-grid' });
+      Progress.CARDS.forEach(function (c) {
+        var have = prog.cards[c[0]] || 0;
+        grid.appendChild(h('div', { class: 'jcard r' + c[1] + (have ? '' : ' unknown') }, '<span class="jc-ic">' + (have ? jokerPiece() : '?') + '</span><b>' + esc(have ? PT('c_' + c[0]) : PT('rar' + c[1])) +
+          '</b><span>' + esc(PT('cd_' + c[0])) + (have > 1 ? ' · ×' + have : '') + '</span>'));
+      });
+      card.appendChild(grid);
+      card.appendChild(h('div', { class: 'prog-h' }, esc(T('rewardsH'))));
+      var list = h('div', { class: 'reward-list', id: 'reward-list' });
+      var draw = function () { list.innerHTML = ''; var own = Progress.owned(L.level, stars); Progress.REWARDS.forEach(function (r) { list.appendChild(rewardRow(r, own.indexOf(r) >= 0, draw)); }); };
+      draw(); card.appendChild(list);
+    });
+  }
+  // ---- the career: chapters of the Bots tab, a stage sheet, the game
+  function starsHtml(bits) { var s = ''; for (var k = 0; k < 3; k++) s += '<i class="' + ((bits >> k) & 1 ? 'on' : '') + '">★</i>'; return s; }
+  function renderCareer(inn) {
+    var stars = progStars(), nx = Progress.nextStage(prog.career), L = progLevel();
+    var top = h('button', { type: 'button', class: 'career-top', id: 'career-top' }, rankBadge(L.level) + '<span class="ct-t"><b>' + esc(PT('level', { n: L.level }) + ' · ' + Progress.rankName(lang, L.level)) +
+      '</b><span>' + esc(T('starsOf', { a: stars, b: Progress.CHAPTERS * 9 })) + '</span></span><span class="xp-bar mini"><i style="width:' + Math.round(L.into / L.need * 100) + '%"></i></span>');
+    top.addEventListener('click', progressSheet);
+    inn.appendChild(top);
+    var road = h('div', { class: 'road', id: 'road' });
+    for (var ch = 1; ch <= Progress.CHAPTERS; ch++) road.appendChild(chapterCard(ch));
+    inn.appendChild(road);
+    if (nx) {
+      var bar = h('div', { class: 'cta-bar' });
+      bar.appendChild(bigBtn('start-btn', T('carryOn', { ch: T('chapterN', { n: nx.ch }), st: nx.boss ? T('boss') : T('stageN', { n: nx.st }) }), 'btn-career-go', function () { stageSheet(nx.ch, nx.st); }));
+      inn.appendChild(bar);
+    }
+  }
+  function chapterCard(ch) {
+    var i = ch - 1, open = Progress.isOpen(prog.career, ch, 1), got = 0;
+    for (var s = 1; s <= 3; s++) got += Progress.starsOf(prog.career[ch + '-' + s] || 0);
+    var c = h('div', { class: 'chapter' + (open ? '' : ' locked'), id: 'chapter-' + ch });
+    c.appendChild(h('div', { class: 'ch-head' }, '<span class="face">' + GCBots.avatar(i, lang) + '</span><span class="ch-t"><span class="ch-n">' + esc(T('chapterN', { n: ch })) + '</span><b>' +
+      esc(GCBots.name(i, lang)) + '</b></span><span class="ch-r"><span class="el">' + Engine.LEVELS[i].elo + '</span><span class="ch-stars">' + got + '/9 ★</span></span>'));
+    if (!open) { c.appendChild(h('div', { class: 'ch-lock' }, esc(T('careerLocked', { n: ch - 1 })))); return c; }
+    var row = h('div', { class: 'stages' });
+    [1, 2, 3].forEach(function (st) {
+      var bits = prog.career[ch + '-' + st] || 0, op = Progress.isOpen(prog.career, ch, st);
+      var b = h('button', { type: 'button', class: 'cstage' + (st === 3 ? ' boss' : '') + (op ? '' : ' locked') + (Progress.starsOf(bits) === 3 ? ' full' : ''), id: 'stage-' + ch + '-' + st },
+        '<span class="st-n">' + esc(st === 3 ? T('boss') : T('stageN', { n: st })) + '</span><span class="st-stars">' + starsHtml(bits) + '</span>');
+      if (op) b.addEventListener('click', function () { stageSheet(ch, st); }); else b.disabled = true;
+      row.appendChild(b);
+    });
+    c.appendChild(row);
+    return c;
+  }
+  function stageSheet(ch, st) {
+    var sg = Progress.stage(ch, st), i = ch - 1, bits = prog.career[ch + '-' + st] || 0;
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'stage';
+      card.classList.add('stage-card');
+      card.appendChild(h('div', { class: 'stage-op' }, '<span class="face">' + GCBots.avatar(i, lang) + '</span><div><div class="dlg-title">' + esc(T('chapterN', { n: ch }) + ', ' + (sg.boss ? T('boss') : T('stageN', { n: st }))) +
+        '</div><div class="dlg-sub">' + esc(GCBots.name(i, lang) + ' · ' + Engine.LEVELS[i].elo + ' · ' + T(sg.color === 'b' ? 'youBlack' : 'youWhite')) + '</div></div>'));
+      var gl = h('div', { class: 'goal-list' });
+      sg.goals.forEach(function (g, k) { gl.appendChild(h('div', { class: 'goal' + ((bits >> k) & 1 ? ' got' : '') }, '<i>★</i><span>' + esc(Progress.goalText(lang, g)) + '</span>')); });
+      card.appendChild(gl);
+      if (sg.boss) card.appendChild(h('div', { class: 'dlg-note' }, esc(T('bossNote'))));
+      card.appendChild(bigBtn('start-btn', T('playStage'), 'btn-stage-go', function () { closeDialog(); startCareer(ch, st); }));
+    });
+  }
+  function startCareer(ch, st) {
+    var sg = Progress.stage(ch, st);
+    botsUi.sel = ch - 1;
+    startGame({ mode: 'bot', level: sg.level, color: sg.color, tc: 'none' });
+    game.cfg.career = { ch: ch, st: st }; persist();
+    Track.event('career_start', { ch: ch, st: st });
+  }
+  // the prototype tour: a player some days in
+  // the tour's stage 3-1 played out: a bishop's Joker Move (a new card), a resignation, the result card
+  function protoStageWin() {
+    startCareer(3, 1); cancelBot();
+    var g = game, now = performance.now();
+    ['g1f3', 'e7e5', 'f1b5*', 'g8f6'].forEach(function (u) { var m = g.pos.moveFromUci(u); if (m) g.play(m, now); });
+    g.end('1-0', 'resign', now); gameOver();
+  }
+  function protoProg() {
+    prog = { xp: Progress.xpAt(7) + 210, career: { '1-1': 7, '1-2': 3, '1-3': 3, '2-1': 5, '2-2': 1, '2-3': 3, '3-1': 1 }, cards: { knight: 3, queen: 2, early: 2, escape: 1, fork: 1, rook: 1 },
+      q: { day: todayStr(), ids: Progress.questsFor(todayStr()), p: {}, done: {} }, firstWin: '', equip: { title: 'teleporter' }, seen: { lv: 7, stars: 26 }, reviewed: [] };
+    prog.q.p[prog.q.ids[0]] = 1; prog.q.done[prog.q.ids[0]] = true; prog.q.p[prog.q.ids[1]] = 1;
+    saveProg(); applySettings();
   }
 
   // ---- emails (prototype; the server says it keeps the yes / no in hello: me.mail)
@@ -4524,7 +4829,7 @@
   // Play (start screen), Learn, Ratings, Profile, the sign-in page and the game itself are views of one page;
   // the address keeps the view (#play, #learn, ...) so the back button and reloads work.
   var shellEl = $('shell'), curView = null, learnKit = null, signinFlow = null, ratingsPool = null;
-  var botsUi = { sel: Math.max(0, Math.min(7, (lastSetup.level || 3) - 1)), color: lastSetup.color || 'w' };
+  var botsUi = { sel: Math.max(0, Math.min(7, (lastSetup.level || 3) - 1)), color: lastSetup.color || 'w', tab: load('botsTab', 'career') === 'free' ? 'free' : 'career' };
   var VIEWS = ['play', 'bots', 'learn', 'ratings', 'profile', 'signin', 'games', 'player', 'game'], NAV = ['play', 'bots', 'learn', 'ratings', 'profile'];
   var NAV_KEY = { play: 'navPlay', bots: 'navBots', learn: 'navLearn', ratings: 'navRatings', profile: 'navProfile' };
   var COLOR_RANDOM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6" fill="#1f2422"/><path d="M12 3.4a8.6 8.6 0 0 0 0 17.2z" fill="#f4efe4"/><circle cx="12" cy="12" r="8.6" fill="none" stroke="#8d9691" stroke-width="1.2"/></svg>';
@@ -4718,7 +5023,7 @@
     game.paused = false; if (game.clock) game.clock.since = perf();
   }
   function kit() {
-    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ daily: function () { return dailyToday(); }, solveDaily: solveDaily, streakSheet: streakSheet, streakLine: function () { var st = streakNow(); return st.count >= 2 ? { n: st.count, html: FLAME_SVG + '<b>' + st.count + '</b>' } : null; }, newcomer: function () { return !returningPlayer(); }, dailyAuto: function () { var t = todayStr(); if (load('dailyAuto', '') === t) return false; save('dailyAuto', t); return true; }, track: function (n, p) { Track.event(n, p); if (n === 'puzzle_solved') { noteAct('learn'); noteDay('puzzle'); } }, T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
+    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ daily: function () { return dailyToday(); }, solveDaily: solveDaily, streakSheet: streakSheet, streakLine: function () { var st = streakNow(); return st.count >= 2 ? { n: st.count, html: FLAME_SVG + '<b>' + st.count + '</b>' } : null; }, newcomer: function () { return !returningPlayer(); }, dailyAuto: function () { var t = todayStr(); if (load('dailyAuto', '') === t) return false; save('dailyAuto', t); return true; }, track: function (n, p) { Track.event(n, p); if (n === 'puzzle_solved') { noteAct('learn'); noteDay('puzzle'); progSmall('puzzle', p && p.first ? Progress.XP.puzzle : 0); } }, T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
     return learnKit;
   }
 
@@ -4757,9 +5062,10 @@
       else chip = h('button', { type: 'button', class: 'acct-chip out', id: 'acct-chip' }, '<span>' + esc(T('signIn')) + '</span>');
       chip.addEventListener('click', function () { if (signedIn()) go('profile'); else { setPending({ kind: 'view', v: 'play' }); go('signin'); } });
       var hr = h('div', { class: 'head-r' }), fl = streakChip();
+      hr.appendChild(levelChip());
       if (fl) hr.appendChild(fl);
       hr.appendChild(chip); head.appendChild(hr);
-    } else { var fl2 = streakChip(); if (fl2) head.appendChild(fl2); }
+    } else { var hr2 = h('div', { class: 'head-r' }), fl2 = streakChip(); hr2.appendChild(levelChip()); if (fl2) hr2.appendChild(fl2); head.appendChild(hr2); }
     col.appendChild(head);
     var main = h('div', { class: 'play-main' }); col.appendChild(main);
     // the reel of Joker Moves: on a board beside the menu on wide screens, above the menu otherwise; the layout follows
@@ -4934,6 +5240,14 @@
       rb.appendChild(bigBtn('sbtn', T('cont'), 'btn-resume', function () { go('game'); }));
       inn.appendChild(rb);
     }
+    var tabs = h('div', { class: 'bots-tabs', role: 'tablist' });
+    [['career', T('careerTab')], ['free', T('freeTab')]].forEach(function (x) {
+      var b = h('button', { type: 'button', role: 'tab', class: 'bt-tab', id: 'tab-' + x[0], 'aria-selected': String(botsUi.tab === x[0]) }, esc(x[1]));
+      b.addEventListener('click', function () { botsUi.tab = x[0]; save('botsTab', x[0]); renderBots(); });
+      tabs.appendChild(b);
+    });
+    inn.appendChild(tabs);
+    if (botsUi.tab === 'career') { renderCareer(inn); host.scrollTop = keep; return; }
     var hw = h('div', { class: 'bot-hero-wrap' }), hero = h('div', { class: 'bot-hero', id: 'bot-hero' });
     hw.appendChild(hero); inn.appendChild(hw);
     var tiles = [], pb;
@@ -5649,6 +5963,7 @@
     takeback: takeback, onGoldenButton: onGoldenButton, setAnalysis: setAnalysis, get botBusy() { return !!botReq; }, settings: settings, applySettings: applySettings,
     premoveDests: premoveDests, viewFen: function () { return viewFen(); }, get reviewState() { return review; }, get exploreState() { return explore; }, startReview: startReview, exitExplore: exitExplore, navStep: navStep,
     get goldenArmed() { return goldenArmed; }, get selected() { return selected; }, get dialogOpen() { return !!currentDialog; }, closeDialog: closeDialog,
+    startCareer: function (ch, st) { startCareer(ch, st); }, gameOver: function () { gameOver(); }, get prog() { return prog; }, cancelBot: function () { cancelBot(); },
     get dialogKind() { return currentDialog ? currentDialog.dataset.kind || '' : null; },
     get online() { return online; }, get me() { return me; }, get lobby() { return lobby; }, startSeek: startSeek, startInvite: startInvite,
     onlineAction: onlineAction, showNewGame: showNewGame, serverNow: serverNow, cancelPremoves: cancelPremoves,

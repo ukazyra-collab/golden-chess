@@ -19,6 +19,9 @@ async def main():
         await page.route('**/fonts.googleapis.com/**', lambda r: r.fulfill(status=200, body='', content_type='text/css'))
         await page.goto(URL); await page.wait_for_timeout(500)
         ok('Bots tab opens from the address', await page.evaluate('__gc.curView') == 'bots')
+        # the Bots screen opens on the career (Joker Road); the free picker is the second tab
+        if await page.query_selector('#tab-free'):
+            await page.click('#tab-free'); await page.wait_for_timeout(100)
         ok('eight characters', await page.evaluate('document.querySelectorAll(".bot-tile").length') == 8)
         await page.click('#bot-5'); await page.wait_for_timeout(100)
         ok('picking a character shows it on top', 'Viktor' in await page.text_content('#bot-hero'))

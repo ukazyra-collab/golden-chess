@@ -57,6 +57,19 @@
 [data-board="walnut"] { --sq-light: #ecd3a9; --sq-dark: #a97b50; }
 [data-board="marble"] { --sq-light: #e7e6e1; --sq-dark: #8d9aa3; }
 [data-board="slate"] { --sq-light: #e2dccb; --sq-dark: #5d7a74; }
+/* boards won with levels and career stars (prototype) */
+[data-board="ocean"] { --sq-light: #dce8ee; --sq-dark: #5a86a2; }
+[data-board="rose"] { --sq-light: #f2e2df; --sq-dark: #b26f79; }
+[data-board="midnight"] { --sq-light: #c9cfdd; --sq-dark: #44506e; }
+[data-board="emerald"] { --sq-light: #e2eedc; --sq-dark: #3f875c; }
+[data-board="gold"] { --sq-light: #f6e8c3; --sq-dark: #be943a; }
+[data-board="diamond"] { --sq-light: #eef5fc; --sq-dark: #86aed6; }
+[data-board="arena"] { --sq-light: #e8e0d0; --sq-dark: #786755; }
+[data-jdot="ice"] { --jdot: #8fd6ff; } [data-jdot="fire"] { --jdot: #ff7b45; } [data-jdot="violet"] { --jdot: #b48cff; }
+[data-jdot="rainbow"] { --jdot: conic-gradient(#ff6b6b, #ffd166, #6be38b, #6bc3ff, #b48cff, #ff6b6b); }
+[data-frame="knight"] { --frame: #c58a56; } [data-frame="bishop"] { --frame: #c9d1d8; } [data-frame="rook"] { --frame: #f0b941; }
+[data-frame="queen"] { --frame: #5fc9a5; } [data-frame="king"] { --frame: #6aa7ff; } [data-frame="joker"] { --frame: #c07cff; }
+[data-frame="diamond"] { --frame: #c6efff; --frame-glow: 0 0 12px 2px rgba(150, 220, 255, .55); } [data-frame="champion"] { --frame: #ff6b6b; }
 
 html, body { height: 100%; background: var(--ground); color: var(--bone); }
 body { font-family: var(--f-ui); font-size: 14px; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; overflow: hidden; }
@@ -256,7 +269,7 @@ html { overscroll-behavior: none; overflow: hidden; }
 .coord.on-l { color: var(--sq-dark); } .coord.on-d { color: var(--sq-light); }
 .dot::after { content: ""; position: absolute; left: 34%; top: 34%; width: 32%; height: 32%; border-radius: 50%; background: var(--dot); }
 .ring::after { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 0 0 calc(var(--bs) * .0095) var(--dot); }
-.gdot::after { content: ""; position: absolute; left: 37%; top: 37%; width: 26%; height: 26%; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 2px rgba(80, 52, 6, .35), 0 0 10px 2px rgba(247, 217, 143, .55); }
+.gdot::after { content: ""; position: absolute; left: 37%; top: 37%; width: 26%; height: 26%; border-radius: 50%; background: var(--jdot, var(--gold)); box-shadow: 0 0 0 2px rgba(80, 52, 6, .35), 0 0 10px 2px rgba(247, 217, 143, .55); }
 .gdot.hot::after { left: 30%; top: 30%; width: 40%; height: 40%; }
 .pc { position: absolute; left: 0; top: 0; width: 12.5%; height: 12.5%; background-size: 100%; background-repeat: no-repeat; will-change: transform; transform-origin: 50% 50%; }
 .pc.lift { z-index: 5; }
@@ -705,6 +718,132 @@ html { overscroll-behavior: none; overflow: hidden; }
 .proto-pill { position: fixed; z-index: 45; left: max(12px, env(safe-area-inset-left, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 74px); height: 34px; padding: 0 14px; border-radius: 17px; background: var(--gold); color: #2a1c03; font-weight: 800; font-size: 13px; box-shadow: 0 8px 22px rgba(0, 0, 0, .4); }
 .shell[data-view="game"] ~ .proto-pill { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); }
 .proto-list { display: flex; flex-direction: column; gap: 8px; }
+/* progress (prototype): level, quests, career, collection */
+.acct-chip .ava, .sw-frame .ava { box-shadow: 0 0 0 2.5px var(--frame, transparent), var(--frame-glow, 0 0 0 0 transparent); }
+.lvl-chip { flex: none; height: 40px; width: 40px; padding: 0; border-radius: 50%; background: none; display: grid; place-items: center; }
+.lvl-ring { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--gold) var(--p), rgba(255, 255, 255, .12) 0); }
+.lvl-n { width: 29px; height: 29px; border-radius: 50%; background: var(--raise); display: grid; place-items: center; font-weight: 800; font-size: 14px; color: var(--bone); font-variant-numeric: tabular-nums; }
+.rank-badge { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--rk, #8b8f8a); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .18); }
+.rank-badge .pc-ic { width: 70%; height: 70%; background-size: 100%; background-repeat: no-repeat; background-position: center; }
+.rank-badge svg { width: 70%; height: 70%; }
+.rank-badge.big { width: 64px; height: 64px; border-radius: 18px; }
+.rank-badge.huge { width: 112px; height: 112px; border-radius: 30px; }
+.rk-pawn { --rk: #8f948d; } .rk-knight { --rk: #b57c4b; } .rk-bishop { --rk: #a9b3bb; } .rk-rook { --rk: #d8a43a; }
+.rk-queen { --rk: #4fb08f; } .rk-king { --rk: #5b8fe0; } .rk-joker { --rk: #a46ae6; }
+.rk-diamond { --rk: linear-gradient(135deg, #e9f8ff, #8fd0f5 45%, #d6c4ff); }
+.lvl-chip.rk-diamond .lvl-ring { background: conic-gradient(#8fd0f5 var(--p), rgba(255, 255, 255, .12) 0); }
+.prog-card { text-align: left; }
+.prog-top { display: flex; align-items: center; gap: 14px; }
+.prog-top .dlg-title { margin: 0; text-align: left; }
+.prog-rank { color: var(--muted); font-size: 14px; font-weight: 600; }
+.xp-bar { position: relative; display: block; height: 22px; border-radius: 11px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.xp-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 11px; background: var(--gold); }
+.xp-bar span { position: relative; display: block; text-align: center; line-height: 22px; font-size: 12.5px; font-weight: 700; color: var(--bone); text-shadow: 0 1px 2px rgba(0, 0, 0, .45); }
+.xp-bar.mini { height: 6px; border-radius: 3px; flex: 1 1 auto; min-width: 60px; }
+.prog-next { font-size: 13px; color: var(--muted); }
+.prog-h { font-size: 13px; font-weight: 700; color: var(--faint); margin-top: 4px; text-align: left; }
+.quest-list { display: flex; flex-direction: column; gap: 8px; }
+.quest { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--raise); }
+.q-check { flex: none; width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 0 0 2px var(--faint) inset; display: grid; place-items: center; font-size: 13px; font-weight: 900; color: #23180a; }
+.quest.done .q-check { background: var(--gold); box-shadow: none; }
+.q-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 700; color: var(--bone); }
+.q-t i { display: block; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.q-t i b { display: block; height: 100%; background: var(--gold); }
+.quest.done .q-t { color: var(--muted); }
+.quest.done .q-t i { display: none; }
+.q-n { flex: none; font-size: 12.5px; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
+.lvlup-badge { display: grid; place-items: center; margin: 6px auto 2px; }
+.lvlup-card > .dlg-title, .lvlup-card > .dlg-sub { text-align: center; }
+.lvlup-badge.pop .rank-badge { animation: lvlPop .7s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes lvlPop { 0% { transform: scale(.3) rotate(-12deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+.reward-list { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.reward-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--raise); }
+.reward-row.locked { opacity: .5; }
+.rw-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.rw-t b { font-size: 15px; color: var(--bone); }
+.rw-t span { font-size: 12.5px; color: var(--muted); }
+.reward-row .rw-use { flex: none; width: auto; min-width: 84px; height: 36px; margin: 0; padding: 0 14px; font-size: 14px; border-radius: 11px; box-shadow: 0 3px 0 var(--edge); background: var(--bar); }
+.reward-row .rw-use.on { color: var(--gold); }
+.rsw { flex: none; width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; overflow: hidden; }
+.sw-board { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; place-items: stretch; }
+.sw-board i:nth-child(1), .sw-board i:nth-child(4) { background: var(--sq-light); }
+.sw-board i:nth-child(2), .sw-board i:nth-child(3) { background: var(--sq-dark); }
+.sw-jdot { background: #5d7a74; }
+.sw-jdot i { width: 16px; height: 16px; border-radius: 50%; background: var(--jdot, var(--gold)); box-shadow: 0 0 10px 2px rgba(255, 255, 255, .25); }
+.sw-frame .ava { width: 30px; height: 30px; font-size: 13px; }
+.sw-title { background: rgba(240, 185, 65, .15); color: var(--gold); font-weight: 800; font-size: 18px; }
+.coll-card { text-align: left; }
+.coll-card > .dlg-title { text-align: left; }
+.jcard-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.jcard { display: flex; flex-direction: column; gap: 3px; padding: 10px 8px; border-radius: 14px; background: var(--raise); box-shadow: inset 0 0 0 1.5px var(--rar, transparent); min-width: 0; }
+.jcard .jc-ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--rar, rgba(255, 255, 255, .1)); font-weight: 900; color: var(--bone); }
+.jcard .jc-ic svg { width: 22px; height: 22px; }
+.jcard b { font-size: 13px; line-height: 1.2; color: var(--bone); }
+.jcard span:last-child { font-size: 11.5px; line-height: 1.3; color: var(--muted); }
+.jcard.unknown { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .08); }
+.jcard.unknown .jc-ic { background: rgba(255, 255, 255, .08); color: var(--faint); }
+.jcard.unknown b { color: var(--faint); }
+.r1 { --rar: #8f948d; } .r2 { --rar: #4fb08f; } .r3 { --rar: #5b8fe0; } .r4 { --rar: #a46ae6; } .r5 { --rar: #f0b941; }
+.over-prog { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 16px; background: rgba(255, 255, 255, .05); text-align: left; }
+.op-st-h { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 14px; color: var(--bone); margin-bottom: 2px; }
+.new-stars { margin-left: auto; color: var(--gold); }
+.goal { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); }
+.goal i { font-style: normal; color: rgba(255, 255, 255, .22); font-size: 16px; }
+.goal.got { color: var(--bone); }
+.goal.got i { color: var(--gold); }
+.op-xp { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+.op-gain { color: var(--gold); font-size: 15px; }
+.op-up { color: var(--bone); font-size: 14px; }
+.op-lv { color: var(--muted); font-size: 13px; font-weight: 700; }
+.op-cards { display: flex; flex-wrap: wrap; gap: 6px; }
+.op-lvlup { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: 14px; text-align: left; color: var(--bone); background: rgba(240, 185, 65, .12); box-shadow: inset 0 0 0 1.5px rgba(240, 185, 65, .5); }
+.op-lvlup .rank-badge { width: 44px; height: 44px; border-radius: 13px; }
+.op-lvlup.pop .rank-badge { animation: lvlPop .7s .3s cubic-bezier(.2, 1.4, .4, 1) both; }
+.op-lu-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.op-lu-t b { font-size: 15px; font-weight: 800; }
+.op-lu-t span { font-size: 13px; font-weight: 600; color: var(--muted); overflow-wrap: anywhere; }
+.op-lu-go { flex: none; font-size: 13.5px; font-weight: 800; color: var(--gold); }
+.lvl-chip { position: relative; }
+.lvl-chip.has-new::after { content: ''; position: absolute; top: 0; right: 0; width: 11px; height: 11px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 2.5px var(--ground); }
+@media (prefers-reduced-motion: reduce) { .op-lvlup.pop .rank-badge, .lvlup-badge.pop .rank-badge { animation: none; } }
+.jc-chip { font-size: 12.5px; font-weight: 700; padding: 4px 10px; border-radius: 10px; color: var(--bone); background: rgba(255, 255, 255, .06); box-shadow: inset 0 0 0 1.5px var(--rar); }
+.bots-tabs { display: flex; padding: 4px; border-radius: 14px; background: var(--raise); gap: 4px; margin-bottom: 14px; }
+.bt-tab { flex: 1 1 0; height: 40px; border-radius: 11px; font-weight: 700; font-size: 15px; color: var(--muted); background: none; }
+.bt-tab[aria-selected="true"] { background: var(--bar); color: var(--bone); box-shadow: 0 2px 0 var(--edge); }
+.career-top { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border-radius: 16px; background: var(--raise); text-align: left; margin-bottom: 12px; flex-wrap: wrap; }
+.career-top .ct-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.career-top .ct-t b { font-size: 15px; color: var(--bone); }
+.career-top .ct-t span { font-size: 13px; color: var(--muted); }
+.career-top .xp-bar.mini { flex-basis: 100%; }
+.road { display: flex; flex-direction: column; gap: 10px; padding-bottom: 90px; }
+.chapter { padding: 12px; border-radius: 18px; background: var(--raise); display: flex; flex-direction: column; gap: 10px; }
+.chapter.locked { opacity: .55; }
+.ch-head { display: flex; align-items: center; gap: 12px; }
+.ch-head .face { flex: none; width: 46px; height: 46px; border-radius: 14px; overflow: hidden; }
+.ch-head .face svg, .ch-head .face img { width: 100%; height: 100%; display: block; }
+.ch-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.ch-n { font-size: 12px; font-weight: 700; color: var(--faint); }
+.ch-t b { font-size: 16px; color: var(--bone); }
+.ch-r { flex: none; display: flex; flex-direction: column; align-items: flex-end; font-size: 13px; font-weight: 700; }
+.ch-r .el { color: var(--muted); }
+.ch-stars { color: var(--gold); }
+.ch-lock { font-size: 13px; color: var(--muted); }
+.stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cstage { height: 64px; border-radius: 14px; background: var(--bar); box-shadow: 0 3px 0 var(--edge); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--bone); }
+.cstage .st-n { font-size: 13px; font-weight: 700; }
+.cstage .st-stars i { font-style: normal; font-size: 15px; color: rgba(255, 255, 255, .2); }
+.cstage .st-stars i.on { color: var(--gold); }
+.cstage.boss { background: rgba(240, 185, 65, .14); box-shadow: 0 3px 0 rgba(150, 105, 20, .6), inset 0 0 0 1.5px rgba(240, 185, 65, .55); }
+.cstage.locked { opacity: .45; box-shadow: none; }
+.cstage.full { box-shadow: 0 3px 0 var(--edge), inset 0 0 0 1.5px var(--gold); }
+.stage-card { text-align: left; }
+.stage-op { display: flex; align-items: center; gap: 12px; }
+.stage-op .face { flex: none; width: 56px; height: 56px; border-radius: 16px; overflow: hidden; }
+.stage-op .face svg, .stage-op .face img { width: 100%; height: 100%; display: block; }
+.stage-op .dlg-title { margin: 0; text-align: left; }
+.stage-op .dlg-sub { text-align: left; margin: 2px 0 0; }
+.goal-list { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 14px; background: var(--raise); }
+.goal-list .goal { font-size: 14.5px; }
 /* emails (prototype) */
 .acct-opt { display: flex; align-items: flex-start; gap: 10px; font-size: 13.5px; line-height: 1.4; color: var(--muted); text-align: left; cursor: pointer; padding: 2px 2px 4px; }
 .acct-opt input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--gold); }
@@ -5089,6 +5228,263 @@ var Habits = (function () {
 if (typeof module !== 'undefined' && module.exports) module.exports = Habits;
 
 ;
+/* Progress: the player's level and rank, three quests a day, the career against the bots (stars for goals) and the
+ * collection of Joker Moves. Pure functions with no page in them: the app keeps the state on the device, the tests
+ * share them. None of it touches the rating or online matchmaking: it is a game of its own, mostly against the bots.
+ *
+ * Level: experience (XP) for everything played, never lost. Each level needs 40 XP more than the one before (100 for
+ * the first), so a player who comes every day climbs fast at first and reaches the diamond rank (50) in about half a
+ * year. Ranks: a chess piece for each band of levels, then the Joker, then the diamond Joker. */
+var Progress = (function () {
+  function need(level) { return 100 + 40 * (level - 1); }
+  function levelOf(xp) {
+    var l = 1, left = Math.max(0, Math.floor(xp || 0));
+    while (left >= need(l) && l < 99) { left -= need(l); l++; }
+    return { level: l, into: left, need: need(l) };
+  }
+  function xpAt(level) { var s = 0; for (var l = 1; l < level; l++) s += need(l); return s; } // XP at the start of a level
+
+  var RANKS = [['pawn', 1], ['knight', 5], ['bishop', 10], ['rook', 15], ['queen', 20], ['king', 30], ['joker', 40], ['diamond', 50]];
+  function rankOf(level) {
+    var i = RANKS.length - 1;
+    while (i > 0 && level < RANKS[i][1]) i--;
+    var from = RANKS[i][1], to = i + 1 < RANKS.length ? RANKS[i + 1][1] - 1 : null;
+    var tier = to ? Math.min(3, Math.floor((level - from) * 3 / (to - from + 1)) + 1) : 0;
+    return { key: RANKS[i][0], index: i, from: from, to: to, tier: tier };
+  }
+
+  // ---- XP for a finished game. o: { mode: 'bot' | 'online' | 'local', level (the bot's, 1-8), outcome (1 win, 0 draw,
+  // -1 loss, for the player), joker (the player's Joker Move was played), firstWin (the first win of the player's day) }
+  var XP = { bot: 10, botWin: 20, perLevel: 4, online: 20, onlineWin: 20, draw: 10, local: 10, joker: 10, puzzle: 10, daily: 40, review: 15, star: 30 };
+  function gameXp(o) {
+    var lines = [];
+    var add = function (k, n) { if (n) lines.push({ k: k, n: n }); };
+    if (o.mode === 'online') { add('game', XP.online); add(o.outcome === 1 ? 'win' : o.outcome === 0 ? 'draw' : '', o.outcome === 1 ? XP.onlineWin : o.outcome === 0 ? XP.draw : 0); }
+    else if (o.mode === 'bot') { add('game', XP.bot); add(o.outcome === 1 ? 'win' : o.outcome === 0 ? 'draw' : '', o.outcome === 1 ? XP.botWin + XP.perLevel * ((o.level || 1) - 1) : o.outcome === 0 ? XP.draw : 0); }
+    else add('game', XP.local);
+    if (o.joker) add('joker', XP.joker);
+    var sum = lines.reduce(function (s, x) { return s + x.n; }, 0);
+    if (o.firstWin && o.outcome === 1 && o.mode !== 'local') { add('firstWin', sum); sum *= 2; } // the first win of the day counts twice
+    return { xp: sum, lines: lines };
+  }
+
+  // ---- what levels (and career stars) give: boards, the colour of the Joker Move's dots, frames, titles
+  var REWARDS = [
+    { lv: 2, kind: 'board', id: 'ocean' }, { lv: 3, kind: 'title', id: 'teleporter' }, { lv: 4, kind: 'jdot', id: 'ice' },
+    { lv: 5, kind: 'frame', id: 'knight' }, { lv: 6, kind: 'board', id: 'rose' }, { lv: 7, kind: 'title', id: 'trickster' },
+    { lv: 8, kind: 'jdot', id: 'fire' }, { lv: 10, kind: 'frame', id: 'bishop' }, { lv: 12, kind: 'board', id: 'midnight' },
+    { lv: 14, kind: 'title', id: 'tactician' }, { lv: 15, kind: 'frame', id: 'rook' }, { lv: 17, kind: 'jdot', id: 'violet' },
+    { lv: 20, kind: 'frame', id: 'queen' }, { lv: 22, kind: 'board', id: 'emerald' }, { lv: 25, kind: 'title', id: 'jokermaster' },
+    { lv: 30, kind: 'frame', id: 'king' }, { lv: 35, kind: 'jdot', id: 'rainbow' }, { lv: 40, kind: 'frame', id: 'joker' },
+    { lv: 45, kind: 'board', id: 'gold' }, { lv: 50, kind: 'frame', id: 'diamond' }, { lv: 50, kind: 'board', id: 'diamond' },
+    { lv: 50, kind: 'title', id: 'diamond' },
+    { stars: 9, kind: 'title', id: 'climber' }, { stars: 36, kind: 'board', id: 'arena' }, { stars: 72, kind: 'frame', id: 'champion' }
+  ];
+  function owned(level, stars) { return REWARDS.filter(function (r) { return r.lv ? r.lv <= level : r.stars <= stars; }); }
+  function newRewards(fromLevel, toLevel, fromStars, toStars) {
+    return REWARDS.filter(function (r) { return r.lv ? r.lv > fromLevel && r.lv <= toLevel : r.stars > fromStars && r.stars <= toStars; });
+  }
+  function nextReward(level) { for (var i = 0; i < REWARDS.length; i++) if (REWARDS[i].lv > level) return REWARDS[i]; return null; }
+
+  // ---- three quests a day, the same for everyone on that day: something to solve, something to play, something
+  // with the Joker. ev: { type: 'game', mode, outcome, joker, queenKept, stars (new career stars) } | { type: 'puzzle' }
+  // | { type: 'daily' } | { type: 'review' }
+  var QUESTS = { daily: [1, 60], puzzles3: [3, 60], win2: [2, 60], games3: [3, 60], online: [1, 60], star: [1, 60],
+    joker2: [2, 60], jokerwin: [1, 80], clean: [1, 80], review: [1, 60] }; // [how many, XP]
+  var SLOTS = [['daily', 'puzzles3'], ['win2', 'games3', 'online', 'star'], ['joker2', 'jokerwin', 'clean', 'review']];
+  function hash(s) {
+    var x = 2166136261;
+    for (var i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); }
+    x ^= x >>> 16; x = Math.imul(x, 0x85ebca6b); x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; // spread the bits
+    return x >>> 0;
+  }
+  function questsFor(day) { return SLOTS.map(function (slot, i) { return slot[hash(day + ':' + i) % slot.length]; }); }
+  function questStep(id, ev) {
+    var game = ev.type === 'game', real = game && ev.mode !== 'local', won = real && ev.outcome === 1;
+    switch (id) {
+      case 'daily': return ev.type === 'daily' ? 1 : 0;
+      case 'puzzles3': return ev.type === 'puzzle' || ev.type === 'daily' ? 1 : 0;
+      case 'win2': return won ? 1 : 0;
+      case 'games3': return real ? 1 : 0;
+      case 'online': return game && ev.mode === 'online' ? 1 : 0;
+      case 'star': return game ? ev.stars || 0 : 0;
+      case 'joker2': return real && ev.joker ? 1 : 0;
+      case 'jokerwin': return won && ev.joker ? 1 : 0;
+      case 'clean': return won && ev.queenKept ? 1 : 0;
+      case 'review': return ev.type === 'review' ? 1 : 0;
+    }
+    return 0;
+  }
+  // today's quests in the state (a new day starts afresh); applies the event; returns the quests it finished
+  function applyQuests(st, day, ev) {
+    if (!st.q || st.q.day !== day) st.q = { day: day, ids: questsFor(day), p: {}, done: {} };
+    var finished = [];
+    st.q.ids.forEach(function (id) {
+      if (st.q.done[id]) return;
+      var k = questStep(id, ev);
+      if (!k) return;
+      st.q.p[id] = Math.min(QUESTS[id][0], (st.q.p[id] || 0) + k);
+      if (st.q.p[id] >= QUESTS[id][0]) { st.q.done[id] = true; finished.push(id); }
+    });
+    return finished;
+  }
+
+  // ---- the career: a chapter for each bot (the weakest first), three stages each, the third one the boss (played
+  // as Black). Three goals a stage, a star each; the first is always the win. The boss gives one star for a win with
+  // the Joker and one for a win without it, so three stars take two different wins. A stage opens when the one before
+  // it has a star; a chapter when the boss before it is beaten.
+  var CHAPTERS = 8;
+  var GOALS = { 1: [['win'], ['joker'], ['fast', 40]], 2: [['win'], ['clean'], ['fast', 30]], 3: [['win'], ['joker'], ['nojoker']] };
+  function stage(ch, st) { return { ch: ch, st: st, boss: st === 3, color: st === 3 ? 'b' : 'w', level: ch, goals: GOALS[st] }; }
+  // r: { outcome, joker, queenKept, moves (the player's own moves) }
+  function goalMet(g, r) {
+    if (r.outcome !== 1) return false;
+    if (g[0] === 'joker') return !!r.joker;
+    if (g[0] === 'nojoker') return !r.joker;
+    if (g[0] === 'clean') return !!r.queenKept;
+    if (g[0] === 'fast') return r.moves <= g[1];
+    return true;
+  }
+  function stageBits(st, r) { var bits = 0; GOALS[st].forEach(function (g, i) { if (goalMet(g, r)) bits |= 1 << i; }); return bits; }
+  function starsOf(bits) { return (bits & 1) + ((bits >> 1) & 1) + ((bits >> 2) & 1); }
+  function isOpen(career, ch, st) {
+    if (ch < 1 || ch > CHAPTERS || st < 1 || st > 3) return false;
+    if (ch === 1 && st === 1) return true;
+    if (st > 1) return !!career[ch + '-' + (st - 1)];
+    return !!career[(ch - 1) + '-3'];
+  }
+  function careerStars(career) { var s = 0; for (var k in career) s += starsOf(career[k]); return s; }
+  // where to carry on: ahead first, the open stage not won yet (stages open one at a time, so there is one); once the
+  // whole road is won, the first stage still missing stars (none left: null). Missing stars never pull the main
+  // button back down the road: replaying a stage for them is the player's choice, from its tile.
+  function nextStage(career) {
+    var ch, st;
+    for (ch = 1; ch <= CHAPTERS; ch++) for (st = 1; st <= 3; st++) if (isOpen(career, ch, st) && !career[ch + '-' + st]) return stage(ch, st);
+    for (ch = 1; ch <= CHAPTERS; ch++) for (st = 1; st <= 3; st++) if (starsOf(career[ch + '-' + st] || 0) < 3) return stage(ch, st);
+    return null;
+  }
+  // a finished career game: the goals met now, the best kept; returns { bits, newStars, best }
+  function recordStage(career, ch, st, r) {
+    var key = ch + '-' + st, before = career[key] || 0, now = stageBits(st, r), best = before | now;
+    career[key] = best;
+    return { bits: now, newStars: starsOf(best) - starsOf(before), best: best };
+  }
+
+  // ---- the collection: kinds of Joker Moves, found by playing them (any game; puzzles don't count). A Joker Move
+  // never captures and never gives check, so the cards are about where it lands and what it sets up.
+  var CARDS = [['knight', 1], ['bishop', 1], ['rook', 1], ['queen', 1], ['early', 2], ['deep', 2], ['endgame', 2],
+    ['pin', 3], ['escape', 3], ['shield', 3], ['fork', 4], ['mate', 5]];
+  var CARD_XP = [0, 40, 60, 90, 140, 250];
+  function rarityOf(id) { for (var i = 0; i < CARDS.length; i++) if (CARDS[i][0] === id) return CARDS[i][1]; return 1; }
+  var KN = [33, 31, 18, 14, -33, -31, -18, -14], DG = [15, 17, -15, -17], OR = [1, -1, 16, -16];
+  function hits(b, sq, type) { // the squares a piece of that type on sq attacks (0x88 board)
+    var out = [], i, t, d;
+    if (type === 2) { for (i = 0; i < 8; i++) { t = sq + KN[i]; if (!(t & 0x88)) out.push(t); } return out; }
+    var dirs = type === 3 ? DG : type === 4 ? OR : DG.concat(OR);
+    for (i = 0; i < dirs.length; i++) { d = dirs[i]; t = sq + d; while (!(t & 0x88)) { out.push(t); if (b[t]) break; t += d; } }
+    return out;
+  }
+  // a line piece on sq that holds one of their pieces against their king (the king right behind it on the line)
+  function pinsFrom(b, sq, type, them) {
+    var dirs = type === 3 ? DG : type === 4 ? OR : DG.concat(OR), king = (them << 3) | 6;
+    for (var i = 0; i < dirs.length; i++) {
+      var d = dirs[i], t = sq + d, first = 0;
+      while (!(t & 0x88)) {
+        var q = b[t];
+        if (q) {
+          if (!first) { if ((q >> 3) !== them || q === king) break; first = q; }
+          else { if (q === king) return true; break; }
+        }
+        t += d;
+      }
+    }
+    return false;
+  }
+  // what kinds a Joker Move is. pos: the position before it (the mover to move; left as it was), m: the move,
+  // ply: its index in the game (0 = White's first move), mateIn: plies from it to the mover's checkmate win, when the
+  // game ended that way. Needs GC (src/core.js).
+  function classify(GC, pos, m, ply, mateIn) {
+    var us = pos.side, them = us ^ 1, from = GC.mFrom(m), to = GC.mTo(m), type = pos.board[from] & 7, out = [];
+    var name = { 2: 'knight', 3: 'bishop', 4: 'rook', 5: 'queen' }[type];
+    if (name) out.push(name);
+    if (ply < 12) out.push('early');
+    if ((to >> 4) === (us === 0 ? 7 : 0)) out.push('deep');
+    var pieces = 0;
+    for (var sq = 0; sq < 128; sq++) { if (sq & 0x88) { sq += 7; continue; } var t = pos.board[sq] & 7; if (t >= 2 && t <= 5) pieces++; }
+    if (pieces <= 4) out.push('endgame');
+    var wasChecked = pos.inCheck(us), wasHit = pos.attacked(from, them);
+    pos.makeMove(m);
+    if (wasChecked) out.push('shield');
+    if (wasHit && (type === 4 || type === 5) && !pos.attacked(to, them)) out.push('escape');
+    var n = 0, b = pos.board;
+    hits(b, to, type).forEach(function (s) { var q = b[s]; if (q && (q >> 3) === them && (q & 7) >= 2) n++; });
+    if (n >= 2) out.push('fork');
+    if (type !== 2 && pinsFrom(b, to, type, them)) out.push('pin');
+    pos.unmakeMove();
+    if (mateIn != null && mateIn <= 6) out.push('mate');
+    return out;
+  }
+
+  // ---- words (EN / RU)
+  var TEXT = {
+    en: {
+      rank_pawn: 'Pawn', rank_knight: 'Knight', rank_bishop: 'Bishop', rank_rook: 'Rook', rank_queen: 'Queen', rank_king: 'King', rank_joker: 'Joker', rank_diamond: 'Diamond Joker',
+      level: 'Level {n}', xp: '{n} XP', xpOf: '{a} / {b} XP', xpGain: '+{n} XP',
+      x_game: 'Game', x_win: 'Win', x_draw: 'Draw', x_joker: 'Joker Move played', x_firstWin: 'First win of the day ×2', x_star: 'Career stars', x_quest: 'Quest done', x_card: 'New Joker card', x_puzzle: 'Puzzle', x_daily: 'Daily puzzle', x_review: 'Game review',
+      q_daily: 'Solve the daily puzzle', q_puzzles3: 'Solve {n} puzzles', q_win2: 'Win {n} games', q_games3: 'Play {n} games', q_online: 'Play a game online', q_star: 'Earn a career star',
+      q_joker2: 'Play your Joker Move in {n} games', q_jokerwin: 'Win a game with your Joker Move', q_clean: 'Win without losing your queen', q_review: 'Open a game review',
+      g_win: 'Win', g_joker: 'Win with your Joker Move', g_nojoker: 'Win without your Joker Move', g_clean: 'Win without losing your queen', g_fast: 'Win in {n} moves or fewer',
+      c_knight: 'Ghost Knight', c_bishop: 'Phantom Bishop', c_rook: 'Flying Rook', c_queen: 'Teleport Queen', c_early: 'Early Joker', c_deep: 'Behind the Lines', c_endgame: 'Endgame Joker',
+      c_pin: 'Teleport Pin', c_escape: 'The Great Escape', c_shield: 'Joker Shield', c_fork: 'Teleport Fork', c_mate: 'Joker to Mate',
+      cd_knight: 'A Joker Move by a knight', cd_bishop: 'A Joker Move by a bishop', cd_rook: 'A Joker Move by a rook', cd_queen: 'A Joker Move by the queen',
+      cd_early: 'In the first six moves', cd_deep: 'Onto the opponent’s back rank', cd_endgame: 'With four pieces or fewer left', cd_pin: 'It pins a piece to its king',
+      cd_escape: 'An attacked rook or queen jumps to safety', cd_shield: 'It blocks a check', cd_fork: 'It attacks two pieces at once', cd_mate: 'Mate within three moves after it',
+      rar1: 'Common', rar2: 'Uncommon', rar3: 'Rare', rar4: 'Epic', rar5: 'Legendary',
+      r_board: 'Board', r_jdot: 'Joker dots', r_frame: 'Frame', r_title: 'Title',
+      b_ocean: 'Ocean', b_rose: 'Rose', b_midnight: 'Midnight', b_emerald: 'Emerald', b_gold: 'Gold', b_diamond: 'Diamond', b_arena: 'Arena',
+      j_ice: 'Ice', j_fire: 'Fire', j_violet: 'Violet', j_rainbow: 'Rainbow',
+      f_knight: 'Bronze', f_bishop: 'Silver', f_rook: 'Gold', f_queen: 'Jade', f_king: 'Sapphire', f_joker: 'Amethyst', f_diamond: 'Diamond', f_champion: 'Ruby',
+      t_teleporter: 'Teleporter', t_trickster: 'Trickster', t_tactician: 'Tactician', t_jokermaster: 'Joker Master', t_diamond: 'Diamond Joker', t_climber: 'Climber'
+    },
+    ru: {
+      rank_pawn: 'Пешка', rank_knight: 'Конь', rank_bishop: 'Слон', rank_rook: 'Ладья', rank_queen: 'Ферзь', rank_king: 'Король', rank_joker: 'Джокер', rank_diamond: 'Бриллиантовый Джокер',
+      level: 'Уровень {n}', xp: '{n} XP', xpOf: '{a} / {b} XP', xpGain: '+{n} XP',
+      x_game: 'Партия', x_win: 'Победа', x_draw: 'Ничья', x_joker: 'Сыгран ход-джокер', x_firstWin: 'Первая победа дня ×2', x_star: 'Звёзды карьеры', x_quest: 'Задание выполнено', x_card: 'Новая карта джокера', x_puzzle: 'Задача', x_daily: 'Задача дня', x_review: 'Разбор партии',
+      q_daily: 'Реши задачу дня', q_puzzles3: 'Реши задач: {n}', q_win2: 'Выиграй партий: {n}', q_games3: 'Сыграй партий: {n}', q_online: 'Сыграй партию онлайн', q_star: 'Получи звезду карьеры',
+      q_joker2: 'Сыграй ход-джокер в партиях: {n}', q_jokerwin: 'Выиграй партию ходом-джокером', q_clean: 'Выиграй, не потеряв ферзя', q_review: 'Открой разбор партии',
+      g_win: 'Победа', g_joker: 'Победа с ходом-джокером', g_nojoker: 'Победа без хода-джокера', g_clean: 'Победа без потери ферзя', g_fast: 'Победа не дольше {n} ходов',
+      c_knight: 'Конь-призрак', c_bishop: 'Слон-фантом', c_rook: 'Летучая ладья', c_queen: 'Ферзь-телепорт', c_early: 'Ранний джокер', c_deep: 'В тылу врага', c_endgame: 'Джокер в эндшпиле',
+      c_pin: 'Связка-телепорт', c_escape: 'Большой побег', c_shield: 'Щит джокера', c_fork: 'Телепорт-вилка', c_mate: 'Джокер к мату',
+      cd_knight: 'Ход-джокер конём', cd_bishop: 'Ход-джокер слоном', cd_rook: 'Ход-джокер ладьёй', cd_queen: 'Ход-джокер ферзём',
+      cd_early: 'В первые шесть ходов', cd_deep: 'На последнюю горизонталь соперника', cd_endgame: 'Когда фигур осталось четыре или меньше', cd_pin: 'Связывает фигуру с королём',
+      cd_escape: 'Атакованная ладья или ферзь уходит из-под удара', cd_shield: 'Закрывает от шаха', cd_fork: 'Нападает сразу на две фигуры', cd_mate: 'Мат в течение трёх ходов после него',
+      rar1: 'Обычная', rar2: 'Необычная', rar3: 'Редкая', rar4: 'Эпическая', rar5: 'Легендарная',
+      r_board: 'Доска', r_jdot: 'Точки джокера', r_frame: 'Рамка', r_title: 'Титул',
+      b_ocean: 'Океан', b_rose: 'Роза', b_midnight: 'Полночь', b_emerald: 'Изумруд', b_gold: 'Золото', b_diamond: 'Бриллиант', b_arena: 'Арена',
+      j_ice: 'Лёд', j_fire: 'Огонь', j_violet: 'Фиалка', j_rainbow: 'Радуга',
+      f_knight: 'Бронза', f_bishop: 'Серебро', f_rook: 'Золото', f_queen: 'Нефрит', f_king: 'Сапфир', f_joker: 'Аметист', f_diamond: 'Бриллиант', f_champion: 'Рубин',
+      t_teleporter: 'Телепортист', t_trickster: 'Ловкач', t_tactician: 'Тактик', t_jokermaster: 'Мастер джокера', t_diamond: 'Бриллиантовый Джокер', t_climber: 'Восходящий'
+    }
+  };
+  function t(lang, key, vars) {
+    var s = (TEXT[lang] || TEXT.en)[key];
+    if (s == null) s = TEXT.en[key] != null ? TEXT.en[key] : key;
+    return String(s).replace(/\{(\w+)\}/g, function (m, k) { return vars && vars[k] != null ? vars[k] : m; });
+  }
+  function questText(lang, id) { return t(lang, 'q_' + id, { n: QUESTS[id][0] }); }
+  function goalText(lang, g) { return t(lang, 'g_' + g[0], { n: g[1] }); }
+  function rewardName(lang, r) { return t(lang, ({ board: 'b_', jdot: 'j_', frame: 'f_', title: 't_' })[r.kind] + r.id); }
+  function rankName(lang, level) { var r = rankOf(level); return t(lang, 'rank_' + r.key) + (r.tier ? ' ' + ['I', 'II', 'III'][r.tier - 1] : ''); }
+
+  return { need: need, levelOf: levelOf, xpAt: xpAt, rankOf: rankOf, RANKS: RANKS, XP: XP, gameXp: gameXp, REWARDS: REWARDS, owned: owned,
+    newRewards: newRewards, nextReward: nextReward, QUESTS: QUESTS, questsFor: questsFor, questStep: questStep, applyQuests: applyQuests,
+    CHAPTERS: CHAPTERS, GOALS: GOALS, stage: stage, goalMet: goalMet, stageBits: stageBits, starsOf: starsOf, isOpen: isOpen,
+    careerStars: careerStars, nextStage: nextStage, recordStage: recordStage, CARDS: CARDS, CARD_XP: CARD_XP, rarityOf: rarityOf,
+    classify: classify, TEXT: TEXT, t: t, questText: questText, goalText: goalText, rewardName: rewardName, rankName: rankName };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = Progress;
+
+;
 /* Joker Chess — the Learn tab: what the Joker Move is, autoplay boards that show it, and one-move puzzles.
  * Positions and answers were checked with the engine (see README): every accepted answer wins or saves the game,
  * every other Joker Move falls short.
@@ -5889,6 +6285,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       emailsNote: 'A summary on Sundays, and a puzzle if you’ve been away a week. Never more than one a week.',
       emailAskT: 'Your week by email?', emailAskB: 'Your games, rating and best win of the week, every Sunday evening. One email a week at most; stop any time.',
       emailAskYes: 'Yes, send it', puzzleSeries: 'Puzzle series',
+      careerTab: 'Joker Road', freeTab: 'All bots', chapterN: 'Chapter {n}', stageN: 'Stage {n}', boss: 'Boss', starsOf: '{a} of {b} stars',
+      carryOn: 'Play on: {ch}, {st}', careerLocked: 'Beat the boss of chapter {n} to open it', playStage: 'Play this stage', youWhite: 'You play White', youBlack: 'You play Black',
+      bossNote: 'The boss gives one star for a win with your Joker Move and one for a win without it: three stars take two wins.',
+      nextStage: 'Next stage', tryAgain: 'Try again', newStars: '+{n} ★', levelUp: 'Level {n}!', newRewards: 'New rewards', great: 'Great', lvlSee: 'See',
+      questsToday: 'Today’s quests', nextRewardAt: 'Level {n}: {what}', collection: 'Collection', jokerCards: 'Joker Moves found: {a} of {b}', rewardsH: 'Rewards',
+      equip: 'Use', equipped: 'In use', lockedAt: 'level {n}', lockedStars: '{n} career stars', newCard: 'New card: {name}', progressH: 'Your progress',
       gaAsk: 'May we count visits? Google Analytics shows us which videos bring players and what to improve. No ads, nothing sold.', gaYes: 'Allow', gaNo: 'No thanks',
       lv1: 'Beginner', lv2: 'Casual', lv3: 'Club player', lv4: 'Strong club', lv5: 'Expert', lv6: 'Master', lv7: 'Grandmaster', lv8: 'Maximum',
       opponent: 'Opponent', computer: 'Computer', twoPlayers: 'Two players, one device', playAs: 'Play as', random: 'Random',
@@ -6081,6 +6483,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       emailsNote: 'Сводка по воскресеньям и задача, если тебя не было неделю. Не чаще раза в неделю.',
       emailAskT: 'Твоя неделя на почту?', emailAskB: 'Партии, рейтинг и лучшая победа недели — каждое воскресенье вечером. Не больше одного письма в неделю, отписаться можно в любой момент.',
       emailAskYes: 'Да, присылайте', puzzleSeries: 'Задачи по порядку',
+      careerTab: 'Путь Джокера', freeTab: 'Все боты', chapterN: 'Глава {n}', stageN: 'Этап {n}', boss: 'Босс', starsOf: 'Звёзд: {a} из {b}',
+      carryOn: 'Дальше: {ch}, {st}', careerLocked: 'Победи босса главы {n}, чтобы открыть', playStage: 'Играть этап', youWhite: 'Ты играешь белыми', youBlack: 'Ты играешь чёрными',
+      bossNote: 'Босс даёт звезду за победу с ходом-джокером и звезду за победу без него: для трёх звёзд нужны две победы.',
+      nextStage: 'Следующий этап', tryAgain: 'Ещё раз', newStars: '+{n} ★', levelUp: 'Уровень {n}!', newRewards: 'Новые награды', great: 'Отлично', lvlSee: 'Смотреть',
+      questsToday: 'Задания на сегодня', nextRewardAt: 'Уровень {n}: {what}', collection: 'Коллекция', jokerCards: 'Найдено ходов-джокеров: {a} из {b}', rewardsH: 'Награды',
+      equip: 'Выбрать', equipped: 'Выбрано', lockedAt: 'уровень {n}', lockedStars: 'звёзд карьеры: {n}', newCard: 'Новая карта: {name}', progressH: 'Твой прогресс',
       gaAsk: 'Можно считать визиты? Google Analytics покажет, какие ролики приводят игроков и что улучшить. Без рекламы и продажи данных.', gaYes: 'Разрешить', gaNo: 'Не надо',
       lv1: 'Новичок', lv2: 'Любитель', lv3: 'Клубный игрок', lv4: 'Сильный клубный', lv5: 'Эксперт', lv6: 'Мастер', lv7: 'Гроссмейстер', lv8: 'Максимум',
       opponent: 'Соперник', computer: 'Компьютер', twoPlayers: 'Двое на одном устройстве', playAs: 'Играть за', random: 'Случайно',
@@ -6241,6 +6649,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     }
   };
   var settings = Object.assign({ sound: true, haptics: true, stats: true, reminders: null, anim: 'normal', board: 'slate', coords: true, autoQueen: false, premoves: true, lang: null }, load('settings', {}));
+  // progress (prototype; src/progress.js): XP, quests, the career against the bots, Joker cards, what is equipped
+  var prog = Object.assign({ xp: 0, career: {}, cards: {}, q: null, firstWin: '', equip: {}, seen: { lv: 1, stars: 0 }, up: null, reviewed: [] }, load('prog', {}));
   var lang = settings.lang || (/^ru\b/i.test(navigator.language || '') ? 'ru' : 'en');
   function T(key, vars) {
     var s = (STR[lang] && STR[lang][key]) || STR.en[key] || key;
@@ -6360,7 +6770,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   };
   Game.prototype.serialize = function () {
     return {
-      v: 1, cfg: { mode: this.cfg.mode, level: this.cfg.level, human: this.cfg.human, tc: this.cfg.tc ? this.cfg.tc.label : 'none' },
+      v: 1, cfg: { mode: this.cfg.mode, level: this.cfg.level, human: this.cfg.human, tc: this.cfg.tc ? this.cfg.tc.label : 'none', career: this.cfg.career || null },
       startFen: this.startFen, moves: this.records.map(function (r) { return r.uci; }),
       clocks: this.records.map(function (r) { return r.clock; }), clock: this.clock ? this.clock.t.slice() : null,
       status: this.status, result: this.result, reason: this.reason, counted: !!this.counted, histKey: this.histKey || null
@@ -6369,7 +6779,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   Game.restore = function (d) {
     if (!d || d.v !== 1) return null;
     try {
-      var cfg = { mode: d.cfg.mode, level: d.cfg.level, human: d.cfg.human, tc: parseTc(d.cfg.tc) };
+      var cfg = { mode: d.cfg.mode, level: d.cfg.level, human: d.cfg.human, tc: parseTc(d.cfg.tc), career: d.cfg.career || null };
       var g = new Game(cfg, d.startFen), now = perf();
       var savedClock = g.clock;
       g.clock = null; // replay without time accounting
@@ -7030,6 +7440,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   }
   function startReview() {
     noteDay('review');
+    if (game && game.records.length >= 2 && game.status === 'over') { var rk = (game.online && online ? online.id : game.histKey) || game.fens[game.fens.length - 1]; var fresh = prog.reviewed.indexOf(rk) < 0; if (fresh) { prog.reviewed = prog.reviewed.concat([rk]).slice(-60); } progSmall('review', fresh ? Progress.XP.review : 0); }
     if (!game || !game.records.length) return;
     stopReview();
     var id = ++reqSeq, n = game.records.length, key = gameKey(), cached = key ? reviewCacheGet(key, n) : null;
@@ -7427,6 +7838,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       noteDay(game.online ? 'online' : game.cfg.mode);
       if (outcome === 1 && returningPlayer()) askWhenCalm(function () { askReminders('win'); }, 4200);
     }
+    if (!spectating() && !game.progDone && game.reason !== 'abort' && game.records.length >= 2) progGame();
     if (!spectating() && !game.tracked) {
       game.tracked = true;
       Track.event('game_end', { mode: game.online ? 'online' : game.cfg.mode, result: game.reason === 'abort' ? 'abort' : oppGame() ? (outcome === 1 ? 'win' : outcome === 0 ? 'draw' : 'loss') : 'played', reason: game.reason || '', moves: game.records.length });
@@ -7845,6 +8257,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       if (reason) sub.push(reason.charAt(0).toUpperCase() + reason.slice(1));
       sub.push(T('movesN', { n: Math.ceil(game.records.length / 2) }));
       card.appendChild(h('div', { class: 'over-head' }, (o === 1 && !spectating() ? '<span class="over-joker' + (motionOK() ? ' drop' : '') + '">' + jokerPiece() + '</span>' : '') + '<div class="dlg-title over-title' + (o === 1 && !spectating() ? ' win' : '') + '">' + esc(resultTitle()) + '</div><div class="over-sub">' + esc(sub.join(' · ')) + '</div>'));
+      var opb = overProg(); if (opb) card.appendChild(opb);
       var acts = h('div', { class: 'over-acts' });
       var rv = h('button', { class: 'second-btn', type: 'button', id: 'btn-over-review' }, esc(T('review')));
       rv.addEventListener('click', function () { closeDialog(); showReport(); renderSide(); });
@@ -7889,15 +8302,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
         if (bs && bs.w + bs.d + bs.l) card.appendChild(h('div', { class: 'over-match one' }, '<div class="om"><span>' + esc(T('vsBotScore', { name: botName() })) + '</span><b>' + pts(bs.w, bs.d) + ' : ' + pts(bs.l, bs.d) + '</b><em>' + esc(wdlText({ w: bs.w, d: bs.d, l: bs.l })) + '</em></div>'));
       }
       // a game against the bot or on one device: play again (colours swap with the bot), or look through the game
-      var again = h('button', { class: 'start-btn primary', type: 'button', id: 'btn-again' }, esc(T('againBot')));
+      // a career stage: on to the next one once it is open, otherwise the same stage again
+      var cr = botGame() && game.cfg.career, cand = cr && (cr.st < 3 ? { ch: cr.ch, st: cr.st + 1 } : { ch: cr.ch + 1, st: 1 });
+      var nxs = cand && Progress.isOpen(prog.career, cand.ch, cand.st) ? cand : null;
+      var again = h('button', { class: 'start-btn primary', type: 'button', id: 'btn-again' }, esc(cr ? (nxs ? T('nextStage') : T('tryAgain')) : T('againBot')));
       again.addEventListener('click', function () {
         closeDialog();
+        if (cr) { var to = nxs || cr; startCareer(to.ch, to.st); return; }
         var s = { mode: game.cfg.mode, level: game.cfg.level, tc: game.cfg.tc ? game.cfg.tc.label : 'none', color: 'w' };
         startGame(s, { human: botGame() ? game.cfg.human ^ 1 : 0 });
       });
       acts.appendChild(again); acts.appendChild(rv);
       card.appendChild(acts);
     });
+    // the keyboard starts on the main action (not on the level-up line above it)
+    var pf = currentDialog && currentDialog.querySelector('.over-acts .primary');
+    if (pf) try { pf.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
   }
 
   // the score against this opponent over all their games together, the one just finished included (the result card);
@@ -8097,6 +8517,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   function saveSettings() { save('settings', settings); }
   function applySettings() {
     $('shell').dataset.board = settings.board;
+    $('shell').dataset.jdot = (prog.equip && prog.equip.jdot) || ''; $('shell').dataset.frame = (prog.equip && prog.equip.frame) || '';
     board.speed = settings.anim === 'off' ? 0 : settings.anim === 'fast' ? 0.6 : 1;
     board.setCoords(settings.coords);
     Sound.setEnabled(settings.sound);
@@ -8362,6 +8783,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   function solveDaily(d) {
     if (!d || dailyDone[d.day] === d.p.id) return;
     dailyDone[d.day] = d.p.id;
+    progSmall('daily', Progress.XP.daily);
     var keep = {}; Object.keys(dailyDone).sort().slice(-60).forEach(function (k) { keep[k] = dailyDone[k]; }); dailyDone = keep;
     save('dailyDone', dailyDone);
     Track.event('daily_solved', { n: d.n, lvl: d.lvl });
@@ -8472,6 +8894,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       [ru ? 'Окно серии' : 'The streak sheet', function () { closeDialog(); setTimeout(streakSheet, 250); }],
       [ru ? 'Просьба включить напоминания' : 'The reminders ask', function () { closeDialog(); setTimeout(function () { askReminders('proto', true); }, 250); }],
       [ru ? 'План напоминаний: тексты и время' : 'Reminder plan: texts and times', function () { closeDialog(); setTimeout(remindPlanSheet, 250); }],
+      [ru ? 'Игра: уровень, задания, прогресс' : 'Game: level, quests, progress', function () { protoProg(); closeDialog(); go('play'); refreshView(); setTimeout(progressSheet, 300); }],
+      [ru ? 'Игра: Путь Джокера (карьера с ботами)' : 'Game: Joker Road (the career against the bots)', function () { protoProg(); closeDialog(); botsUi.tab = 'career'; go('bots'); }],
+      [ru ? 'Игра: этап карьеры' : 'Game: a career stage', function () { protoProg(); closeDialog(); setTimeout(function () { stageSheet(3, 1); }, 250); }],
+      [ru ? 'Игра: победа в этапе (звёзды, опыт, уровень)' : 'Game: a stage won (stars, XP, a level)', function () { protoProg(); closeDialog(); setTimeout(protoStageWin, 250); }],
+      [ru ? 'Игра: новый уровень и награды' : 'Game: a new level and its rewards', function () { protoProg(); closeDialog(); setTimeout(function () { levelUpSheet({ lv: 7, stars: 26 }, { lv: 8, stars: 26 }); }, 250); }],
+      [ru ? 'Игра: коллекция ходов-джокеров и награды' : 'Game: the Joker Move collection and rewards', function () { protoProg(); closeDialog(); setTimeout(collectionSheet, 250); }],
       [ru ? 'Письма: согласие при сохранении аккаунта' : 'Emails: the yes while saving the account', function () { closeDialog(); setTimeout(function () { showAccount(null); }, 250); }],
       [ru ? 'Письма: карточка в Профиле' : 'Emails: the card on the Profile tab', function () { closeDialog(); setTimeout(emailCardSheet, 250); }],
       [ru ? 'Честная игра: жалоба на соперника' : 'Fair play: reporting an opponent', function () { closeDialog(); setTimeout(function () { reportSheet('proto', 'NightOwlGM', null); }, 250); }],
@@ -8501,6 +8929,279 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       });
       card.appendChild(ul);
     });
+  }
+
+  // ---- progress (prototype; src/progress.js): XP and levels, three quests a day, the career against the bots, the
+  // Joker cards. A game of its own on this device: it never touches the rating or the online pairing.
+  function saveProg() { save('prog', prog); }
+  function progLevel() { return Progress.levelOf(prog.xp); }
+  function progStars() { return Progress.careerStars(prog.career); }
+  function PT(key, vars) { return Progress.t(lang, key, vars); }
+  function progEvent(ev) {
+    var fin = Progress.applyQuests(prog, todayStr(), ev), xp = 0;
+    fin.forEach(function (id) { xp += Progress.QUESTS[id][1]; });
+    return { quests: fin, xp: xp };
+  }
+  // a level or a reward reached: celebrated once nothing is open and no game is on (never over a game)
+  // a new level (or a reward for career stars): no sheet pops up by itself, where it could catch a tap meant for something
+  // else. The result card shows it, and the header's level gets a dot until the celebration is opened.
+  function progAfter() {
+    var lv = progLevel().level, stars = progStars(), seen = prog.seen || { lv: 1, stars: 0 }, up = null;
+    if (lv > seen.lv || Progress.newRewards(seen.lv, lv, seen.stars, stars).length) {
+      up = { from: prog.up ? prog.up.from : { lv: seen.lv, stars: seen.stars }, to: { lv: lv, stars: stars } };
+      prog.up = up; prog.seen = { lv: lv, stars: stars }; saveProg();
+    }
+    refreshLevelChip();
+    return up;
+  }
+  function refreshLevelChip() { var c = $('lvl-chip'); if (c && c.parentNode) c.parentNode.replaceChild(levelChip(), c); }
+  // the celebration of a level-up: from the header's dot, or from the result card (back: to the result card again)
+  function openLevelUp(u, back) {
+    if (!u) return;
+    if (prog.up) { prog.up = null; saveProg(); refreshLevelChip(); }
+    levelUpSheet(u.from, u.to, back);
+  }
+  // a puzzle, the daily puzzle, a review: a little XP and the quests
+  function progSmall(kind, n) {
+    var q = progEvent({ type: kind }), total = (n || 0) + q.xp;
+    if (!total) { saveProg(); return; }
+    prog.xp += total; saveProg();
+    var up = progAfter();
+    toast(PT('xpGain', { n: total }) + (q.quests.length ? ' · ' + PT('x_quest') : '') + (up && up.to.lv > up.from.lv ? ' · ' + T('levelUp', { n: up.to.lv }) : ''));
+  }
+  // a finished game: XP, the career stage's stars, Joker cards found, quests
+  function progGame() {
+    game.progDone = true;
+    var mode = game.online ? 'online' : game.cfg.mode, human = game.online ? online.color : botGame() ? game.cfg.human : -1;
+    var outcome = mode === 'local' ? 0 : humanOutcome(), win = game.result === '1-0' ? 0 : game.result === '0-1' ? 1 : -1;
+    var mated = game.reason === 'checkmate' && win >= 0 && (human < 0 || win === human);
+    var p = new GC.Position(game.startFen), joker = false, cards = [], own = 0;
+    for (var i = 0; i < game.records.length; i++) {
+      var r = game.records[i], mine = human < 0 || r.color === human;
+      if (mine) own++;
+      if (r.golden && mine) {
+        joker = true;
+        try { cards = cards.concat(Progress.classify(GC, p, r.m, i, mated && r.color === win ? game.records.length - 1 - i : null)); } catch (e) { /* a card less */ }
+      }
+      p.makeMove(r.m);
+    }
+    var queenKept = false;
+    if (human >= 0) for (var sq = 0; sq < 128; sq++) { if (sq & 0x88) { sq += 7; continue; } if (p.board[sq] === ((human << 3) | 5)) queenKept = true; }
+    var day = todayStr(), firstWin = outcome === 1 && mode !== 'local' && prog.firstWin !== day;
+    if (firstWin) prog.firstWin = day;
+    var gx = Progress.gameXp({ mode: mode, level: game.cfg.level, outcome: outcome, joker: joker, firstWin: firstWin });
+    var total = gx.xp, lines = gx.lines.slice(), stage = null, cr = botGame() && game.cfg.career;
+    if (cr) {
+      var rec = Progress.recordStage(prog.career, cr.ch, cr.st, { outcome: outcome, joker: joker, queenKept: queenKept, moves: own });
+      stage = { ch: cr.ch, st: cr.st, bits: rec.bits, best: rec.best, newStars: rec.newStars };
+      if (rec.newStars) { total += rec.newStars * Progress.XP.star; lines.push({ k: 'star', n: rec.newStars * Progress.XP.star }); }
+      Track.event('career_end', { ch: cr.ch, st: cr.st, stars: Progress.starsOf(rec.bits) });
+    }
+    var fresh = [];
+    cards.forEach(function (id) { if (!prog.cards[id] && fresh.indexOf(id) < 0) fresh.push(id); prog.cards[id] = (prog.cards[id] || 0) + 1; });
+    fresh.forEach(function (id) { var x = Progress.CARD_XP[Progress.rarityOf(id)]; total += x; lines.push({ k: 'card', n: x }); });
+    var q = progEvent({ type: 'game', mode: mode, outcome: outcome, joker: joker, queenKept: queenKept, stars: stage ? stage.newStars : 0 });
+    if (q.xp) { total += q.xp; lines.push({ k: 'quest', n: q.xp }); }
+    var before = progLevel();
+    prog.xp += total; saveProg();
+    game.prog = { xp: total, lines: lines, stage: stage, cards: fresh, quests: q.quests, before: before, after: progLevel() };
+    Track.event('xp', { n: total, mode: mode });
+    game.prog.up = progAfter();
+  }
+  // the result card's part: the stage's goals, the XP, new Joker cards
+  function overProg() {
+    var gp = game && game.prog;
+    if (!gp || spectating()) return null;
+    var box = h('div', { class: 'over-prog', id: 'over-prog' });
+    if (gp.stage) {
+      var sg = Progress.stage(gp.stage.ch, gp.stage.st), gl = '';
+      sg.goals.forEach(function (g, k) { gl += '<div class="goal' + ((gp.stage.bits >> k) & 1 ? ' got' : '') + '"><i>★</i><span>' + esc(Progress.goalText(lang, g)) + '</span></div>'; });
+      box.appendChild(h('div', { class: 'op-stage' }, '<div class="op-st-h">' + esc(T('chapterN', { n: gp.stage.ch }) + ', ' + (sg.boss ? T('boss') : T('stageN', { n: gp.stage.st }))) +
+        (gp.stage.newStars ? '<span class="new-stars">' + esc(T('newStars', { n: gp.stage.newStars })) + '</span>' : '') + '</div>' + gl));
+    }
+    var L = gp.after;
+    if (gp.up) {
+      var u = gp.up, lvUp = u.to.lv > u.from.lv, news = Progress.newRewards(u.from.lv, u.to.lv, u.from.stars, u.to.stars);
+      var what = news.map(function (r) { return PT('r_' + r.kind) + ' «' + Progress.rewardName(lang, r) + '»'; }).join(', ');
+      var ub = h('button', { type: 'button', class: 'op-lvlup' + (motionOK() ? ' pop' : ''), id: 'btn-over-lvlup' }, rankBadge(u.to.lv) +
+        '<span class="op-lu-t"><b>' + esc(lvUp ? T('levelUp', { n: u.to.lv }) : T('newRewards')) + '</b><span>' + esc(what || Progress.rankName(lang, u.to.lv)) + '</span></span>' +
+        '<span class="op-lu-go">' + esc(T('lvlSee')) + '</span>');
+      ub.addEventListener('click', function () { var g0 = game; openLevelUp(u, function () { if (game === g0 && game.status === 'over') showOver(); else closeDialog(); }); });
+      box.appendChild(ub);
+    }
+    box.appendChild(h('div', { class: 'op-xp' }, '<span class="op-gain">' + esc(PT('xpGain', { n: gp.xp })) + '</span><span class="op-lv">' + esc(PT('level', { n: L.level })) + '</span>' +
+      '<span class="xp-bar mini"><i style="width:' + Math.round(L.into / L.need * 100) + '%"></i></span>'));
+    if (gp.cards.length) box.appendChild(h('div', { class: 'op-cards' }, gp.cards.map(function (id) { return '<span class="jc-chip r' + Progress.rarityOf(id) + '">' + esc(T('newCard', { name: PT('c_' + id) })) + '</span>'; }).join('')));
+    return box;
+  }
+  var RANK_PC = { pawn: 'P', knight: 'N', bishop: 'B', rook: 'R', queen: 'Q', king: 'K' };
+  function rankBadge(level, cls) {
+    var rk = Progress.rankOf(level), pc = RANK_PC[rk.key];
+    return '<span class="rank-badge rk-' + rk.key + (cls ? ' ' + cls : '') + '">' + (pc ? '<i class="pc-ic p-w' + pc + '"></i>' : jokerPiece()) + '</span>';
+  }
+  // the header's level: a ring filling up to the next level; a tap opens the progress
+  function levelChip() {
+    var L = progLevel(), rk = Progress.rankOf(L.level);
+    var b = h('button', { type: 'button', class: 'lvl-chip rk-' + rk.key + (prog.up ? ' has-new' : ''), id: 'lvl-chip',
+      'aria-label': PT('level', { n: L.level }) + ', ' + Progress.rankName(lang, L.level) + (prog.up ? '. ' + T('newRewards') : '') },
+      '<span class="lvl-ring" style="--p:' + Math.round(L.into / L.need * 100) + '%"><span class="lvl-n">' + L.level + '</span></span>');
+    b.addEventListener('click', function () { if (prog.up) openLevelUp(prog.up); else progressSheet(); });
+    return b;
+  }
+  function progressSheet() {
+    var L = progLevel(), nx = Progress.nextReward(L.level), today = todayStr();
+    var q = prog.q && prog.q.day === today ? prog.q : { ids: Progress.questsFor(today), p: {}, done: {} };
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'progress';
+      card.classList.add('prog-card');
+      card.appendChild(h('div', { class: 'prog-top' }, rankBadge(L.level, 'big') + '<div><div class="dlg-title">' + esc(PT('level', { n: L.level })) + '</div><div class="prog-rank">' +
+        esc(Progress.rankName(lang, L.level)) + (prog.equip.title ? ' · «' + esc(PT('t_' + prog.equip.title)) + '»' : '') + '</div></div>'));
+      card.appendChild(h('div', { class: 'xp-bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(L.need), 'aria-valuenow': String(L.into) },
+        '<i style="width:' + Math.round(L.into / L.need * 100) + '%"></i><span>' + esc(PT('xpOf', { a: L.into, b: L.need })) + '</span>'));
+      if (nx) card.appendChild(h('div', { class: 'prog-next' }, esc(T('nextRewardAt', { n: nx.lv, what: PT('r_' + nx.kind) + ' «' + Progress.rewardName(lang, nx) + '»' }))));
+      card.appendChild(h('div', { class: 'prog-h' }, esc(T('questsToday'))));
+      var ql = h('div', { class: 'quest-list', id: 'quest-list' });
+      q.ids.forEach(function (id) {
+        var n = Progress.QUESTS[id][0], have = Math.min(n, q.p[id] || 0), done = !!q.done[id];
+        ql.appendChild(h('div', { class: 'quest' + (done ? ' done' : '') }, '<span class="q-check">' + (done ? '✓' : '') + '</span><span class="q-t"><span>' + esc(Progress.questText(lang, id)) + '</span><i><b style="width:' +
+          Math.round(have / n * 100) + '%"></b></i></span><span class="q-n">' + (done ? '' : have + '/' + n + ' · ') + '+' + Progress.QUESTS[id][1] + '</span>'));
+      });
+      card.appendChild(ql);
+      card.appendChild(bigBtn('start-btn', T('careerTab'), 'btn-career', function () { closeDialog(); botsUi.tab = 'career'; go('bots'); }));
+      var cl = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-collection' }, esc(T('collection')));
+      cl.addEventListener('click', function () { closeDialog(); setTimeout(collectionSheet, 230); });
+      card.appendChild(cl);
+    });
+  }
+  function levelUpSheet(from, to, back) {
+    var news = Progress.newRewards(from.lv, to.lv, from.stars, to.stars), up = to.lv > from.lv;
+    Sound.play('win'); haptic('win');
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'level-up';
+      currentDialog.classList.add('center');
+      card.classList.add('lvlup-card');
+      card.appendChild(h('div', { class: 'lvlup-badge' + (motionOK() ? ' pop' : '') }, rankBadge(to.lv, 'huge')));
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(up ? T('levelUp', { n: to.lv }) : T('newRewards'))));
+      if (up) card.appendChild(h('div', { class: 'dlg-sub' }, esc(Progress.rankName(lang, to.lv))));
+      if (news.length) {
+        var list = h('div', { class: 'reward-list' });
+        var draw = function () { list.innerHTML = ''; news.forEach(function (r) { list.appendChild(rewardRow(r, true, draw)); }); };
+        draw(); card.appendChild(list);
+      }
+      card.appendChild(bigBtn('start-btn', T('great'), 'btn-lvl-ok', function () { if (back) back(); else closeDialog(); }));
+    });
+  }
+  function rewardSwatch(r) {
+    if (r.kind === 'board') return '<span class="rsw sw-board" data-board="' + r.id + '"><i></i><i></i><i></i><i></i></span>';
+    if (r.kind === 'jdot') return '<span class="rsw sw-jdot" data-jdot="' + r.id + '"><i></i></span>';
+    if (r.kind === 'frame') return '<span class="rsw sw-frame" data-frame="' + r.id + '"><span class="ava av"><i>' + esc(initial(me && me.profile ? me.profile.username : 'J')) + '</i></span></span>';
+    return '<span class="rsw sw-title">«»</span>';
+  }
+  function isEquipped(r) { return r.kind === 'board' ? settings.board === r.id : prog.equip[r.kind] === r.id; }
+  function equipReward(r) {
+    if (r.kind === 'board') { settings.board = isEquipped(r) ? 'slate' : r.id; saveSettings(); }
+    else { prog.equip[r.kind] = isEquipped(r) ? null : r.id; saveProg(); }
+    applySettings();
+  }
+  function rewardRow(r, own, redraw) {
+    var row = h('div', { class: 'reward-row' + (own ? '' : ' locked') }, rewardSwatch(r) + '<span class="rw-t"><b>' + esc(Progress.rewardName(lang, r)) + '</b><span>' + esc(PT('r_' + r.kind)) +
+      (own ? '' : ' · ' + esc(r.lv ? T('lockedAt', { n: r.lv }) : T('lockedStars', { n: r.stars }))) + '</span></span>');
+    if (own) {
+      var b = h('button', { type: 'button', class: 'second-btn rw-use' + (isEquipped(r) ? ' on' : '') }, esc(isEquipped(r) ? T('equipped') : T('equip')));
+      b.addEventListener('click', function () { equipReward(r); if (redraw) redraw(); });
+      row.appendChild(b);
+    }
+    return row;
+  }
+  function collectionSheet() {
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'collection';
+      card.classList.add('coll-card');
+      var L = progLevel(), stars = progStars(), found = Progress.CARDS.filter(function (c) { return prog.cards[c[0]]; }).length;
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('collection'))));
+      card.appendChild(h('div', { class: 'prog-h' }, esc(T('jokerCards', { a: found, b: Progress.CARDS.length }))));
+      var grid = h('div', { class: 'jcard-grid', id: 'jcard-grid' });
+      Progress.CARDS.forEach(function (c) {
+        var have = prog.cards[c[0]] || 0;
+        grid.appendChild(h('div', { class: 'jcard r' + c[1] + (have ? '' : ' unknown') }, '<span class="jc-ic">' + (have ? jokerPiece() : '?') + '</span><b>' + esc(have ? PT('c_' + c[0]) : PT('rar' + c[1])) +
+          '</b><span>' + esc(PT('cd_' + c[0])) + (have > 1 ? ' · ×' + have : '') + '</span>'));
+      });
+      card.appendChild(grid);
+      card.appendChild(h('div', { class: 'prog-h' }, esc(T('rewardsH'))));
+      var list = h('div', { class: 'reward-list', id: 'reward-list' });
+      var draw = function () { list.innerHTML = ''; var own = Progress.owned(L.level, stars); Progress.REWARDS.forEach(function (r) { list.appendChild(rewardRow(r, own.indexOf(r) >= 0, draw)); }); };
+      draw(); card.appendChild(list);
+    });
+  }
+  // ---- the career: chapters of the Bots tab, a stage sheet, the game
+  function starsHtml(bits) { var s = ''; for (var k = 0; k < 3; k++) s += '<i class="' + ((bits >> k) & 1 ? 'on' : '') + '">★</i>'; return s; }
+  function renderCareer(inn) {
+    var stars = progStars(), nx = Progress.nextStage(prog.career), L = progLevel();
+    var top = h('button', { type: 'button', class: 'career-top', id: 'career-top' }, rankBadge(L.level) + '<span class="ct-t"><b>' + esc(PT('level', { n: L.level }) + ' · ' + Progress.rankName(lang, L.level)) +
+      '</b><span>' + esc(T('starsOf', { a: stars, b: Progress.CHAPTERS * 9 })) + '</span></span><span class="xp-bar mini"><i style="width:' + Math.round(L.into / L.need * 100) + '%"></i></span>');
+    top.addEventListener('click', progressSheet);
+    inn.appendChild(top);
+    var road = h('div', { class: 'road', id: 'road' });
+    for (var ch = 1; ch <= Progress.CHAPTERS; ch++) road.appendChild(chapterCard(ch));
+    inn.appendChild(road);
+    if (nx) {
+      var bar = h('div', { class: 'cta-bar' });
+      bar.appendChild(bigBtn('start-btn', T('carryOn', { ch: T('chapterN', { n: nx.ch }), st: nx.boss ? T('boss') : T('stageN', { n: nx.st }) }), 'btn-career-go', function () { stageSheet(nx.ch, nx.st); }));
+      inn.appendChild(bar);
+    }
+  }
+  function chapterCard(ch) {
+    var i = ch - 1, open = Progress.isOpen(prog.career, ch, 1), got = 0;
+    for (var s = 1; s <= 3; s++) got += Progress.starsOf(prog.career[ch + '-' + s] || 0);
+    var c = h('div', { class: 'chapter' + (open ? '' : ' locked'), id: 'chapter-' + ch });
+    c.appendChild(h('div', { class: 'ch-head' }, '<span class="face">' + GCBots.avatar(i, lang) + '</span><span class="ch-t"><span class="ch-n">' + esc(T('chapterN', { n: ch })) + '</span><b>' +
+      esc(GCBots.name(i, lang)) + '</b></span><span class="ch-r"><span class="el">' + Engine.LEVELS[i].elo + '</span><span class="ch-stars">' + got + '/9 ★</span></span>'));
+    if (!open) { c.appendChild(h('div', { class: 'ch-lock' }, esc(T('careerLocked', { n: ch - 1 })))); return c; }
+    var row = h('div', { class: 'stages' });
+    [1, 2, 3].forEach(function (st) {
+      var bits = prog.career[ch + '-' + st] || 0, op = Progress.isOpen(prog.career, ch, st);
+      var b = h('button', { type: 'button', class: 'cstage' + (st === 3 ? ' boss' : '') + (op ? '' : ' locked') + (Progress.starsOf(bits) === 3 ? ' full' : ''), id: 'stage-' + ch + '-' + st },
+        '<span class="st-n">' + esc(st === 3 ? T('boss') : T('stageN', { n: st })) + '</span><span class="st-stars">' + starsHtml(bits) + '</span>');
+      if (op) b.addEventListener('click', function () { stageSheet(ch, st); }); else b.disabled = true;
+      row.appendChild(b);
+    });
+    c.appendChild(row);
+    return c;
+  }
+  function stageSheet(ch, st) {
+    var sg = Progress.stage(ch, st), i = ch - 1, bits = prog.career[ch + '-' + st] || 0;
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'stage';
+      card.classList.add('stage-card');
+      card.appendChild(h('div', { class: 'stage-op' }, '<span class="face">' + GCBots.avatar(i, lang) + '</span><div><div class="dlg-title">' + esc(T('chapterN', { n: ch }) + ', ' + (sg.boss ? T('boss') : T('stageN', { n: st }))) +
+        '</div><div class="dlg-sub">' + esc(GCBots.name(i, lang) + ' · ' + Engine.LEVELS[i].elo + ' · ' + T(sg.color === 'b' ? 'youBlack' : 'youWhite')) + '</div></div>'));
+      var gl = h('div', { class: 'goal-list' });
+      sg.goals.forEach(function (g, k) { gl.appendChild(h('div', { class: 'goal' + ((bits >> k) & 1 ? ' got' : '') }, '<i>★</i><span>' + esc(Progress.goalText(lang, g)) + '</span>')); });
+      card.appendChild(gl);
+      if (sg.boss) card.appendChild(h('div', { class: 'dlg-note' }, esc(T('bossNote'))));
+      card.appendChild(bigBtn('start-btn', T('playStage'), 'btn-stage-go', function () { closeDialog(); startCareer(ch, st); }));
+    });
+  }
+  function startCareer(ch, st) {
+    var sg = Progress.stage(ch, st);
+    botsUi.sel = ch - 1;
+    startGame({ mode: 'bot', level: sg.level, color: sg.color, tc: 'none' });
+    game.cfg.career = { ch: ch, st: st }; persist();
+    Track.event('career_start', { ch: ch, st: st });
+  }
+  // the prototype tour: a player some days in
+  // the tour's stage 3-1 played out: a bishop's Joker Move (a new card), a resignation, the result card
+  function protoStageWin() {
+    startCareer(3, 1); cancelBot();
+    var g = game, now = performance.now();
+    ['g1f3', 'e7e5', 'f1b5*', 'g8f6'].forEach(function (u) { var m = g.pos.moveFromUci(u); if (m) g.play(m, now); });
+    g.end('1-0', 'resign', now); gameOver();
+  }
+  function protoProg() {
+    prog = { xp: Progress.xpAt(7) + 210, career: { '1-1': 7, '1-2': 3, '1-3': 3, '2-1': 5, '2-2': 1, '2-3': 3, '3-1': 1 }, cards: { knight: 3, queen: 2, early: 2, escape: 1, fork: 1, rook: 1 },
+      q: { day: todayStr(), ids: Progress.questsFor(todayStr()), p: {}, done: {} }, firstWin: '', equip: { title: 'teleporter' }, seen: { lv: 7, stars: 26 }, reviewed: [] };
+    prog.q.p[prog.q.ids[0]] = 1; prog.q.done[prog.q.ids[0]] = true; prog.q.p[prog.q.ids[1]] = 1;
+    saveProg(); applySettings();
   }
 
   // ---- emails (prototype; the server says it keeps the yes / no in hello: me.mail)
@@ -10372,7 +11073,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   // Play (start screen), Learn, Ratings, Profile, the sign-in page and the game itself are views of one page;
   // the address keeps the view (#play, #learn, ...) so the back button and reloads work.
   var shellEl = $('shell'), curView = null, learnKit = null, signinFlow = null, ratingsPool = null;
-  var botsUi = { sel: Math.max(0, Math.min(7, (lastSetup.level || 3) - 1)), color: lastSetup.color || 'w' };
+  var botsUi = { sel: Math.max(0, Math.min(7, (lastSetup.level || 3) - 1)), color: lastSetup.color || 'w', tab: load('botsTab', 'career') === 'free' ? 'free' : 'career' };
   var VIEWS = ['play', 'bots', 'learn', 'ratings', 'profile', 'signin', 'games', 'player', 'game'], NAV = ['play', 'bots', 'learn', 'ratings', 'profile'];
   var NAV_KEY = { play: 'navPlay', bots: 'navBots', learn: 'navLearn', ratings: 'navRatings', profile: 'navProfile' };
   var COLOR_RANDOM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6" fill="#1f2422"/><path d="M12 3.4a8.6 8.6 0 0 0 0 17.2z" fill="#f4efe4"/><circle cx="12" cy="12" r="8.6" fill="none" stroke="#8d9691" stroke-width="1.2"/></svg>';
@@ -10566,7 +11267,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     game.paused = false; if (game.clock) game.clock.since = perf();
   }
   function kit() {
-    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ daily: function () { return dailyToday(); }, solveDaily: solveDaily, streakSheet: streakSheet, streakLine: function () { var st = streakNow(); return st.count >= 2 ? { n: st.count, html: FLAME_SVG + '<b>' + st.count + '</b>' } : null; }, newcomer: function () { return !returningPlayer(); }, dailyAuto: function () { var t = todayStr(); if (load('dailyAuto', '') === t) return false; save('dailyAuto', t); return true; }, track: function (n, p) { Track.event(n, p); if (n === 'puzzle_solved') { noteAct('learn'); noteDay('puzzle'); } }, T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
+    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ daily: function () { return dailyToday(); }, solveDaily: solveDaily, streakSheet: streakSheet, streakLine: function () { var st = streakNow(); return st.count >= 2 ? { n: st.count, html: FLAME_SVG + '<b>' + st.count + '</b>' } : null; }, newcomer: function () { return !returningPlayer(); }, dailyAuto: function () { var t = todayStr(); if (load('dailyAuto', '') === t) return false; save('dailyAuto', t); return true; }, track: function (n, p) { Track.event(n, p); if (n === 'puzzle_solved') { noteAct('learn'); noteDay('puzzle'); progSmall('puzzle', p && p.first ? Progress.XP.puzzle : 0); } }, T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
     return learnKit;
   }
 
@@ -10605,9 +11306,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       else chip = h('button', { type: 'button', class: 'acct-chip out', id: 'acct-chip' }, '<span>' + esc(T('signIn')) + '</span>');
       chip.addEventListener('click', function () { if (signedIn()) go('profile'); else { setPending({ kind: 'view', v: 'play' }); go('signin'); } });
       var hr = h('div', { class: 'head-r' }), fl = streakChip();
+      hr.appendChild(levelChip());
       if (fl) hr.appendChild(fl);
       hr.appendChild(chip); head.appendChild(hr);
-    } else { var fl2 = streakChip(); if (fl2) head.appendChild(fl2); }
+    } else { var hr2 = h('div', { class: 'head-r' }), fl2 = streakChip(); hr2.appendChild(levelChip()); if (fl2) hr2.appendChild(fl2); head.appendChild(hr2); }
     col.appendChild(head);
     var main = h('div', { class: 'play-main' }); col.appendChild(main);
     // the reel of Joker Moves: on a board beside the menu on wide screens, above the menu otherwise; the layout follows
@@ -10782,6 +11484,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       rb.appendChild(bigBtn('sbtn', T('cont'), 'btn-resume', function () { go('game'); }));
       inn.appendChild(rb);
     }
+    var tabs = h('div', { class: 'bots-tabs', role: 'tablist' });
+    [['career', T('careerTab')], ['free', T('freeTab')]].forEach(function (x) {
+      var b = h('button', { type: 'button', role: 'tab', class: 'bt-tab', id: 'tab-' + x[0], 'aria-selected': String(botsUi.tab === x[0]) }, esc(x[1]));
+      b.addEventListener('click', function () { botsUi.tab = x[0]; save('botsTab', x[0]); renderBots(); });
+      tabs.appendChild(b);
+    });
+    inn.appendChild(tabs);
+    if (botsUi.tab === 'career') { renderCareer(inn); host.scrollTop = keep; return; }
     var hw = h('div', { class: 'bot-hero-wrap' }), hero = h('div', { class: 'bot-hero', id: 'bot-hero' });
     hw.appendChild(hero); inn.appendChild(hw);
     var tiles = [], pb;
@@ -11497,6 +12207,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     takeback: takeback, onGoldenButton: onGoldenButton, setAnalysis: setAnalysis, get botBusy() { return !!botReq; }, settings: settings, applySettings: applySettings,
     premoveDests: premoveDests, viewFen: function () { return viewFen(); }, get reviewState() { return review; }, get exploreState() { return explore; }, startReview: startReview, exitExplore: exitExplore, navStep: navStep,
     get goldenArmed() { return goldenArmed; }, get selected() { return selected; }, get dialogOpen() { return !!currentDialog; }, closeDialog: closeDialog,
+    startCareer: function (ch, st) { startCareer(ch, st); }, gameOver: function () { gameOver(); }, get prog() { return prog; }, cancelBot: function () { cancelBot(); },
     get dialogKind() { return currentDialog ? currentDialog.dataset.kind || '' : null; },
     get online() { return online; }, get me() { return me; }, get lobby() { return lobby; }, startSeek: startSeek, startInvite: startInvite,
     onlineAction: onlineAction, showNewGame: showNewGame, serverNow: serverNow, cancelPremoves: cancelPremoves,
