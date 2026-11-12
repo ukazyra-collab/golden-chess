@@ -109,6 +109,17 @@ try {
   check('golden move accepted', r.body.game && r.body.game.sans[6] === 'Bc4★a6', r.body.game && r.body.game.sans);
   r = await call(tb, { action: 'resign', game: gid });
   check('resign -> over, rated', r.body.game && r.body.game.status === 'over' && r.body.game.result === '1-0' && r.body.game.white_diff > 0 && r.body.game.black_diff < 0, r.body.game);
+  // the release's switches: emails and the progress on the account on, fair play off (no GC_* settings at all)
+  r = await call(ta, { action: 'hello' });
+  check('hello: emails and progress on, fair play off', r.body.mail === true && r.body.prog === true && !r.body.fair, [r.body.mail, r.body.prog, r.body.fair]);
+  r = await call(ta, { action: 'progress', data: { v: 1, prog: { xp: 640, career: { 1: 7 } } } });
+  check('progress kept, its XP on the profile', r.status === 200 && r.body.xp === 640 && r.body.data && r.body.data.prog.career['1'] === 7, r.body);
+  r = await call(ta, { action: 'top', pool: 'blitz' });
+  check('the leaderboard (with the XP) works without fair play in the database', r.status === 200 && Array.isArray(r.body.rows) && r.body.rows.some((x) => x.uid === A && x.xp === 640), r.body);
+  r = await call(ta, { action: 'prefs', lang: 'ru', tz: 'Asia/Dubai' });
+  check('prefs: language and zone kept', r.status === 200 && r.body.prefs && r.body.prefs.lang === 'ru' && r.body.prefs.tz === 'Asia/Dubai', r.body);
+  r = await call(ta, { action: 'report', game: 'x', why: 'engine' });
+  check('reports are off', r.body.error === 'unsupported', r.body);
   await new Promise((res) => setTimeout(res, 300));
   const topics = broadcasts.flatMap((b) => b.messages.map((m) => m.topic + ':' + m.event + ':' + m.private));
   check('broadcasts sent on private game topic', topics.filter((t) => t === 'g:' + gid + ':state:true').length >= 8, topics);

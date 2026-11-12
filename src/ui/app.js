@@ -2711,7 +2711,7 @@
       [ru ? 'Новое: тренер Оскар, первый урок (Обучение)' : 'New: Oskar the coach, the first lesson (Learn)', function () { protoSet([]); learnAt('i1', true); }],
       [ru ? 'Новое: задача из настоящей партии' : 'New: a puzzle from a real game', function () { learnAt((typeof JOKER_REAL !== 'undefined' && JOKER_REAL[8] || { id: 'i1' }).id, false); }],
       [ru ? 'Новое: Путь к Джокеру, 16 соперников' : 'New: Road to Joker, 16 opponents', function () { protoProg(); closeDialog(); botsUi.tab = 'career'; go('bots'); }],
-      [ru ? 'Новое: все боты, те же имена и рейтинги' : 'New: all bots, the same names and ratings', function () { closeDialog(); botsUi.tab = 'free'; go('bots'); }],
+      [ru ? 'Новое: все боты, те же имена и рейтинги' : 'New: all bots, the same names and ratings', function () { closeDialog(); botsUi.tab = 'free'; botsUi.keep = true; go('bots'); }],
       [ru ? 'Новое: статус рядом с именем (партия с ботом)' : 'New: the status next to the name (a bot game)', function () { protoProg(); closeDialog(); startGame({ mode: 'bot', level: 2, bot: 'mila', color: 'w', tc: 'none' }); }],
       [ru ? 'Новое: статус в Профиле' : 'New: the status on the Profile tab', function () { protoProg(); closeDialog(); go('profile'); }],
       [ru ? 'Новое: напоминания про карьеру и бонус дня' : 'New: reminders about the career and the day’s bonus', function () { protoProg(); save('lastKind', 'bot'); closeDialog(); setTimeout(remindPlanSheet, 250); }],
@@ -4999,7 +4999,7 @@
   // Play (start screen), Learn, Ratings, Profile, the sign-in page and the game itself are views of one page;
   // the address keeps the view (#play, #learn, ...) so the back button and reloads work.
   var shellEl = $('shell'), curView = null, learnKit = null, signinFlow = null, ratingsPool = null;
-  var botsUi = { sel: Math.max(0, Progress.BOTS.indexOf(Progress.bot(lastSetup.bot) || Progress.levelBot(lastSetup.level || 3))), color: lastSetup.color || 'w', tab: load('botsTab', 'career') === 'free' ? 'free' : 'career' };
+  var botsUi = { sel: Math.max(0, Progress.BOTS.indexOf(Progress.bot(lastSetup.bot) || Progress.levelBot(lastSetup.level || 3))), color: lastSetup.color || 'w', tab: 'career', keep: false };
   var VIEWS = ['play', 'bots', 'learn', 'ratings', 'profile', 'signin', 'games', 'player', 'game'], NAV = ['play', 'bots', 'learn', 'ratings', 'profile'];
   var NAV_KEY = { play: 'navPlay', bots: 'navBots', learn: 'navLearn', ratings: 'navRatings', profile: 'navProfile' };
   var COLOR_RANDOM_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6" fill="#1f2422"/><path d="M12 3.4a8.6 8.6 0 0 0 0 17.2z" fill="#f4efe4"/><circle cx="12" cy="12" r="8.6" fill="none" stroke="#8d9691" stroke-width="1.2"/></svg>';
@@ -5149,6 +5149,9 @@
     var prev = curView;
     curView = v; shellEl.dataset.view = v;
     if (prev !== v) Track.page(v);
+    // the Bots tab always opens on the career (the Road to Joker); "All bots" is a choice made there, not remembered
+    // (keep: a link that opens "All bots" on purpose, once)
+    if (v === 'bots' && prev !== 'bots') { if (!botsUi.keep) botsUi.tab = 'career'; botsUi.keep = false; }
     VIEWS.forEach(function (x) { var el = viewEl(x); if (el) el.hidden = x !== v; });
     // a short fade as the tab comes in (not for the game, whose board sits still)
     if (prev !== null && prev !== v && v !== 'game') { var ve = viewEl(v); if (ve) { ve.classList.remove('view-in'); void ve.offsetWidth; ve.classList.add('view-in'); } }
@@ -5422,7 +5425,7 @@
     var tabs = h('div', { class: 'bots-tabs', role: 'tablist' });
     [['career', T('careerTab')], ['free', T('freeTab')]].forEach(function (x) {
       var b = h('button', { type: 'button', role: 'tab', class: 'bt-tab', id: 'tab-' + x[0], 'aria-selected': String(botsUi.tab === x[0]) }, esc(x[1]));
-      b.addEventListener('click', function () { botsUi.tab = x[0]; save('botsTab', x[0]); renderBots(); });
+      b.addEventListener('click', function () { botsUi.tab = x[0]; renderBots(); });
       tabs.appendChild(b);
     });
     inn.appendChild(tabs);

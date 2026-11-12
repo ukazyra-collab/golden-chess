@@ -1,5 +1,4 @@
--- The game layer on the account. PROTOTYPE: not applied to the production database (see 20261111000000_fair_play.sql on
--- how the pending folder works); with it the play function runs with GC_PROG=on.
+-- The game layer on the account (the play function's `progress`; GC_PROG=off switches it off).
 --
 -- What it keeps: a player's progress as their device knows it (the level's XP, the career's stars, the Joker cards,
 -- the puzzles solved, the days played), so that it follows the account to another device; and the XP on the profile,

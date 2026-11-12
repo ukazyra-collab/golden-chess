@@ -1,4 +1,4 @@
-// The emails Joker Chess sends on its own (PROTOTYPE: the mail function isn't deployed). Pure functions: the mail
+// The emails Joker Chess sends on its own (the mail function). Pure functions: the mail
 // function (Deno) and the tests and the preview page (Node) share them.
 //   welcome    the account was just saved: what it keeps, three things to try (a service email)
 //   weekly     the player's week: games, rating, the best win, the streak (only with the player's yes: email_opt)

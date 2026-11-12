@@ -20,8 +20,13 @@ async def main():
         await page.goto(URL); await page.wait_for_timeout(500)
         ok('Bots tab opens from the address', await page.evaluate('__gc.curView') == 'bots')
         # the Bots screen opens on the career (Joker Road); the free picker is the second tab
-        if await page.query_selector('#tab-free'):
-            await page.click('#tab-free'); await page.wait_for_timeout(100)
+        ok('the Bots tab opens on the career', await page.evaluate('document.getElementById("tab-career").getAttribute("aria-selected") === "true" && !!document.querySelector(".cmap")'))
+        await page.click('#tab-free'); await page.wait_for_timeout(100)
+        ok('All bots: the picker', await page.evaluate('!!document.getElementById("bot-hero") && !document.querySelector(".cmap")'))
+        await page.evaluate('__gc.go("play")'); await page.wait_for_timeout(150)
+        await page.evaluate('__gc.go("bots")'); await page.wait_for_timeout(200)
+        ok('back on the Bots tab later: the career again, not the picker', await page.evaluate('document.getElementById("tab-career").getAttribute("aria-selected") === "true" && !!document.querySelector(".cmap")'))
+        await page.click('#tab-free'); await page.wait_for_timeout(100)
         tiles = await page.evaluate('[...document.querySelectorAll(".bot-tile")].map(function (t) { return [t.id.slice(4), +t.querySelector(".el").textContent]; })')
         ok('sixteen characters, the weakest first', len(tiles) == 16 and all(tiles[i][1] < tiles[i + 1][1] for i in range(15)), tiles)
         road = await page.evaluate('Progress.BOTS.map(function (b) { return [b.who, b.elo]; })')

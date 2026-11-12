@@ -164,7 +164,7 @@ export function createMemoryRepo(now) {
       if (!r || !r.games || closed(uid)) return null;
       return { uid, name: db.profiles.get(uid)?.username || '?', avatar_v: db.profiles.get(uid)?.avatar_v || 0, xp: db.profiles.get(uid)?.xp || 0, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses };
     },
-    // ---- the game layer on the account (as supabase/pending/*_progress.sql)
+    // ---- the game layer on the account (as supabase/migrations/*_progress.sql)
     async progress(uid, data, xp) {
       const p = db.profiles.get(uid);
       if (data != null) { db.progress.set(uid, { data: clone(data), at: iso(now()) }); if (p) p.xp = Math.max(0, Math.min(5000000, xp || 0)); }

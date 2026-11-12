@@ -6,5 +6,5 @@ project_id = "wduoqpoqbtpkrgbcsegg"
 verify_jwt = false
 
 [functions.mail]
-# PROTOTYPE (lifecycle emails): the hourly run carries its own key, the unsubscribe links their own token
+# the lifecycle emails: the one-click unsubscribe links and the hourly job (pg_cron) call it without a user token
 verify_jwt = false

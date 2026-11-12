@@ -20,6 +20,8 @@ const H = PG ? 'eeeeeeee-0000-4000-8000-000000000005' : 'house1';
 const [E, F, G] = PG ? ['ffffffff-0000-4000-8000-000000000006', 'ffffffff-0000-4000-8000-000000000007', 'ffffffff-0000-4000-8000-000000000008'] : ['erin', 'frank', 'grace'];
 const [M1, M2, M3] = PG ? ['99999999-0000-4000-8000-000000000011', '99999999-0000-4000-8000-000000000012', '99999999-0000-4000-8000-000000000013'] : ['mona', 'milo', 'mira'];
 const [X1, X2] = PG ? ['77777777-0000-4000-8000-000000000021', '77777777-0000-4000-8000-000000000022'] : ['xena', 'xavi']; // fair play
+// GC_FAIR=off: as production runs (fair play off; with PG=1 and PG_SKIP=<its migration> the database lacks it too)
+const FAIR = process.env.GC_FAIR !== 'off';
 let repo, inspect, cleanup = async () => {}, addHouse, pg;
 // test knobs for matchmaking: when a player last opened the app (null: not lately), how long a search has run, a rating
 let setSeen, quietAll, ageSeek, setRating, playedAgo;
@@ -58,7 +60,7 @@ if (PG) {
   setRating = async (uid, pool, rating) => { const k = uid + '|' + pool; m.db.ratings.set(k, Object.assign(m.db.ratings.get(k) || { user_id: uid, pool, rd: 80, vol: 0.06, games: 10, wins: 0, draws: 0, losses: 0 }, { rating })); };
 }
 const sent = [];
-const logic = createLogic({ repo, GC, now, fair: true, mail: true, prog: true, broadcast: async (topic, event, payload) => { sent.push({ topic, event, payload }); } });
+const logic = createLogic({ repo, GC, now, fair: FAIR, mail: true, prog: true, broadcast: async (topic, event, payload) => { sent.push({ topic, event, payload }); } });
 const call = async (uid, body) => { const r = await logic.handle(Promise.resolve(uid), body); return r; };
 const ok = async (uid, body) => { const r = await call(uid, body); if (r.status !== 200 || r.body.error) throw new Error(body.action + ' failed: ' + JSON.stringify(r.body)); return r.body; };
 
@@ -623,7 +625,7 @@ check('act: unknown kind refused', r.body.error === 'bad_kind', r.body);
   check('act: one row a day, open and bot once each, the platform', act.length === 1 && act[0].platform === 'ios' && act[0].kinds.join() === 'open,bot', act); }
 
 // ---- fair play (prototype): the time each move took, the device's away counts, reports, the owner's decision
-{
+if (FAIR) { // (GC_FAIR=off: the release config, fair play off and its migration not applied)
   T = Math.max(T, Date.now()); // the database's own clock judges "the last 30 days" of a closed account's games
   r = await ok(X1, { action: 'hello' });
   await ok(X2, { action: 'hello' });
@@ -705,6 +707,7 @@ check('act: unknown kind refused', r.body.error === 'bad_kind', r.body);
 // ---- the game layer on the account (prototype): the device's progress kept with the account, its XP on the profile
 {
   const prof = async (u) => (await inspect.profiles()).find((p) => p.id === u);
+  await ok(X1, { action: 'hello' });
   r = await ok(X2, { action: 'hello' });
   check('progress: hello says the account keeps it', r.prog === true && (r.profile.xp || 0) === 0, [r.prog, r.profile.xp]);
   r = await ok(X2, { action: 'progress' });
@@ -725,9 +728,13 @@ check('act: unknown kind refused', r.body.error === 'bad_kind', r.body);
   r = await ok(X2, { action: 'progress', data: { v: 1, prog: { xp: -5 } } });
   check('progress: and a floor', r.xp === 0, r.xp);
   r = await ok(X2, { action: 'progress', data: save });
+  // someone on the leaderboard sends theirs: their row carries the XP, the others' rows none
   r = await ok(X1, { action: 'top', pool: 'blitz' });
-  const mine = r.rows.find((x) => x.uid === X2), other = r.rows.find((x) => x.uid !== X2);
-  check('progress: the leaderboard rows carry the XP (the badge next to the name)', mine && mine.xp === 1234 && (!other || !other.xp), [mine && mine.xp, other && other.xp]);
+  const U = r.rows.length ? r.rows[0].uid : null;
+  if (U) await ok(U, { action: 'progress', data: { v: 1, prog: { xp: 777 } } });
+  r = await ok(X1, { action: 'top', pool: 'blitz' });
+  const mine = r.rows.find((x) => x.uid === U), other = r.rows.find((x) => x.uid !== U && x.uid !== X2);
+  check('progress: the leaderboard rows carry the XP (the badge next to the name)', U && mine && mine.xp === 777 && (!other || !other.xp), [U, mine && mine.xp, other && other.xp]);
   const off = createLogic({ repo, GC, now, broadcast: async () => {} });
   r = await off.handle(Promise.resolve(X2), { action: 'progress' });
   check('progress: off until the migration is in (the app then keeps it on the device only)', r.body.error === 'unsupported' && (await off.handle(Promise.resolve(X2), { action: 'hello' })).body.prog === undefined, r.body);

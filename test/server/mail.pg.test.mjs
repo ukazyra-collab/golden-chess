@@ -1,4 +1,4 @@
-// Who is due which lifecycle email (mail_due in supabase/pending/20261111010000_email_lifecycle.sql), on Postgres.
+// Who is due which lifecycle email (mail_due in supabase/migrations/20261112103240_email_lifecycle.sql), on Postgres.
 // Run: node test/server/mail.pg.test.mjs
 import { createDb } from './pg-harness.mjs';
 const U1 = 'aaaaaaaa-1111-4000-8000-000000000001', U2 = 'bbbbbbbb-1111-4000-8000-000000000002', U3 = 'cccccccc-1111-4000-8000-000000000003';

@@ -31,7 +31,9 @@ export async function createDb(userIds = []) {
   await pg.exec(SUPABASE_STUBS);
   for (const dir of [MIGRATIONS, PENDING]) {
     if (!fs.existsSync(dir)) continue;
-    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.sql')).sort()) await pg.exec(fs.readFileSync(new URL(f, dir), 'utf8'));
+    // PG_SKIP=<file>,<file>: a database without those migrations (the production one, before they are applied)
+    const skip = (process.env.PG_SKIP || '').split(',').filter(Boolean);
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.sql') && !skip.includes(x)).sort()) await pg.exec(fs.readFileSync(new URL(f, dir), 'utf8'));
   }
   for (const id of userIds) await pg.query('insert into auth.users (id) values ($1)', [id]);
   return pg;

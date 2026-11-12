@@ -16,7 +16,7 @@ async function game(status, w, b, host) {
     values ($1, $2, $3, 'W', 'B', $4, 180000, 2000, 'blitz', 'x', 'x', 0, 0, $5, $6) returning id`, [status, w, b, host || null, status === 'over' ? '1-0' : null, status === 'over' ? 'resign' : null])).rows[0].id;
 }
 const g1 = await game('over', A, B), invite = await game('waiting', A, null, A), live = await game('playing', B, C);
-// the game layer on the account (supabase/pending/*_progress.sql): Anna's and Boris's progress
+// the game layer on the account (supabase/migrations/*_progress.sql): Anna's and Boris's progress
 for (const id of [A, B]) await pg.query("select public.gc_progress($1::uuid, $2::jsonb, 700)", [id, JSON.stringify({ v: 1, prog: { xp: 700 } })]);
 async function as(uid, sql) {
   await pg.exec(`set role authenticated; select set_config('request.jwt.claim.sub', '${uid || ''}', false);`);

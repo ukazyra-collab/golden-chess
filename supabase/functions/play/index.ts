@@ -191,7 +191,9 @@ Deno.serve(async (req) => {
   if (!(await pgReady) || !pgRepo) {
     status = 503; out = { error: 'unavailable' };
   } else {
-    const logic = createLogic({ repo: timed(pgRepo, acc), broadcast, GC, background, fair: Deno.env.get('GC_FAIR') === 'on', mail: Deno.env.get('GC_MAIL') === 'on', prog: Deno.env.get('GC_PROG') === 'on' }); // prototypes: after their migrations
+    // emails and the progress on the account: on (their migrations are applied), GC_MAIL / GC_PROG=off switches one off;
+    // fair play: off until its migration is applied and GC_FAIR=on
+    const logic = createLogic({ repo: timed(pgRepo, acc), broadcast, GC, background, fair: Deno.env.get('GC_FAIR') === 'on', mail: Deno.env.get('GC_MAIL') !== 'off', prog: Deno.env.get('GC_PROG') !== 'off' });
     ({ status, body: out } = await logic.handle(authP, body));
   }
   const total = performance.now() - t0;

@@ -1,6 +1,5 @@
--- Lifecycle emails. PROTOTYPE: not applied to the production database (see 20261111000000_fair_play.sql on how the
--- pending folder works). With it: the player's yes / no to emails, their language and time zone, when a guest saved
--- the account, the log of what was sent, and who is due which email (mail_due) for the mail function.
+-- Lifecycle emails: the player's yes / no to emails, their language and time zone, when a guest saved the account, the
+-- log of what was sent, who is due which email (mail_due) for the mail function, and its hourly run (pg_cron).
 
 alter table public.profiles add column if not exists email_opt boolean;      -- yes / no to emails about their games (null: never asked)
 alter table public.profiles add column if not exists email_opt_at timestamptz;
@@ -39,7 +38,7 @@ create table if not exists public.mail_outbox (
   kind text not null check (kind in ('welcome', 'weekly', 'winback7', 'winback21')),
   to_email text not null,
   subject text not null,
-  status text not null check (status in ('dry', 'sent', 'failed')),  -- dry: rendered and logged, not sent (MAIL_MODE=dry)
+  status text not null check (status in ('dry', 'sent', 'failed')),  -- (dry: no longer written; a run without the key only counts)
   provider_id text,
   error text,
   created_at timestamptz not null default now());
@@ -105,10 +104,25 @@ revoke execute on function public.mail_due(text, int, timestamptz) from public, 
 revoke execute on function public.gc_prefs(uuid, text, text, boolean) from public, anon, authenticated;
 grant execute on function public.mail_due(text, int, timestamptz), public.gc_prefs(uuid, text, text, boolean) to service_role;
 
--- Once it is live, the hourly run (pg_cron + pg_net, both available on Supabase; the key lives in the Vault):
---   select vault.create_secret('<a long random string, also set as MAIL_CRON_KEY on the mail function>', 'mail_cron_key');
---   select cron.schedule('mail-hourly', '5 * * * *', $job$
---     select net.http_post(url := 'https://wduoqpoqbtpkrgbcsegg.supabase.co/functions/v1/mail',
---       headers := jsonb_build_object('content-type', 'application/json',
---         'x-mail-key', (select decrypted_secret from vault.decrypted_secrets where name = 'mail_cron_key')),
---       body := '{}'::jsonb) $job$);
+-- the mail function's runs: one row per hour it ran (a second call in the same hour finds the hour taken and does
+-- nothing), its mode (send, or dry: no Resend key yet) and what it did, by kind
+create table if not exists public.mail_runs (
+  hour timestamptz primary key,
+  mode text not null default 'dry',
+  result jsonb,
+  started_at timestamptz not null default now(),
+  done_at timestamptz);
+alter table public.mail_runs enable row level security;
+grant all on public.mail_runs to service_role;
+
+-- the hourly run: pg_cron calls the mail function at :05 through pg_net (both on Supabase; a database without them, such
+-- as the tests' PGlite, skips this). The function needs no key for it: a run does only what is due in that hour, once.
+do $do$
+begin
+  if exists (select 1 from pg_available_extensions where name = 'pg_cron') and exists (select 1 from pg_available_extensions where name = 'pg_net') then
+    create extension if not exists pg_net;
+    create extension if not exists pg_cron;
+    perform cron.schedule('mail-hourly', '5 * * * *',
+      $job$select net.http_post(url := 'https://wduoqpoqbtpkrgbcsegg.supabase.co/functions/v1/mail', body := '{}'::jsonb, timeout_milliseconds := 60000)$job$);
+  end if;
+end $do$;
