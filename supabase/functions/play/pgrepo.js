@@ -142,6 +142,10 @@ export function createPgRepo(sql) {
     async setPrefs(uid, lang, tz, opt) {
       return (await sql`select public.gc_prefs(${uid}::uuid, ${lang}::text, ${tz}::text, ${opt}::boolean) as j`)[0].j;
     },
+    // the game layer on the account (supabase/pending/20261112000000_progress.sql): data null reads, otherwise keeps
+    async progress(uid, data, xp) {
+      return (await sql`select public.gc_progress(${uid}::uuid, ${data == null ? null : sql.json(data)}::jsonb, ${xp}::integer) as j`)[0].j;
+    },
     // one row per player per day (UTC): the platform last used and the kinds of play seen that day
     async noteActivity(uid, platform, kind) {
       if (!UUID.test(String(uid))) return;
@@ -170,8 +174,9 @@ export function createPgRepo(sql) {
             (select p.id, p.username, p.avatar_v from public.profiles p where p.id in (select u from people union select u from house) order by random() limit 14) p) as faces`;
       return { seeking: Number(r[0].seeking), games: Number(r[0].games), online: Number(r[0].online), faces: r[0].faces || [] };
     },
+    // (xp: the rank badge next to the name; read through to_jsonb, so the query runs before the progress migration too)
     async top(pool, n) {
-      return plain(await sql`select r.user_id as uid, p.username as name, p.avatar_v, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses
+      return plain(await sql`select r.user_id as uid, p.username as name, p.avatar_v, (to_jsonb(p)->>'xp')::int as xp, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses
         from public.ratings r join public.profiles p on p.id = r.user_id where r.pool = ${pool} and r.games > 0 and p.fair <> 'closed' order by r.rating desc limit ${n}`);
     },
     // the player's place in the pool and the pool's size (rank null when unrated there)
@@ -189,7 +194,7 @@ export function createPgRepo(sql) {
     // one player's leaderboard row (null when unrated in the pool)
     async rowOf(uid, pool) {
       if (!UUID.test(String(uid))) return null;
-      return first(await sql`select to_jsonb(q) as j from (select r.user_id as uid, p.username as name, p.avatar_v, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses
+      return first(await sql`select to_jsonb(q) as j from (select r.user_id as uid, p.username as name, p.avatar_v, (to_jsonb(p)->>'xp')::int as xp, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses
         from public.ratings r join public.profiles p on p.id = r.user_id where r.user_id = ${uid} and r.pool = ${pool} and r.games > 0 and p.fair <> 'closed') q`);
     },
   };

@@ -17,6 +17,21 @@ check('weekly: the rating change in the subject', /\+34/.test(render('weekly', '
 check('weekly: no rating, no change', !/rating/.test(render('weekly', 'en', Object.assign({}, d, { week: { games: 2, wins: 1, draws: 0, losses: 1, streak: 1 } })).subject));
 check('winback7: the board', /<table/.test(boardHtml(d.daily.fen)) && (boardHtml(d.daily.fen).match(/<td/g) || []).length === 64);
 check('winback7: the side to move at the bottom (black)', boardHtml('8/8/8/8/8/8/8/K6k b - - 0 1').lastIndexOf('♚') < boardHtml('8/8/8/8/8/8/8/K6k b - - 0 1').indexOf('♔'));
+// ---- the career in the emails: the next opponent by name, for a player whose progress is on the account
+{
+  const { roadOf } = await import('../supabase/functions/mail/road.js');
+  const road = roadOf({ v: 1, prog: { xp: 900, career: { 1: 7, 2: 3 } } }, 'ru'), roadEn = roadOf({ prog: { career: { 1: 7, 2: 3 } } }, 'en');
+  check('the road: the first opponent not beaten yet, with the stars so far', road && road.name === 'Соня' && road.elo > 600 && road.stars === 5 && road.total === 48 && roadEn.name === 'Sonya', road);
+  check('the road: nothing without the progress, a newcomer starts at the first opponent', roadOf(null, 'en') === null && roadOf({}, 'en') === null && roadOf({ prog: { career: {} } }, 'en').name === 'Jake');
+  const all = {}; for (let i = 1; i <= 16; i++) all[i] = 7;
+  check('the road: done, nobody is next', roadOf({ prog: { career: all } }, 'en') === null);
+  for (const lang of ['en', 'ru']) for (const k of ['weekly', 'winback7', 'winback21']) {
+    const m = render(k, lang, Object.assign({}, d, { road: lang === 'ru' ? road : roadEn }));
+    const nm = lang === 'ru' ? 'Соня' : 'Sonya';
+    check(`${k}/${lang}: the next opponent by name, with a link to the bots`, m.html.includes(nm) && m.text.includes(nm) && m.html.includes('#bots') && !/\{\w+\}|undefined|NaN|null/.test(m.html + m.text), m.text);
+  }
+  check('welcome and the emails without the progress say nothing about the road', !/Road to Joker/.test(render('welcome', 'en', Object.assign({}, d, { road: roadEn })).html) && !/Road to Joker/.test(render('weekly', 'en', d).html));
+}
 check('names are escaped', !render('welcome', 'en', Object.assign({}, d, { name: '<b>x</b>' })).html.includes('<b>x</b>'));
 console.log(`mail: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

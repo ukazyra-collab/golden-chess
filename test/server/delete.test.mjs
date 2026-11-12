@@ -16,6 +16,8 @@ async function game(status, w, b, host) {
     values ($1, $2, $3, 'W', 'B', $4, 180000, 2000, 'blitz', 'x', 'x', 0, 0, $5, $6) returning id`, [status, w, b, host || null, status === 'over' ? '1-0' : null, status === 'over' ? 'resign' : null])).rows[0].id;
 }
 const g1 = await game('over', A, B), invite = await game('waiting', A, null, A), live = await game('playing', B, C);
+// the game layer on the account (supabase/pending/*_progress.sql): Anna's and Boris's progress
+for (const id of [A, B]) await pg.query("select public.gc_progress($1::uuid, $2::jsonb, 700)", [id, JSON.stringify({ v: 1, prog: { xp: 700 } })]);
 async function as(uid, sql) {
   await pg.exec(`set role authenticated; select set_config('request.jwt.claim.sub', '${uid || ''}', false);`);
   try { await pg.query(sql); return null; } catch (e) { return e.message; } finally { await pg.exec('reset role'); }
@@ -29,6 +31,8 @@ ok('her sign-in is gone', (await q('select 1 from auth.users where id = $1', [A]
 ok('her profile and ratings are gone', (await q('select 1 from public.profiles where id = $1', [A])).length === 0 && (await q('select 1 from public.ratings where user_id = $1', [A])).length === 0);
 const fg = (await q('select white_id, white_name, status from public.games where id = $1', [g1]))[0];
 ok('the finished game stays, with her name', fg && fg.white_id === null && fg.white_name === 'W' && fg.status === 'over', fg);
+ok('her progress is gone with her, the others\' stays', (await q('select 1 from public.progress where user_id = $1', [A])).length === 0 && (await q('select xp from public.profiles where id = $1', [B]))[0].xp === 700 &&
+  (await q('select 1 from public.progress where user_id = $1', [B])).length === 1);
 ok('her open invite is called off', (await q('select status from public.games where id = $1', [invite]))[0].status === 'aborted');
 ok('the others are untouched', (await q('select count(*)::int as n from public.profiles')).rows === undefined ? (await q('select count(*)::int as n from public.profiles'))[0].n === 2 : false);
 await pg.close();

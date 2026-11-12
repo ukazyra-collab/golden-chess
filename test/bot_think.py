@@ -22,14 +22,18 @@ async def main():
         # the Bots screen opens on the career (Joker Road); the free picker is the second tab
         if await page.query_selector('#tab-free'):
             await page.click('#tab-free'); await page.wait_for_timeout(100)
-        ok('eight characters', await page.evaluate('document.querySelectorAll(".bot-tile").length') == 8)
-        await page.click('#bot-5'); await page.wait_for_timeout(100)
+        tiles = await page.evaluate('[...document.querySelectorAll(".bot-tile")].map(function (t) { return [t.id.slice(4), +t.querySelector(".el").textContent]; })')
+        ok('sixteen characters, the weakest first', len(tiles) == 16 and all(tiles[i][1] < tiles[i + 1][1] for i in range(15)), tiles)
+        road = await page.evaluate('Progress.BOTS.map(function (b) { return [b.who, b.elo]; })')
+        ok('the same names and ratings as on the Road to Joker, and the engine\'s own ratings for its eight levels', [list(x) for x in road] == [list(x) for x in tiles] and
+           await page.evaluate('Progress.BOTS.filter(function (b) { return !b.lv; }).every(function (b) { return b.elo === Engine.LEVELS[b.level - 1].elo; })') and tiles[-1] == ['golden', 2500], [road, tiles])
+        await page.click('#bot-viktor'); await page.wait_for_timeout(100)
         ok('picking a character shows it on top', 'Viktor' in await page.text_content('#bot-hero'))
         ok('the Play button names the character', 'Viktor' in await page.text_content('#btn-play'))
         await page.click('#opt-b')
         ok('colour choice', await page.evaluate('document.getElementById("opt-b").getAttribute("aria-pressed")') == 'true')
-        await page.click('#bot-3'); await page.click('#opt-w'); await page.click('#btn-play'); await page.wait_for_timeout(300)
-        ok('the game starts with Oskar, level 3', await page.evaluate('__gc.curView === "game" && __gc.game.cfg.mode === "bot" && __gc.game.cfg.level === 3'))
+        await page.click('#bot-oskar'); await page.click('#opt-w'); await page.click('#btn-play'); await page.wait_for_timeout(300)
+        ok('the game starts with Oskar, level 3', await page.evaluate('__gc.curView === "game" && __gc.game.cfg.mode === "bot" && __gc.game.cfg.level === 3 && __gc.game.cfg.bot === "oskar"'))
         ok('no clock in a bot game', await page.evaluate('__gc.game.clock === null && __gc.game.cfg.tc === null'))
         ok('the bot has a face and a name in the bar', await page.evaluate('!!document.querySelector("#bar-top .avatar.bot svg") && /Oskar/.test(document.getElementById("bar-top").textContent)'))
         # replies take a visible, varying time
@@ -50,7 +54,8 @@ async def main():
             ok(f'thinking shown while the bot thinks (move {len(delays)})', busy)
             await page.wait_for_timeout(250)
         print('     reply times (s):', delays)
-        ok('never instant', min(delays) >= 0.38, delays)
+        # (a move from the book takes 0.35 s at the least; the clock here starts after the player's move has gone through)
+        ok('never instant', min(delays) >= 0.28, delays)
         ok('not the same time twice', len(set(delays)) > 1, delays)
         # the model itself, position by position
         r = await page.evaluate('''(() => {

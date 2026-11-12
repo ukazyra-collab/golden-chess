@@ -14,6 +14,7 @@
 import postgres from 'npm:postgres@3.4.9';
 import { render, KINDS } from './templates.js';
 import { Habits, LIST } from './daily.js';
+import { roadOf } from './road.js';
 
 const DB_URL = Deno.env.get('SUPABASE_DB_URL')!;
 const SUPABASE_URL = (Deno.env.get('SUPABASE_URL') || '').replace(/\/+$/, '');
@@ -78,6 +79,17 @@ function dataFor(kind: string, r: any, unsub: string) {
   return d;
 }
 
+// the career's next opponent, for a player whose progress is on the account (the progress table comes with its own
+// migration, 20261112000000_progress.sql: without it, or without a row, the emails simply don't mention the career)
+async function roadFor(uid: string, lang: string) {
+  try {
+    const rows = await sql`select data from public.progress where user_id = ${uid}`;
+    return rows.length ? roadOf(rows[0].data, lang) : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
 async function run() {
   const out: Record<string, number> = {};
   for (const kind of KINDS) {
@@ -86,7 +98,9 @@ async function run() {
     for (const r of rows) {
       if (kind === 'winback7' && !Habits.dailyFor(r.local_day, LIST)) continue;
       const unsub = await unsubUrl(r.user_id);
-      const m = render(kind, r.lang, dataFor(kind, r, unsub));
+      const d = dataFor(kind, r, unsub);
+      if (kind !== 'welcome') d.road = await roadFor(r.user_id, r.lang);
+      const m = render(kind, r.lang, d);
       let status = 'dry', id: string | null = null, error: string | null = null;
       if (MODE === 'send') {
         try { id = await send(r.email, m, unsub); status = 'sent'; } catch (e) { status = 'failed'; error = String((e as Error).message || e).slice(0, 300); }

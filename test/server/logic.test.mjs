@@ -58,7 +58,7 @@ if (PG) {
   setRating = async (uid, pool, rating) => { const k = uid + '|' + pool; m.db.ratings.set(k, Object.assign(m.db.ratings.get(k) || { user_id: uid, pool, rd: 80, vol: 0.06, games: 10, wins: 0, draws: 0, losses: 0 }, { rating })); };
 }
 const sent = [];
-const logic = createLogic({ repo, GC, now, fair: true, mail: true, broadcast: async (topic, event, payload) => { sent.push({ topic, event, payload }); } });
+const logic = createLogic({ repo, GC, now, fair: true, mail: true, prog: true, broadcast: async (topic, event, payload) => { sent.push({ topic, event, payload }); } });
 const call = async (uid, body) => { const r = await logic.handle(Promise.resolve(uid), body); return r; };
 const ok = async (uid, body) => { const r = await call(uid, body); if (r.status !== 200 || r.body.error) throw new Error(body.action + ' failed: ' + JSON.stringify(r.body)); return r.body; };
 
@@ -700,6 +700,37 @@ check('act: unknown kind refused', r.body.error === 'bad_kind', r.body);
   check('mail: the yes kept, a junk zone ignored', r.prefs.email_opt === true && r.prefs.tz === 'Europe/Moscow', r.prefs);
   r = await logic.handle(Promise.resolve({ sub: X2, guest: true }), { action: 'prefs', email_opt: true });
   check('mail: not from a guest', r.body.error === 'guest', r.body);
+}
+
+// ---- the game layer on the account (prototype): the device's progress kept with the account, its XP on the profile
+{
+  const prof = async (u) => (await inspect.profiles()).find((p) => p.id === u);
+  r = await ok(X2, { action: 'hello' });
+  check('progress: hello says the account keeps it', r.prog === true && (r.profile.xp || 0) === 0, [r.prog, r.profile.xp]);
+  r = await ok(X2, { action: 'progress' });
+  check('progress: nothing kept yet', r.data === null && r.xp === 0, r);
+  const save = { v: 1, prog: { xp: 1234, career: { 1: 7, 2: 3 }, cards: { knight: 2 }, q: null, firstWin: '2026-11-12', equip: {}, seen: { lv: 9, stars: 5 } }, days: ['2026-11-12'], puzzles: { i1: 1 }, dailyDone: {}, stats: {} };
+  r = await ok(X2, { action: 'progress', data: save });
+  check('progress: kept as sent, the XP read from it', JSON.stringify(r.data) === JSON.stringify(save) || (r.data.prog.xp === 1234 && r.data.prog.career['2'] === 3 && r.data.puzzles.i1 === 1), r.data);
+  check('progress: the XP is on the profile, where an opponent reads it', r.xp === 1234 && (await prof(X2)).xp === 1234, [r.xp, (await prof(X2)).xp]);
+  r = await ok(X2, { action: 'progress' });
+  check('progress: read back (another device)', r.data && r.data.prog.xp === 1234 && r.data.days[0] === '2026-11-12' && !!r.at, r);
+  check('progress: one player\'s, not another\'s', (await ok(X1, { action: 'progress' })).data === null && ((await prof(X1)).xp || 0) === 0);
+  r = await call(X2, { action: 'progress', data: [1, 2] });
+  check('progress: a list is not a save', r.body.error === 'bad_data', r.body);
+  r = await call(X2, { action: 'progress', data: { v: 1, junk: 'x'.repeat(30000) } });
+  check('progress: too big is refused, the old one stays', r.body.error === 'too_big' && (await ok(X2, { action: 'progress' })).data.prog.xp === 1234, r.body);
+  r = await ok(X2, { action: 'progress', data: { v: 1, prog: { xp: 1e12 } } });
+  check('progress: the XP has a ceiling', r.xp === 5000000 && (await prof(X2)).xp === 5000000, r.xp);
+  r = await ok(X2, { action: 'progress', data: { v: 1, prog: { xp: -5 } } });
+  check('progress: and a floor', r.xp === 0, r.xp);
+  r = await ok(X2, { action: 'progress', data: save });
+  r = await ok(X1, { action: 'top', pool: 'blitz' });
+  const mine = r.rows.find((x) => x.uid === X2), other = r.rows.find((x) => x.uid !== X2);
+  check('progress: the leaderboard rows carry the XP (the badge next to the name)', mine && mine.xp === 1234 && (!other || !other.xp), [mine && mine.xp, other && other.xp]);
+  const off = createLogic({ repo, GC, now, broadcast: async () => {} });
+  r = await off.handle(Promise.resolve(X2), { action: 'progress' });
+  check('progress: off until the migration is in (the app then keeps it on the device only)', r.body.error === 'unsupported' && (await off.handle(Promise.resolve(X2), { action: 'hello' })).body.prog === undefined, r.body);
 }
 
 // glicko sanity

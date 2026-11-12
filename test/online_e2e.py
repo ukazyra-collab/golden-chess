@@ -119,7 +119,10 @@ async def main():
             ok("photo: B sees A's picture on the bar", await wait_for(B, '!!document.querySelector("#bar-top .ava.pic img")', 6000))
             ok("photo: A sees B's initial (no picture)", await A.evaluate('!!document.querySelector("#bar-top .ava:not(.pic) i")'))
             ok('no dialog left open', not await A.evaluate('__gc.dialogOpen') and not await B.evaluate('__gc.dialogOpen'))
-            ok('first-move countdown shown', 'first move' in (await W.inner_text('#ana-side' if W == A else '#ana')).lower() or 'first move' in (await W.inner_text('#ana')).lower())
+            # (the countdown is drawn on the game's first tick, a moment after the board)
+            await wait_for(W, '/first move/i.test((document.getElementById("ana-side") || {}).innerText || "") || /first move/i.test((document.getElementById("ana") || {}).innerText || "")', 3000)
+            ok('first-move countdown shown', 'first move' in (await W.inner_text('#ana-side' if W == A else '#ana')).lower() or 'first move' in (await W.inner_text('#ana')).lower(),
+               [await W.inner_text('#ana'), await W.evaluate('[__gc.online.firstSec, __gc.game.records.length, __gc.online.s.status, __gc.serverNow() - Date.parse(__gc.online.s.created_at), !!__gc.online.pending]')])
 
             # ---- 2. moves by clicking; boards stay in sync
             await click_move(W, 'e2', 'e4'); ok('move 1 synced', await synced(1))

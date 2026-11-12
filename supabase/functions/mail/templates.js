@@ -33,6 +33,7 @@ const T = {
     wb21S: 'Your rating is still {rating}', wb21P: 'Three weeks without a game. Your rating and your games are kept.',
     wb21H: 'We kept your place, {name}', wb21B: 'Your {pool} rating is still {rating}. New players have joined since you last played, and a 3+2 game takes six minutes at most.',
     wb21Btn: 'Play a game', wb21Alt: 'Not in the mood for a game? Today’s puzzle takes a minute.',
+    road: 'On the Road to Joker, {name} ({elo}) is waiting for you. You have {stars} of {total} stars.', roadBtn: 'Play {name}',
   },
   ru: {
     stop: 'Отписаться от этих писем', why: 'Отправлено на {email}, потому что ты сохранил аккаунт Joker Chess.', whyOpt: 'Отправлено на {email}, потому что ты согласился получать письма о своих партиях.',
@@ -52,6 +53,7 @@ const T = {
     wb21S: 'Твой рейтинг на месте: {rating}', wb21P: 'Три недели без партий. Рейтинг и партии сохранены.',
     wb21H: 'Твоё место за тобой, {name}', wb21B: 'Рейтинг ({pool}) всё ещё {rating}. С твоей последней партии пришли новые игроки, а партия 3+2 длится не дольше шести минут.',
     wb21Btn: 'Сыграть партию', wb21Alt: 'Нет настроения играть? Задача дня займёт минуту.',
+    road: 'На пути к Джокеру тебя ждёт {name} ({elo}). У тебя {stars} из {total} звёзд.', roadBtn: 'Сыграть: {name}',
   },
 };
 
@@ -100,7 +102,8 @@ const KINDS = ['welcome', 'weekly', 'winback7', 'winback21'];
 export { KINDS };
 
 // d: { name, email, unsub (the one-click link), site, rating, pool, daily: { n, fen, lvl, url }, week: { games, wins, draws, losses,
-//   from, to, streak, puzzles, best: { opp, rating } } }
+//   from, to, streak, puzzles, best: { opp, rating } }, road: { name, elo, stars, total } (the career's next opponent, for a
+//   player whose progress is on the account: the weekly email and the two for the days away then name them) }
 export function render(kind, lang, d) {
   const L = T[lang] || T.en, site = d.site || 'https://joker-chess.com/';
   // the app's views are its hash (#play, #learn, #profile); the campaign rides in the query for the analytics
@@ -108,6 +111,9 @@ export function render(kind, lang, d) {
   const base = { lang: T[lang] ? lang : 'en', unsub: d.unsub, site, stop: L.stop, tagline: L.tagline, why: fill(kind === 'welcome' ? L.why : L.whyOpt, { email: d.email || '' }) };
   let subject, preheader, body, text;
   const name = d.name || 'there';
+  // the career's next opponent: a line of its own with a link to the Bots tab, and the same line in the plain text
+  const road = d.road && d.road.name ? fill(L.road, d.road) : '';
+  const roadHtml = road ? p(esc(road) + ` <a href="${esc(link('bots'))}" style="color:${C.ink};font-weight:700">${esc(fill(L.roadBtn, d.road))}</a>`, '14px 28px 0 28px') : '';
   if (kind === 'welcome') {
     subject = L.welcomeS; preheader = L.welcomeP;
     const item = (t, b) => `<tr><td style="padding:10px 0 0 0;font-family:${FONT}"><div style="font-size:15px;font-weight:700;color:${C.ink}">${esc(t)}</div><div style="font-size:14px;line-height:1.5;color:${C.soft}">${esc(b)}</div></td></tr>`;
@@ -129,22 +135,22 @@ export function render(kind, lang, d) {
       `<tr><td style="padding:8px 28px 0 28px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>` +
       `${tile(w.to != null ? Math.round(w.to) + (ds ? ' (' + ds + ')' : '') : '–', fill(L.ratingL, { pool }), 50)}${gap}${tile(w.streak || 0, L.streakL, 50)}</tr></table></td></tr>` +
       (w.best ? p(esc(fill(L.bestWin, { opp: w.best.opp, rating: w.best.rating })), '16px 28px 0 28px') : '') +
-      (w.puzzles ? p(esc(fill(L.puzzlesL, { n: w.puzzles })), '6px 28px 0 28px') : '') +
+      (w.puzzles ? p(esc(fill(L.puzzlesL, { n: w.puzzles })), '6px 28px 0 28px') : '') + roadHtml +
       `<tr><td style="padding:22px 28px 0 28px">${button(L.weeklyBtn, link('profile'))}</td></tr>`;
-    text = [fill(L.weeklyH, { name }), preheader, w.best ? fill(L.bestWin, { opp: w.best.opp, rating: w.best.rating }) : '', '', L.weeklyBtn + ': ' + link('profile')];
+    text = [fill(L.weeklyH, { name }), preheader, w.best ? fill(L.bestWin, { opp: w.best.opp, rating: w.best.rating }) : '', road, '', L.weeklyBtn + ': ' + link('profile')];
   } else if (kind === 'winback7') {
     const dl = d.daily || {}, side = String(dl.fen || '').split(' ')[1] === 'b' ? L.black : L.white;
     subject = L.wb7S; preheader = fill(L.wb7P, { n: dl.n });
     body = h1(fill(L.wb7H, { n: dl.n }) + (dl.lvl ? ' · ' + (L.lvl[dl.lvl] || '') : '')) + p(esc(fill(L.wb7B, { side }))) +
       `<tr><td align="center" style="padding:18px 28px 0 28px">${boardHtml(dl.fen)}</td></tr>` +
-      `<tr><td align="center" style="padding:20px 28px 0 28px">${button(L.wb7Btn, link('learn'))}</td></tr>` + p(esc(L.wb7Alt), '14px 28px 0 28px', 14, C.soft);
-    text = [fill(L.wb7H, { n: dl.n }), fill(L.wb7B, { side }), '', L.wb7Btn + ': ' + link('learn'), L.wb7Alt];
+      `<tr><td align="center" style="padding:20px 28px 0 28px">${button(L.wb7Btn, link('learn'))}</td></tr>` + (roadHtml || p(esc(L.wb7Alt), '14px 28px 0 28px', 14, C.soft));
+    text = [fill(L.wb7H, { n: dl.n }), fill(L.wb7B, { side }), '', L.wb7Btn + ': ' + link('learn'), road || L.wb7Alt];
   } else if (kind === 'winback21') {
     const pool = (L.pools || {})[d.pool] || d.pool || '';
     subject = fill(L.wb21S, { rating: d.rating }); preheader = L.wb21P;
     body = h1(fill(L.wb21H, { name })) + p(esc(fill(L.wb21B, { pool, rating: d.rating }))) +
-      `<tr><td style="padding:22px 28px 0 28px">${button(L.wb21Btn, link('play'))}</td></tr>` + p(esc(L.wb21Alt), '14px 28px 0 28px', 14, C.soft);
-    text = [fill(L.wb21H, { name }), fill(L.wb21B, { pool, rating: d.rating }), '', L.wb21Btn + ': ' + link('play'), L.wb21Alt];
+      `<tr><td style="padding:22px 28px 0 28px">${button(L.wb21Btn, link('play'))}</td></tr>` + (roadHtml || p(esc(L.wb21Alt), '14px 28px 0 28px', 14, C.soft));
+    text = [fill(L.wb21H, { name }), fill(L.wb21B, { pool, rating: d.rating }), '', L.wb21Btn + ': ' + link('play'), road || L.wb21Alt];
   } else throw new Error('unknown email ' + kind);
   text = text.concat(['', '--', base.why, L.stop + ': ' + d.unsub]).join('\n');
   return { subject, preheader, html: frame(Object.assign(base, { subject, preheader, body })), text };

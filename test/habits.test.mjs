@@ -67,5 +67,23 @@ p = H.plan({ now: at('2026-11-11', 10), lang: 'ru', days: ['2026-11-10', '2026-1
 check('Russian texts', /Задача дня/.test(p[0].title), p[0]);
 check('every text filled', p.every((x) => x.title && x.body && !/\{\w+\}/.test(x.title + x.body)));
 
+// ---- the plan follows what the player came for (the game layer): the career's next opponent, the day's bonus
+const next = { name: 'Sonya', elo: 750 };
+p = H.plan({ now: at('2026-11-11', 10), lang: 'en', days: ['2026-11-11'], hours: [19], hasGame: true, mode: 'career', next, bonus: true, season: { name: 'The Park', n: 2 } });
+check('a career player: tomorrow the opponent who is next, by name and rating', p[0].kind === 'next' && dayOf(p[0]) === '2026-11-12' && p[0].title === 'Sonya is waiting for you' && p[0].body.includes('750') && p[0].go === 'bots', p[0]);
+check('then the day\'s bonus, then the daily puzzle', p[1].kind === 'bonus' && dayOf(p[1]) === '2026-11-13' && p[2].kind === 'daily' && dayOf(p[2]) === '2026-11-14', p.map((x) => x.kind));
+check('a week away: the season that is two stars off', p.some((x) => x.kind === 'season' && x.title === '2 ★ to the next season' && x.body.includes('The Park')) && !p.some((x) => x.kind === 'week'), p.map((x) => x.kind));
+check('still one a day, never at night, every text filled', new Set(p.map(dayOf)).size === p.length && p.every((x) => x.at.getHours() >= 9 && x.at.getHours() < 22 && !/\{\w+\}/.test(x.title + x.body)));
+p = H.plan({ now: at('2026-11-11', 10), lang: 'ru', days: ['2026-11-11'], hours: [19], mode: 'online', next: { name: 'Джейк', elo: 450 }, bonus: true });
+check('an online player: tomorrow a quick game, the career\'s opponent on the third day', p[0].kind === 'game' && p[1].kind === 'bonus' && p[2].kind === 'next' && p[2].title === 'Джейк ждёт тебя' && /450/.test(p[2].body), p.map((x) => x.kind + ' ' + x.title));
+p = H.plan({ now: at('2026-11-11', 10), lang: 'en', days: ['2026-11-11'], hours: [19], mode: 'puzzles', next, bonus: false });
+check('a puzzle player without a level yet: the daily puzzle, a game, then the opponent', p[0].kind === 'daily' && p[1].kind === 'game' && p[2].kind === 'next', p.map((x) => x.kind));
+p = H.plan({ now: at('2026-11-11', 10), lang: 'en', days: ['2026-11-09'], hours: [19], mode: 'career', next, bonus: true });
+check('today not played, no streak to keep: the bonus that ends at midnight, tonight', p[0].kind === 'last' && dayOf(p[0]) === '2026-11-11' && p[0].at.getHours() === 20 && /midnight/.test(p[0].title), p[0]);
+p = H.plan({ now: at('2026-11-11', 10), lang: 'en', days: ['2026-11-09', '2026-11-10'], hours: [19], mode: 'career', next, bonus: true });
+check('a streak to keep comes first tonight', p[0].kind === 'streak' && !p.some((x) => x.kind === 'last'), p.map((x) => x.kind));
+p = H.plan({ now: at('2026-11-11', 10), lang: 'en', days: ['2026-11-11'], hours: [19], mode: 'career', next: null, bonus: true });
+check('the career finished: no opponent to name, the daily puzzle instead', p[0].kind === 'daily' && !p.some((x) => x.kind === 'next'), p.map((x) => x.kind));
+
 console.log(`habits: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

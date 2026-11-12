@@ -222,6 +222,8 @@ export function createLogic(opts) {
   const FAIR = !!opts.fair;
   // lifecycle emails (prototype, off unless opts.mail: supabase/pending/*_email_lifecycle.sql first)
   const MAIL = !!opts.mail;
+  // the game layer on the account (supabase/pending/20261112000000_progress.sql): off until its migration is applied
+  const PROG = !!opts.prog, PROG_MAX = 24000; // a save as JSON, characters
   const REPORT_WHY = new Set(['engine', 'abuse', 'other']);
   const REPORTS_A_DAY = 20;
   const clampInt = (x, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(x) || 0)));
@@ -247,7 +249,7 @@ export function createLogic(opts) {
     if (guest !== null && prof.is_guest !== guest) prof = (await repo.setGuest(uid, guest)) || Object.assign(prof, { is_guest: guest });
     const [ratings, live, admin] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid), repo.isAdmin ? repo.isAdmin(uid) : false, repo.touchSeen ? repo.touchSeen(uid) : null,
       repo.noteActivity ? repo.noteActivity(uid, platformOf(b), 'open').catch(() => null) : null]);
-    return { profile: prof, ratings: ratings || [], live: live || null, now: now(), admin: !!admin || undefined, fair: FAIR || undefined, mail: MAIL || undefined };
+    return { profile: prof, ratings: ratings || [], live: live || null, now: now(), admin: !!admin || undefined, fair: FAIR || undefined, mail: MAIL || undefined, prog: PROG || undefined };
   };
 
   // the day's activity of a player (the owner's retention numbers): what they did today, on which platform. The app sends
@@ -268,6 +270,22 @@ export function createLogic(opts) {
     const lang = ['en', 'ru'].includes(b.lang) ? b.lang : null;
     const tz = typeof b.tz === 'string' && b.tz.length <= 40 && /^[A-Za-z_]+(\/[A-Za-z0-9_+-]+){0,2}$/.test(b.tz) ? b.tz : null;
     return { prefs: await repo.setPrefs(uid, lang, tz, opt) };
+  };
+
+  // the game layer on the account (prototype): the device sends its progress, already merged with what it read here,
+  // and reads it back on another device; its XP goes on the profile, the rank badge an opponent sees. Games against
+  // the bots are played on the device, so what is sent is kept as it is, bounded in size and in its numbers.
+  A.progress = async (uid, b) => {
+    if (!PROG || !repo.progress) throw new Fail('unsupported');
+    let data = null, xp = 0;
+    if (b.data != null) {
+      if (typeof b.data !== 'object' || Array.isArray(b.data)) throw new Fail('bad_data');
+      if (JSON.stringify(b.data).length > PROG_MAX) throw new Fail('too_big');
+      data = b.data;
+      xp = Math.max(0, Math.min(5000000, Math.floor(+(data.prog && data.prog.xp)) || 0));
+    }
+    const r = (await repo.progress(uid, data, xp)) || {};
+    return { data: r.data || null, xp: r.xp || 0, at: r.at || null };
   };
 
   // who is around: for the search dialog ("12 players online · 3 games on")

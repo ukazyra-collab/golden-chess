@@ -1,0 +1,1 @@
+{"fen":"8/1p4p1/pP6/4pk1K/P6B/8/8/8 w - - 0 46 G","best":"h4d5*","score":806,"normal":329,"plain":129,"plainMove":"a4a5","mate":0,"depth":18,"found":3,"pv":["h4d5*","a6a5","d5b7","f5e6","b7d5","e6d6","b6b7","d6c7"],"accept":{"h4d5*":["a6a5","d5b7","f5e6","b7d5","e6d6","b6b7","d6c7"]},"id":"spassky-fischer-1972-g1","ply":90,"side":"w","loser":false,"total":111,"real":"h4g5"}

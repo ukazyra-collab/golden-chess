@@ -42,7 +42,7 @@ function presence(topic) {
   for (const c of set) send(c.res, 'presence', uids);
 }
 
-const logic = createLogic({ repo, broadcast, GC, now, fair: process.env.GC_FAIR !== 'off', mail: process.env.GC_MAIL !== 'off' });
+const logic = createLogic({ repo, broadcast, GC, now, fair: process.env.GC_FAIR !== 'off', mail: process.env.GC_MAIL !== 'off', prog: process.env.GC_PROG !== 'off' });
 
 // ---- "Supabase Auth": a guest links an email (same account), or an email signs in (existing or new account).
 // Same answers as the real service: 422 email_exists / otp_disabled, 403 otp_expired, 429 when a code is
@@ -227,14 +227,14 @@ const server = http.createServer(async (req, res) => {
   // several players' names and pictures at once (profiles are public on Supabase)
   if (req.method === 'POST' && u.pathname === '/profiles') {
     const b = await readBody(req), rows = (Array.isArray(b.uids) ? b.uids : []).map((id) => db.profiles.get(id)).filter(Boolean)
-      .map((p) => ({ id: p.id, username: p.username, avatar_v: p.avatar_v || 0 }));
+      .map((p) => ({ id: p.id, username: p.username, avatar_v: p.avatar_v || 0, xp: p.xp || 0 }));
     res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ rows }));
     return;
   }
   // a player's page (profiles and ratings are public on Supabase)
   if (req.method === 'POST' && u.pathname === '/player') {
     const b = await readBody(req), p = db.profiles.get(b.uid) || null;
-    const profile = p ? { id: p.id, username: p.username, created_at: p.created_at, house: !!p.house, avatar_v: p.avatar_v || 0 } : null;
+    const profile = p ? { id: p.id, username: p.username, created_at: p.created_at, house: !!p.house, avatar_v: p.avatar_v || 0, xp: p.xp || 0 } : null;
     const ratings = [...db.ratings.values()].filter((r) => r.user_id === b.uid).map(({ pool, rating, rd, games, wins, draws, losses }) => ({ pool, rating, rd, games, wins, draws, losses }));
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ profile, ratings }));

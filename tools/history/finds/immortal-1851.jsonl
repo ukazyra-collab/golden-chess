@@ -1,0 +1,1 @@
+{"fen":"r1bk2nr/p2p1pNp/n2B1Q2/1p1NP2P/6P1/3P4/P1P1K3/q5b1 b - - 2 22 g","best":"c8e7*","score":538,"normal":-29998,"plain":-29998,"plainMove":"g8f6","mate":0,"depth":14,"found":2,"pv":["c8e7*","d6e7","g8e7","g7f5","h8e8"],"accept":{"c8e7*":["d6e7","g8e7","g7f5","h8e8"]},"id":"immortal-1851","ply":43,"side":"b","loser":true,"total":45,"real":"g8f6"}

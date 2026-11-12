@@ -77,7 +77,11 @@ var Habits = (function () {
       reviewT: 'Your game review is free', reviewB: 'See where your last game turned, Joker Moves included.',
       weekT: 'A week of new puzzles', weekB: 'Seven daily Joker puzzles since you last came by.',
       jokerT: 'Still holding your Joker?', jokerB: 'One move can turn any game. Play a quick one.',
-      newsT: 'New in Joker Chess', newsB: 'New puzzles and new players since your last visit.'
+      newsT: 'New in Joker Chess', newsB: 'New puzzles and new players since your last visit.',
+      nextT: '{name} is waiting for you', nextB: 'Rated {elo}. One good game is worth three stars.',
+      bonusT: 'Today’s bonus is ready', bonusB: 'Your first win of the day counts double, and three new quests are in.',
+      lastT: 'Today’s bonus ends at midnight', lastB: 'A win now counts double. The quests change tomorrow.',
+      seasonT: '{n} ★ to the next season', seasonB: '“{name}” opens with them. Any opponent you can already play gives stars.'
     },
     ru: {
       streakT: 'Не теряй серию: {n} дн.', streakB: 'Хватит одной партии или задачи дня.',
@@ -86,12 +90,19 @@ var Habits = (function () {
       reviewT: 'Разбор партии бесплатно', reviewB: 'Посмотри, где решилась твоя последняя партия, с ходами-джокерами.',
       weekT: 'Неделя новых задач', weekB: 'Семь задач дня с джокером с твоего визита.',
       jokerT: 'Джокер ещё у тебя?', jokerB: 'Один ход может перевернуть партию. Сыграй быструю.',
-      newsT: 'Что нового в Joker Chess', newsB: 'Новые задачи и новые игроки с твоего визита.'
+      newsT: 'Что нового в Joker Chess', newsB: 'Новые задачи и новые игроки с твоего визита.',
+      nextT: '{name} ждёт тебя', nextB: 'Рейтинг {elo}. Одна хорошая партия даёт три звезды.',
+      bonusT: 'Бонус дня готов', bonusB: 'Первая победа сегодня считается вдвойне, и есть три новых задания.',
+      lastT: 'Бонус дня до полуночи', lastB: 'Победа сейчас считается вдвойне. Завтра задания сменятся.',
+      seasonT: 'До нового сезона {n} ★', seasonB: 'С ними откроется «{name}». Звёзды даёт любой открытый соперник.'
     }
   };
   function fill(s, v) { return s.replace(/\{(\w+)\}/g, function (m, k) { return v[k] != null ? v[k] : m; }); }
   var QUIET_FROM = 22, QUIET_TO = 9;
-  // o: { now: Date, lang, days, hours (visit hours), dailySolvedToday, hasGame (a finished game to review) }
+  // o: { now: Date, lang, days, hours (visit hours), hasGame (a finished game to review) } and, for a player of the
+  // game layer: mode (what they did last: 'career' | 'online' | 'puzzles'), next ({ name, elo }: the career's next
+  // opponent), bonus (they play for the level: the day's bonus means something to them), season ({ name, n }: the
+  // next season and the few stars it still asks for). The first days follow what the player came for.
   function plan(o) {
     var now = o.now, today = dayOf(now), L = TEXT[o.lang] || TEXT.en, hour = habitHour(o.hours), st = streak(o.days || [], today);
     var out = [];
@@ -104,14 +115,24 @@ var Habits = (function () {
       var t = kind + 'T', b = kind + 'B';
       out.push({ id: 7000 + diffDays(today, day), at: when, kind: kind, title: fill(L[t], vars || {}), body: fill(L[b], vars || {}), go: go || 'play' });
     }
-    // today: a streak of two days or more that today hasn't kept yet, in the evening
+    // today, in the evening, on a day not played yet: a streak of two days or more to keep; without one, the day's
+    // bonus that ends at midnight (for those who play for the level)
     if ((st.state === 'due' || st.state === 'paused') && st.count >= 2) add(today, 20, 30, 'streak', { n: st.count }, 'learn');
+    else if (o.bonus && st.state !== 'done') add(today, 20, 30, 'last', {}, 'play');
     var dn = function (k) { var d = dailyFor(addDays(today, k), [{ lvl: 1 }]); return d ? d.n : ''; };
-    add(addDays(today, 1), hour, 0, 'daily', { n: dn(1) }, 'learn');
-    add(addDays(today, 2), hour, 0, 'game', {}, 'play');
-    add(addDays(today, 3), hour, 0, 'daily', { n: dn(3) }, 'learn');
+    // tomorrow: what they came for last time: the career's next opponent, a quick game online, or the daily puzzle
+    if (o.mode === 'career' && o.next) add(addDays(today, 1), hour, 0, 'next', o.next, 'bots');
+    else if (o.mode === 'online') add(addDays(today, 1), hour, 0, 'game', {}, 'play');
+    else add(addDays(today, 1), hour, 0, 'daily', { n: dn(1) }, 'learn');
+    // in two days: the day's bonus for those who play for the level, a quick game for the rest
+    if (o.bonus) add(addDays(today, 2), hour, 0, 'bonus', {}, 'play');
+    else add(addDays(today, 2), hour, 0, 'game', {}, 'play');
+    // in three: the other thing: the opponent who is next for those who came for something else, the daily puzzle
+    if (o.mode !== 'career' && o.next) add(addDays(today, 3), hour, 0, 'next', o.next, 'bots');
+    else add(addDays(today, 3), hour, 0, 'daily', { n: dn(3) }, 'learn');
     if (o.hasGame) add(addDays(today, 5), hour, 0, 'review', {}, 'games');
-    add(addDays(today, 7), hour, 0, 'week', {}, 'learn');
+    if (o.season) add(addDays(today, 7), hour, 0, 'season', o.season, 'bots');
+    else add(addDays(today, 7), hour, 0, 'week', {}, 'learn');
     add(addDays(today, 14), hour, 0, 'joker', {}, 'play');
     add(addDays(today, 30), hour, 0, 'news', {}, 'learn');
     return out;

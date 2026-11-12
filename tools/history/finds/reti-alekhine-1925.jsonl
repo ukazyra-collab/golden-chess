@@ -1,0 +1,1 @@
+{"fen":"r1q1r1k1/pp3pp1/2p2n2/2Nn3p/1PQN2b1/6P1/P2RPP1P/R5KB b - - 0 21 g","best":"a8c3*","score":529,"normal":159,"plain":7,"plainMove":"a7a5","mate":0,"depth":14,"found":3,"pv":["a8c3*","c4c3","d5c3","f2f3","e8d8","a1e1","g4h3"],"accept":{"a8c3*":["c4c3","d5c3","f2f3","e8d8","a1e1","g4h3"]},"id":"reti-alekhine-1925","ply":41,"side":"b","loser":false,"total":84,"real":"a7a6"}

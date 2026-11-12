@@ -57,11 +57,11 @@ var Progress = (function () {
   function nextReward(level) { for (var i = 0; i < REWARDS.length; i++) if (REWARDS[i].lv > level) return REWARDS[i]; return null; }
 
   // ---- three quests a day, the same for everyone on that day: something to solve, something to play, something
-  // with the Joker. ev: { type: 'game', mode, outcome, joker, queenKept, stars (new career stars) } | { type: 'puzzle' }
+  // with the Joker. ev: { type: 'game', mode, outcome, joker, queenKept, stars (new career stars) } | { type: 'puzzle', real (it comes from a real game) }
   // | { type: 'daily' } | { type: 'review' }
-  var QUESTS = { daily: [1, 60], puzzles3: [3, 60], win2: [2, 60], games3: [3, 60], online: [1, 60], star: [1, 60],
+  var QUESTS = { daily: [1, 60], puzzles3: [3, 60], hist: [1, 60], win2: [2, 60], games3: [3, 60], online: [1, 60], star: [1, 60],
     joker2: [2, 60], jokerwin: [1, 80], clean: [1, 80], review: [1, 60] }; // [how many, XP]
-  var SLOTS = [['daily', 'puzzles3'], ['win2', 'games3', 'online', 'star'], ['joker2', 'jokerwin', 'clean', 'review']];
+  var SLOTS = [['daily', 'puzzles3', 'hist'], ['win2', 'games3', 'online', 'star'], ['joker2', 'jokerwin', 'clean', 'review']];
   function hash(s) {
     var x = 2166136261;
     for (var i = 0; i < s.length; i++) { x ^= s.charCodeAt(i); x = Math.imul(x, 16777619); }
@@ -73,6 +73,7 @@ var Progress = (function () {
     var game = ev.type === 'game', real = game && ev.mode !== 'local', won = real && ev.outcome === 1;
     switch (id) {
       case 'daily': return ev.type === 'daily' ? 1 : 0;
+      case 'hist': return ev.type === 'puzzle' && ev.real ? 1 : 0;
       case 'puzzles3': return ev.type === 'puzzle' || ev.type === 'daily' ? 1 : 0;
       case 'win2': return won ? 1 : 0;
       case 'games3': return real ? 1 : 0;
@@ -99,45 +100,135 @@ var Progress = (function () {
     return finished;
   }
 
-  // ---- the career: a chapter for each bot (the weakest first), three stages each, the third one the boss (played
-  // as Black). Three goals a stage, a star each; the first is always the win. The boss gives one star for a win with
-  // the Joker and one for a win without it, so three stars take two different wins. A stage opens when the one before
-  // it has a star; a chapter when the boss before it is beaten.
-  var CHAPTERS = 8;
-  var GOALS = { 1: [['win'], ['joker'], ['fast', 40]], 2: [['win'], ['clean'], ['fast', 30]], 3: [['win'], ['joker'], ['nojoker']] };
-  function stage(ch, st) { return { ch: ch, st: st, boss: st === 3, color: st === 3 ? 'b' : 'w', level: ch, goals: GOALS[st] }; }
-  // r: { outcome, joker, queenKept, moves (the player's own moves) }
+  // ---- the bots: sixteen characters, the weakest first, the same in the career and in the picker, each with one
+  // name and one rating wherever it is shown. Eight play an engine level as it is. Five stand between two levels with
+  // an engine setting of their own (lv), their ratings placed by matches of Joker Chess against both neighbours
+  // (tools/bots/calib.js, Nov 12 2026; a rating is read off between the neighbours' ratings in the proportion of
+  // the two results, and rounded within the matches' error):
+  //   Jake   1,500 games against Pip (four settings, a line through them): about 150 below him            -> 450
+  //   Sonya  +223 over Pip, -207 under Mila (300 games each)       -> 756 -> 750
+  //   Timur  +119 over Mila, -140 under Oskar (300 each)           -> 1038 -> 1050
+  //   Ada    +177 over Zara, -191 under Viktor (300 each)          -> 1470 -> 1475
+  //   Mark   +441 over Viktor, -363 under Nadia (150 each)         -> 1765 (1745..1785) -> 1750
+  // The three masters are the engine of Leo (0.9 s a move, 2250) and of the Joker (3 s, 2500) thinking for a time
+  // between theirs; their ratings are read off between those two by the logarithm of the time, not measured.
+  // level: the engine level a bot is closest to from below (its opening book, its pace at the board, its goals)
+  var BOTS = [
+    { who: 'jake', level: 1, elo: 450, lv: { depth: 2, time: 400, noise: 298, exact: true, temp: 116, margin: 372 } },
+    { who: 'pip', level: 1, elo: 600 },
+    { who: 'sonya', level: 1, elo: 750, lv: { depth: 2, time: 450, noise: 166, exact: true, temp: 71, margin: 279 } },
+    { who: 'mila', level: 2, elo: 900 },
+    { who: 'timur', level: 2, elo: 1050, lv: { depth: 2, time: 550, noise: 80, exact: true, temp: 45, margin: 230 } },
+    { who: 'oskar', level: 3, elo: 1200 },
+    { who: 'zara', level: 4, elo: 1350 },
+    { who: 'ada', level: 4, elo: 1475, lv: { depth: 3, time: 700, noise: 70, exact: true, temp: 30, margin: 150 } },
+    { who: 'viktor', level: 5, elo: 1600 },
+    { who: 'mark', level: 5, elo: 1750, lv: { depth: 4, time: 600, noise: 30, exact: true, temp: 14, margin: 80 } },
+    { who: 'nadia', level: 6, elo: 1900 },
+    { who: 'leo', level: 7, elo: 2250 },
+    { who: 'staunton', level: 7, elo: 2300, lv: { depth: 64, time: 1150, noise: 0, exact: false } },
+    { who: 'anderssen', level: 7, elo: 2375, lv: { depth: 64, time: 1650, noise: 0, exact: false } },
+    { who: 'morphy', level: 7, elo: 2450, lv: { depth: 64, time: 2350, noise: 0, exact: false } },
+    { who: 'golden', level: 8, elo: 2500 }
+  ];
+  function bot(who) { for (var i = 0; i < BOTS.length; i++) if (BOTS[i].who === who) return BOTS[i]; return null; }
+  // the bot that plays an engine level as it is (games saved before the bots had names of their own)
+  function levelBot(level) { for (var i = 0; i < BOTS.length; i++) if (BOTS[i].level === level && !BOTS[i].lv) return BOTS[i]; return BOTS[1]; }
+
+  // ---- the career: the same sixteen in four seasons of four, a stage each, by rating. Three goals, a star each: a
+  // win, a win with the Joker Move, a win inside so many moves; one good game can take all three. A season opens on
+  // enough stars (the first asks for none, the second for half of the first), and inside an open season any opponent
+  // can be played. career: { '<stage>': bits }
+  var SEASONS = [{ key: 'school', need: 0 }, { key: 'park', need: 6 }, { key: 'tour', need: 14 }, { key: 'legends', need: 24 }];
+  var CHAPTERS = BOTS.length, PER_SEASON = 4;
+  var COLORS = 'wwbwwbwbwbwbwwbw', FAST = [0, 30, 30, 35, 35, 40, 40, 50, 50]; // the player's colour by stage; "a quick win" by level
+  function stage(ch) {
+    var b = BOTS[ch - 1];
+    if (!b) return null;
+    return { ch: ch, season: Math.floor((ch - 1) / PER_SEASON), who: b.who, level: b.level, color: COLORS.charAt(ch - 1), elo: b.elo,
+      boss: ch === CHAPTERS, goals: [['win'], ['joker'], ['fast', FAST[b.level]]] };
+  }
+  // r: { outcome, joker, moves (the player's own moves) }
   function goalMet(g, r) {
     if (r.outcome !== 1) return false;
     if (g[0] === 'joker') return !!r.joker;
-    if (g[0] === 'nojoker') return !r.joker;
-    if (g[0] === 'clean') return !!r.queenKept;
     if (g[0] === 'fast') return r.moves <= g[1];
     return true;
   }
-  function stageBits(st, r) { var bits = 0; GOALS[st].forEach(function (g, i) { if (goalMet(g, r)) bits |= 1 << i; }); return bits; }
+  function stageBits(ch, r) { var bits = 0; stage(ch).goals.forEach(function (g, i) { if (goalMet(g, r)) bits |= 1 << i; }); return bits; }
   function starsOf(bits) { return (bits & 1) + ((bits >> 1) & 1) + ((bits >> 2) & 1); }
-  function isOpen(career, ch, st) {
-    if (ch < 1 || ch > CHAPTERS || st < 1 || st > 3) return false;
-    if (ch === 1 && st === 1) return true;
-    if (st > 1) return !!career[ch + '-' + (st - 1)];
-    return !!career[(ch - 1) + '-3'];
-  }
   function careerStars(career) { var s = 0; for (var k in career) s += starsOf(career[k]); return s; }
-  // where to carry on: ahead first, the open stage not won yet (stages open one at a time, so there is one); once the
-  // whole road is won, the first stage still missing stars (none left: null). Missing stars never pull the main
-  // button back down the road: replaying a stage for them is the player's choice, from its tile.
+  function seasonOpen(career, i) { return !!SEASONS[i] && careerStars(career) >= SEASONS[i].need; }
+  function seasonStars(career, i) { var s = 0; for (var k = 1; k <= PER_SEASON; k++) s += starsOf(career[i * PER_SEASON + k] || 0); return s; }
+  function isOpen(career, ch) { var sg = stage(ch); return !!sg && seasonOpen(career, sg.season); }
+  // where to carry on: the first opponent of the open seasons not beaten yet; all of them beaten: the first one still
+  // missing a star (none left: null). Missing stars never pull the main button back while someone is unbeaten.
   function nextStage(career) {
-    var ch, st;
-    for (ch = 1; ch <= CHAPTERS; ch++) for (st = 1; st <= 3; st++) if (isOpen(career, ch, st) && !career[ch + '-' + st]) return stage(ch, st);
-    for (ch = 1; ch <= CHAPTERS; ch++) for (st = 1; st <= 3; st++) if (starsOf(career[ch + '-' + st] || 0) < 3) return stage(ch, st);
+    var ch;
+    for (ch = 1; ch <= CHAPTERS; ch++) if (isOpen(career, ch) && !(career[ch] & 1)) return stage(ch);
+    for (ch = 1; ch <= CHAPTERS; ch++) if (isOpen(career, ch) && starsOf(career[ch] || 0) < 3) return stage(ch);
     return null;
   }
-  // a finished career game: the goals met now, the best kept; returns { bits, newStars, best }
-  function recordStage(career, ch, st, r) {
-    var key = ch + '-' + st, before = career[key] || 0, now = stageBits(st, r), best = before | now;
-    career[key] = best;
-    return { bits: now, newStars: starsOf(best) - starsOf(before), best: best };
+  // a finished stage game: the goals met now, the best kept; returns { bits, newStars, best, opened (a season) }
+  function recordStage(career, ch, r) {
+    var before = career[ch] || 0, now = stageBits(ch, r), best = before | now, was = [0, 1, 2, 3].map(function (i) { return seasonOpen(career, i); });
+    if (best) career[ch] = best;
+    var opened = -1;
+    for (var i = 0; i < SEASONS.length; i++) if (!was[i] && seasonOpen(career, i)) opened = i;
+    return { bits: now, newStars: starsOf(best) - starsOf(before), best: best, opened: opened };
+  }
+
+  // ---- the coach's puzzles (the Learn tab): XP the first time the player finds a puzzle's Joker Move (an answer that
+  // was shown earns nothing, and the puzzle can still be earned later), more for the harder ones, a little on top for
+  // a clean solve: no hint, no miss. p: the puzzle (lvl 1..3); r: { shown, hint, wrong }
+  var PUZZLE_XP = [0, 10, 15, 20], CLEAN_XP = 5;
+  function puzzleXp(p, r) {
+    if (r.shown) return 0;
+    return PUZZLE_XP[Math.max(1, Math.min(3, p.lvl || 1))] + (!r.hint && !r.wrong ? CLEAN_XP : 0);
+  }
+
+  // ---- the progress on the account: what this device keeps, merged with what the account has from another device.
+  // Nothing earned is lost: the larger XP, every star and Joker card of either side, every puzzle solved, every day
+  // played. (XP earned apart on two devices is not added up: the larger count stays.) Where only one side can win
+  // (what is worn, the bots' scores), it is a, this device.
+  // a save: { v, prog: { xp, career, cards, q, firstWin, equip, seen }, days: [day], puzzles: { id: 1 found | 2 shown },
+  //   dailyDone: { day: puzzle id }, stats: { key: { w, d, l } } }
+  function num(x) { x = Math.floor(+x); return x > 0 && isFinite(x) ? x : 0; }
+  function mergeSave(a, b) {
+    a = a || {}; b = b || {};
+    var pa = a.prog || {}, pb = b.prog || {}, prog = { xp: Math.max(num(pa.xp), num(pb.xp)), career: {}, cards: {} }, k;
+    [pb.career, pa.career].forEach(function (c) { for (var k in c || {}) if (stage(+k) && (c[k] & 7)) prog.career[+k] = (prog.career[+k] || 0) | (c[k] & 7); });
+    [pb.cards, pa.cards].forEach(function (c) { for (var k in c || {}) if (num(c[k])) prog.cards[k] = Math.max(prog.cards[k] || 0, num(c[k])); });
+    var qa = pa.q && pa.q.day ? pa.q : null, qb = pb.q && pb.q.day ? pb.q : null;
+    if (qa && qb && qa.day === qb.day) {
+      prog.q = { day: qa.day, ids: (qa.ids || []).slice(), p: {}, done: {} };
+      prog.q.ids.forEach(function (id) {
+        var n = Math.max(num((qa.p || {})[id]), num((qb.p || {})[id]));
+        if (n) prog.q.p[id] = n;
+        if ((qa.done || {})[id] || (qb.done || {})[id]) prog.q.done[id] = true;
+      });
+    } else prog.q = (qa && (!qb || qa.day > qb.day) ? qa : qb) || null;
+    prog.firstWin = String(pa.firstWin || '') > String(pb.firstWin || '') ? String(pa.firstWin) : String(pb.firstWin || pa.firstWin || '');
+    prog.equip = {};
+    [pb.equip, pa.equip].forEach(function (e) { for (var k in e || {}) if (e[k]) prog.equip[k] = e[k]; });
+    var sa = pa.seen || {}, sb = pb.seen || {};
+    prog.seen = { lv: Math.max(num(sa.lv), num(sb.lv), 1), stars: Math.max(num(sa.stars), num(sb.stars)) };
+    var out = { v: 1, prog: prog, days: [], puzzles: {}, dailyDone: {}, stats: {} }, seen = {};
+    (a.days || []).concat(b.days || []).forEach(function (d) { if (typeof d === 'string' && /^\d{4}-\d\d-\d\d$/.test(d) && !seen[d]) { seen[d] = 1; out.days.push(d); } });
+    out.days = out.days.sort().slice(-400);
+    [b.puzzles, a.puzzles].forEach(function (m) { for (var k in m || {}) if (m[k]) out.puzzles[k] = out.puzzles[k] === 1 || m[k] !== 2 ? 1 : 2; });
+    var dd = {}; [b.dailyDone, a.dailyDone].forEach(function (m) { for (var k in m || {}) dd[k] = m[k]; });
+    Object.keys(dd).sort().slice(-60).forEach(function (k) { out.dailyDone[k] = dd[k]; });
+    var games = function (x) { return x ? num(x.w) + num(x.d) + num(x.l) : 0; };
+    [b.stats, a.stats].forEach(function (m) { for (var k in m || {}) if (games(m[k]) >= games(out.stats[k]) && games(m[k])) out.stats[k] = { w: num(m[k].w), d: num(m[k].d), l: num(m[k].l) }; });
+    return out;
+  }
+  // the same save in the same words, whatever order its parts were written in (to tell whether anything changed)
+  function saveKey(x) {
+    return JSON.stringify(x, function (k, v) {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return v;
+      var o = {}; Object.keys(v).sort().forEach(function (n) { o[n] = v[n]; }); return o;
+    });
   }
 
   // ---- the collection: kinds of Joker Moves, found by playing them (any game; puzzles don't count). A Joker Move
@@ -200,10 +291,12 @@ var Progress = (function () {
     en: {
       rank_pawn: 'Pawn', rank_knight: 'Knight', rank_bishop: 'Bishop', rank_rook: 'Rook', rank_queen: 'Queen', rank_king: 'King', rank_joker: 'Joker', rank_diamond: 'Diamond Joker',
       level: 'Level {n}', xp: '{n} XP', xpOf: '{a} / {b} XP', xpGain: '+{n} XP',
-      x_game: 'Game', x_win: 'Win', x_draw: 'Draw', x_joker: 'Joker Move played', x_firstWin: 'First win of the day ×2', x_star: 'Career stars', x_quest: 'Quest done', x_card: 'New Joker card', x_puzzle: 'Puzzle', x_daily: 'Daily puzzle', x_review: 'Game review',
-      q_daily: 'Solve the daily puzzle', q_puzzles3: 'Solve {n} puzzles', q_win2: 'Win {n} games', q_games3: 'Play {n} games', q_online: 'Play a game online', q_star: 'Earn a career star',
+      x_game: 'Game', x_win: 'Win', x_draw: 'Draw', x_joker: 'Joker Move played', x_firstWin: 'First win of the day ×2', x_star: 'New stars', x_quest: 'Quest done', x_card: 'New Joker card', x_puzzle: 'Puzzle', x_daily: 'Daily puzzle', x_review: 'Game review',
+      q_daily: 'Solve the daily puzzle', q_puzzles3: 'Solve {n} puzzles', q_win2: 'Win {n} games', q_games3: 'Play {n} games', q_online: 'Play a game online', q_star: 'Earn a star', q_hist: 'Solve a puzzle from a real game',
       q_joker2: 'Play your Joker Move in {n} games', q_jokerwin: 'Win a game with your Joker Move', q_clean: 'Win without losing your queen', q_review: 'Open a game review',
-      g_win: 'Win', g_joker: 'Win with your Joker Move', g_nojoker: 'Win without your Joker Move', g_clean: 'Win without losing your queen', g_fast: 'Win in {n} moves or fewer',
+      g_win: 'Win', g_joker: 'Win with your Joker Move', g_fast: 'Win in {n} moves or fewer',
+     
+      s_school: 'School', s_park: 'The park', s_tour: 'The tournament', s_legends: 'Legends',
       c_knight: 'Ghost Knight', c_bishop: 'Phantom Bishop', c_rook: 'Flying Rook', c_queen: 'Teleport Queen', c_early: 'Early Joker', c_deep: 'Behind the Lines', c_endgame: 'Endgame Joker',
       c_pin: 'Teleport Pin', c_escape: 'The Great Escape', c_shield: 'Joker Shield', c_fork: 'Teleport Fork', c_mate: 'Joker to Mate',
       cd_knight: 'A Joker Move by a knight', cd_bishop: 'A Joker Move by a bishop', cd_rook: 'A Joker Move by a rook', cd_queen: 'A Joker Move by the queen',
@@ -219,10 +312,12 @@ var Progress = (function () {
     ru: {
       rank_pawn: 'Пешка', rank_knight: 'Конь', rank_bishop: 'Слон', rank_rook: 'Ладья', rank_queen: 'Ферзь', rank_king: 'Король', rank_joker: 'Джокер', rank_diamond: 'Бриллиантовый Джокер',
       level: 'Уровень {n}', xp: '{n} XP', xpOf: '{a} / {b} XP', xpGain: '+{n} XP',
-      x_game: 'Партия', x_win: 'Победа', x_draw: 'Ничья', x_joker: 'Сыгран ход-джокер', x_firstWin: 'Первая победа дня ×2', x_star: 'Звёзды карьеры', x_quest: 'Задание выполнено', x_card: 'Новая карта джокера', x_puzzle: 'Задача', x_daily: 'Задача дня', x_review: 'Разбор партии',
-      q_daily: 'Реши задачу дня', q_puzzles3: 'Реши задач: {n}', q_win2: 'Выиграй партий: {n}', q_games3: 'Сыграй партий: {n}', q_online: 'Сыграй партию онлайн', q_star: 'Получи звезду карьеры',
+      x_game: 'Партия', x_win: 'Победа', x_draw: 'Ничья', x_joker: 'Сыгран ход-джокер', x_firstWin: 'Первая победа дня ×2', x_star: 'Новые звёзды', x_quest: 'Задание выполнено', x_card: 'Новая карта джокера', x_puzzle: 'Задача', x_daily: 'Задача дня', x_review: 'Разбор партии',
+      q_daily: 'Реши задачу дня', q_puzzles3: 'Реши задач: {n}', q_win2: 'Выиграй партий: {n}', q_games3: 'Сыграй партий: {n}', q_online: 'Сыграй партию онлайн', q_star: 'Получи звезду', q_hist: 'Реши задачу из настоящей партии',
       q_joker2: 'Сыграй ход-джокер в партиях: {n}', q_jokerwin: 'Выиграй партию ходом-джокером', q_clean: 'Выиграй, не потеряв ферзя', q_review: 'Открой разбор партии',
-      g_win: 'Победа', g_joker: 'Победа с ходом-джокером', g_nojoker: 'Победа без хода-джокера', g_clean: 'Победа без потери ферзя', g_fast: 'Победа не дольше {n} ходов',
+      g_win: 'Победа', g_joker: 'Победа с ходом-джокером', g_fast: 'Победа не дольше {n} ходов',
+     
+      s_school: 'Школа', s_park: 'Парк', s_tour: 'Турнир', s_legends: 'Легенды',
       c_knight: 'Конь-призрак', c_bishop: 'Слон-фантом', c_rook: 'Летучая ладья', c_queen: 'Ферзь-телепорт', c_early: 'Ранний джокер', c_deep: 'В тылу врага', c_endgame: 'Джокер в эндшпиле',
       c_pin: 'Связка-телепорт', c_escape: 'Большой побег', c_shield: 'Щит джокера', c_fork: 'Телепорт-вилка', c_mate: 'Джокер к мату',
       cd_knight: 'Ход-джокер конём', cd_bishop: 'Ход-джокер слоном', cd_rook: 'Ход-джокер ладьёй', cd_queen: 'Ход-джокер ферзём',
@@ -248,7 +343,9 @@ var Progress = (function () {
 
   return { need: need, levelOf: levelOf, xpAt: xpAt, rankOf: rankOf, RANKS: RANKS, XP: XP, gameXp: gameXp, REWARDS: REWARDS, owned: owned,
     newRewards: newRewards, nextReward: nextReward, QUESTS: QUESTS, questsFor: questsFor, questStep: questStep, applyQuests: applyQuests,
-    CHAPTERS: CHAPTERS, GOALS: GOALS, stage: stage, goalMet: goalMet, stageBits: stageBits, starsOf: starsOf, isOpen: isOpen,
+    BOTS: BOTS, bot: bot, levelBot: levelBot, CHAPTERS: CHAPTERS, SEASONS: SEASONS, PER_SEASON: PER_SEASON, stage: stage, goalMet: goalMet, stageBits: stageBits, starsOf: starsOf, isOpen: isOpen,
+    seasonOpen: seasonOpen, seasonStars: seasonStars,
+    puzzleXp: puzzleXp, mergeSave: mergeSave, saveKey: saveKey,
     careerStars: careerStars, nextStage: nextStage, recordStage: recordStage, CARDS: CARDS, CARD_XP: CARD_XP, rarityOf: rarityOf,
     classify: classify, TEXT: TEXT, t: t, questText: questText, goalText: goalText, rewardName: rewardName, rankName: rankName };
 })();

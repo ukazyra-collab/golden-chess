@@ -72,7 +72,9 @@ for (const v of finds) {
   const c0 = accept[best.uci];
   const quiet = c0.length >= 2 && !(() => { const q = new GC.Position(v.fen); q.makeMove(q.moveFromUci(best.uci)); q.makeMove(q.moveFromUci(c0[0])); return q.moveFromUci(c0[1]) & GC.F_CAPTURE; })();
   const diff = (v.found || 3) * 2 + (best.mate > 0 ? Math.min(best.mate, 5) : 3) + (quiet ? 3 : 0) + (opp ? 2 : 0) - (Object.keys(accept).length - 1) * 2;
-  fresh.push({ fen: v.fen, accept, mate: best.mate > 0 ? best.mate : 0, diff });
+  // the kind of moment (tools/puzzles/kinds.js): lost without the Joker Move, a short mate, or a plain win
+  const k = normal.score <= -250 ? 'save' : best.mate > 0 && best.mate <= 3 ? 'mate' : 'win';
+  fresh.push({ fen: v.fen, accept, mate: best.mate > 0 ? best.mate : 0, k, diff });
   console.log('ok', fresh.length, v.fen, best.uci, best.mate ? 'M' + best.mate : best.score, 'diff', diff);
 }
 
@@ -82,7 +84,7 @@ const all = old.concat(fresh.map((p) => Object.assign({ id: ID + nextId++ }, p))
 all.sort((a, b) => a.diff - b.diff);
 const list = all.slice(0, MAX);
 list.forEach((p, i) => { p.lvl = i < list.length * 0.35 ? 1 : i < list.length * 0.75 ? 2 : 3; });
-const body = list.map((p) => '  ' + JSON.stringify({ id: p.id, lvl: p.lvl, fen: p.fen, accept: p.accept, mate: p.mate || undefined, diff: p.diff })).join(',\n');
+const body = list.map((p) => '  ' + JSON.stringify({ id: p.id, lvl: p.lvl, fen: p.fen, accept: p.accept, mate: p.mate || undefined, k: p.k, diff: p.diff })).join(',\n');
 fs.writeFileSync(OUT, '/* Joker Move puzzles made by the engine (tools/puzzles/gen.js finds them, pick.js checks and sorts them): easy to hard.\n' +
   ' * Every accepted answer wins (or mates) and beats the best normal move by three pawns or more. */\nvar ' + VAR + ' = [\n' + body + '\n];\n');
 console.log('wrote', list.length, 'puzzles (', fresh.length, 'new )');

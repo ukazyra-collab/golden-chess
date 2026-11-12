@@ -1,4 +1,4 @@
-/* Joker Chess — the bots: eight characters for the eight engine levels, each with a drawn portrait.
+/* Joker Chess — the bots: sixteen characters (eight for the eight engine levels, eight between them), each with a face.
  * Portraits are inline SVG (120 x 120), drawn here so the page stays one self-contained file.
  */
 var GCBots = (function () {
@@ -31,6 +31,7 @@ var GCBots = (function () {
   ];
 
   var uid = 0;
+  var ICON = '__ICON_INNER__'; // the logo's drawing (build.js)
   // ---- shared parts
   function bg(u, c1, c2) {
     return '<defs><radialGradient id="b' + u + '" cx="50%" cy="34%" r="78%"><stop offset="0" stop-color="' + c1 + '"/><stop offset="1" stop-color="' + c2 + '"/></radialGradient></defs>' +
@@ -188,24 +189,10 @@ var GCBots = (function () {
         stroke('M60.2 56.6q-2.8 5.6.6 7', shade, 1.9) +
         stroke('M53 68.6q6 2.8 12.4-.4q2-1 3-2.8', '#7a3c2f', 2);
     },
-    // Golden: the engine, a robot with a golden star
+    // the Joker, the engine at full strength at the end of the road: the game's own logo (app/resources/icon.svg, put in
+    // by build.js; drawn on a 100 x 100 square, its ids made this copy's own)
     function (u) {
-      return '<defs><radialGradient id="b' + u + '" cx="50%" cy="40%" r="80%"><stop offset="0" stop-color="#3b4152"/><stop offset="1" stop-color="#1b1e27"/></radialGradient>' +
-        '<radialGradient id="g' + u + '" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f6c44f" stop-opacity=".55"/><stop offset="1" stop-color="#f6c44f" stop-opacity="0"/></radialGradient>' +
-        '<linearGradient id="m' + u + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9edf0"/><stop offset="1" stop-color="#aeb8c0"/></linearGradient>' +
-        '<linearGradient id="t' + u + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9c3cb"/><stop offset="1" stop-color="#7d8992"/></linearGradient></defs>' +
-        '<rect width="120" height="120" rx="26" fill="url(#b' + u + ')"/><circle cx="60" cy="50" r="46" fill="url(#g' + u + ')"/>' +
-        '<path d="' + TORSO + '" fill="url(#t' + u + ')"/><path d="M60 98.5l2.4 5 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4-3.9-3.8 5.4-.8z" fill="#f0b941"/>' +
-        '<rect x="50" y="74" width="20" height="18" rx="3" fill="#7f8a93"/><path d="M50 80h20M50 86h20" stroke="#69747d" stroke-width="1.6"/>' +
-        '<path d="M60 31V20" stroke="#9aa5ae" stroke-width="2.4" stroke-linecap="round"/>' +
-        '<path d="M60 9.5c.7 4.4 2.3 6 6.7 6.7-4.4.7-6 2.3-6.7 6.7-.7-4.4-2.3-6-6.7-6.7 4.4-.7 6-2.3 6.7-6.7z" fill="#f6c44f"/>' +
-        '<circle cx="35.5" cy="53" r="6" fill="#c3cbd1"/><circle cx="35.5" cy="53" r="2.6" fill="#8d979f"/><circle cx="84.5" cy="53" r="6" fill="#c3cbd1"/><circle cx="84.5" cy="53" r="2.6" fill="#8d979f"/>' +
-        '<rect x="36" y="29" width="48" height="47" rx="15" fill="url(#m' + u + ')"/>' +
-        '<rect x="40.5" y="42" width="39" height="17" rx="8.5" fill="#1a2230"/>' +
-        '<ellipse cx="51" cy="50.5" rx="7" ry="5" fill="#f6c44f" opacity=".25"/><ellipse cx="69" cy="50.5" rx="7" ry="5" fill="#f6c44f" opacity=".25"/>' +
-        '<ellipse cx="51" cy="50.5" rx="4.2" ry="2.8" fill="#ffd979"/><ellipse cx="69" cy="50.5" rx="4.2" ry="2.8" fill="#ffd979"/>' +
-        '<path d="M51 65h18M53 69h14" stroke="#8a96a0" stroke-width="2.2" stroke-linecap="round"/>' +
-        '<circle cx="42" cy="66" r="1.6" fill="#f0b941"/><circle cx="78" cy="66" r="1.6" fill="#f0b941"/>';
+      return '<g transform="scale(1.2)">' + ICON.replace(/id="([^"]+)"/g, 'id="$1' + u + '"').replace(/url\(#([^)]+)\)/g, 'url(#$1' + u + ')') + '</g>';
     }
   ];
 
@@ -217,6 +204,105 @@ var GCBots = (function () {
   function bio(i, lang) { var b = BOTS[i] || BOTS[0]; return b.bio[lang] || b.bio.en; }
   // the Play button: "Play Oskar" / "Играть с Оскаром"
   function playWith(i, lang) { var b = BOTS[i] || BOTS[0]; return lang === 'ru' ? 'Играть с ' + b.with : 'Play ' + b.name.en; }
-  return { list: BOTS, avatar: avatar, name: name, bio: bio, playWith: playWith, count: BOTS.length };
+
+  // ---- the full cast of sixteen (their order and ratings: Progress.BOTS): the eight above, five more people on the way
+  // up, and three masters of the 19th century
+  // (their names and what they are known for; no portraits: a monogram and their years)
+  var EXTRA = {
+    jake: { with: 'Джейком', name: { en: 'Jake', ru: 'Джейк' },
+      bio: { en: 'Jake sits next to you in class. He learned the rules from you, yesterday.', ru: 'Джейк сидит с тобой за одной партой. Правила он узнал от тебя, вчера.' },
+      // messy hair with a cowlick, a backpack, a wide grin
+      draw: function (u) {
+        var skin = '#f3c9a5', shade = '#dba27c', hair = '#5a3a22';
+        return bg(u, '#fff0c2', '#f2c55c') + torso('#2f6fb7') +
+          '<path d="M34 97l7 24h-9zM86 97l-7 24h9z" fill="#d6492f"/><path d="M49 91.5q11 7 22 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+          neck(shade) + head(skin, 22, 24.5) + ears(skin, shade) +
+          '<path d="M37.5 51C35 33 47 24.5 60 24.5C73.5 24.5 85 32 82.5 51C79.5 43 75 38 68.5 36.5C62 41.5 49 40.5 42 43C39.6 45.4 38.4 48 37.5 51Z" fill="' + hair + '"/>' +
+          '<path d="M57 26q1.5-8.5 10-8.5q-5 3.4-3.6 8.5z" fill="' + hair + '"/>' +
+          brows(hair, 'M45.5 46.6q5-3.4 10-.8', 'M64.5 45.8q5-2.6 10 .8') + eyes({ rx: 3, ry: 3.6, y: 54.5 }) + nose(shade) + cheeks('#ff8a73', 0.3) +
+          '<path d="M51.5 65.4h17q0 9.6-8.5 9.6t-8.5-9.6z" fill="#6b241c"/><path d="M52.2 65.4h15.6v2q-7.8 1.6-15.6 0z" fill="#fff"/>';
+      } },
+    sonya: { with: 'Соней', name: { en: 'Sonya', ru: 'Соня' },
+      bio: { en: 'Sonya plays at every break and moves fast. Too fast, sometimes.', ru: 'Соня играет на каждой перемене и ходит быстро. Иногда слишком быстро.' },
+      // ginger pigtails with gold ties, a fringe
+      draw: function (u) {
+        var skin = '#f7d7bf', shade = '#e3b79b', hair = '#c0502a';
+        return bg(u, '#d8f3ea', '#7fcdb5') +
+          '<ellipse cx="30.5" cy="62" rx="8" ry="13.5" fill="' + hair + '"/><ellipse cx="89.5" cy="62" rx="8" ry="13.5" fill="' + hair + '"/>' +
+          torso('#eef1f4') + '<path d="M46 92q14 10 28 0" stroke="#c94f6a" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+          neck(shade) + head(skin, 21.5, 24.5) + ears(skin, shade, 21.5) +
+          '<circle cx="34.5" cy="48.5" r="3.2" fill="#f0b941"/><circle cx="85.5" cy="48.5" r="3.2" fill="#f0b941"/>' +
+          '<path d="M37.8 54C36 34 47.5 26 60 26C72.5 26 84 34 82.2 54C80 46.5 76 42 71 40.5C64 45 56 44.5 50 42C44 43.5 39.8 48 37.8 54Z" fill="' + hair + '"/>' +
+          brows('#9c3f20', 'M46 47.8q5-2.6 10-.4', 'M64 47.4q5-2.2 10 .4', 2.2) + eyes({ y: 54.8, rx: 2.7, ry: 3.3 }) + nose(shade) + cheeks('#ff7f73', 0.36) +
+          '<g fill="#d79a78"><circle cx="46" cy="60.4" r=".8"/><circle cx="49" cy="61.6" r=".8"/><circle cx="74" cy="60.4" r=".8"/><circle cx="71" cy="61.6" r=".8"/></g>' +
+          stroke('M54 66.6q6 4.8 12 0', '#a13d34', 2);
+      } },
+    timur: { with: 'Тимуром', name: { en: 'Timur', ru: 'Тимур' },
+      bio: { en: 'Timur comes to the park after work. He plays plain, honest chess.', ru: 'Тимур приходит в парк после работы. Играет просто и честно.' },
+      // short dark hair, a beard, a hoodie
+      draw: function (u) {
+        var skin = '#d9a57c', shade = '#bd8659', hair = '#231b18';
+        return bg(u, '#ffe1c4', '#f0a25e') + torso('#3b4252') +
+          '<path d="M40 93q20 14 40 0" stroke="#2a2f3b" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M55 100v9M65 100v9" stroke="#d7dbe2" stroke-width="1.6" stroke-linecap="round"/>' +
+          neck(shade) + head(skin, 22.5, 25) + ears(skin, shade, 22.5) +
+          '<path d="M37.5 51C36 33 47 25.5 60 25.5C73 25.5 84 33 82.5 51C80.5 44 77 40.5 72 39C64 37 56 37 48 39C43 40.5 39.5 44 37.5 51Z" fill="' + hair + '"/>' +
+          '<path d="M38.6 59C40 73.5 50 79.8 60 79.8C70 79.8 80 73.5 81.4 59C78.5 65.5 73.5 68.4 67 67.6C63 65.6 57 65.6 53 67.6C46.5 68.4 41.5 65.5 38.6 59Z" fill="' + hair + '"/>' +
+          brows(hair, 'M45.5 47.6q5.2-2.8 10.4-.4', 'M64.1 47.2q5.2-2.4 10.4.4', 3) + eyes({ y: 54.4 }) + nose(shade) +
+          stroke('M54.5 70.6q5.5 3 11 0', '#e9c7a8', 1.8);
+      } },
+    ada: { with: 'Адой', name: { en: 'Ada', ru: 'Ада' },
+      bio: { en: 'Ada counts lines faster than anyone at the club and never takes a move back.', ru: 'Ада считает варианты быстрее всех в клубе и никогда не берёт ход назад.' },
+      // a dark bob, round glasses, a teal jacket
+      draw: function (u) {
+        var skin = '#b97a55', shade = '#9a5f3e', hair = '#1d1a22';
+        return bg(u, '#ffd9e4', '#ee8fae') +
+          '<path d="M34.5 62C30.5 36 45 23.5 60 23.5C75 23.5 89.5 36 85.5 62C85.5 71 82 77 78 80H42C38 77 34.5 71 34.5 62Z" fill="' + hair + '"/>' +
+          torso('#1f7a78') + '<path d="M50 91L60 106L70 91" stroke="#16605e" stroke-width="3.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/>' +
+          neck(shade) + head(skin, 21, 24.5) +
+          '<path d="M39.3 51C38.8 35.5 49 28.5 60 28.5C71 28.5 81.2 35.5 80.7 51C76 44 68 41.5 60 41.5C52 41.5 44 44 39.3 51Z" fill="' + hair + '"/>' +
+          brows(hair, 'M46 47.4q5-2.4 10-.2', 'M64 47.2q5-2.2 10 .2', 2.2) + eyes({ y: 55, rx: 2.5, ry: 3.1 }) +
+          '<g fill="none" stroke="#2b2b33" stroke-width="1.7"><circle cx="51" cy="55" r="6.8"/><circle cx="69" cy="55" r="6.8"/><path d="M57.8 55h4.4M44.2 54l-4.4-1.4M75.8 54l4.4-1.4" stroke-linecap="round"/></g>' +
+          nose(shade) + stroke('M54.5 67q5.5 3.8 11 0', '#6f2530', 2);
+      } },
+    mark: { with: 'Марком', name: { en: 'Mark', ru: 'Марк' },
+      bio: { en: 'Mark is a candidate master. He hardly ever blunders, and hardly ever takes a risk.', ru: 'Марк, кандидат в мастера. Почти не ошибается и почти не рискует.' },
+      // a side parting going grey, a suit and a tie
+      draw: function (u) {
+        var skin = '#efcaa9', shade = '#d7a680', hair = '#4a4038';
+        return bg(u, '#dfe6ee', '#93a5bd') + torso('#2c3445') +
+          '<path d="M50 91L60 108L70 91Z" fill="#f4f1ea"/><path d="M58 97h4l1.5 12.6L60 113.6l-3.5-4z" fill="#b5462f"/>' +
+          '<path d="M50 91L60 108L52 121H42Z" fill="#232a38"/><path d="M70 91L60 108L68 121H78Z" fill="#232a38"/>' +
+          neck(shade) + head(skin, 22, 25) + ears(skin, shade) +
+          '<path d="M37.5 51C35.5 33 47 25 61 25C75 25 85 33 82.5 51C80.5 44 77 40.5 73 39C66 41.5 53 41 46 37.5C41.5 40.5 38.8 45 37.5 51Z" fill="' + hair + '"/>' +
+          '<path d="M37.8 50q-.8 6.4 1.8 10.4l2-9.4z" fill="#b9b3ab"/><path d="M82.2 50q.8 6.4-1.8 10.4l-2-9.4z" fill="#b9b3ab"/>' +
+          brows(hair, 'M45.5 48.8q5.2-1.6 10.4.4', 'M64.1 49.2q5.2-2 10.4-.4', 2.8) + eyes({ y: 54.8, rx: 2.5, ry: 3 }) + nose(shade) +
+          stroke('M55 68.8h10', '#8a4a3c', 2);
+      } },
+    staunton: { legend: true, with: 'Стаунтоном', years: '1810–1874', name: { en: 'Howard Staunton', ru: 'Говард Стаунтон' }, short: { en: 'Staunton', ru: 'Стаунтон' }, mono: { en: 'S', ru: 'С' },
+      bio: { en: 'The strongest player of the 1840s. The standard chess pieces carry his name.', ru: 'Сильнейший шахматист 1840-х. Его именем названы стандартные шахматные фигуры.' } },
+    anderssen: { legend: true, with: 'Андерсеном', years: '1818–1879', name: { en: 'Adolf Anderssen', ru: 'Адольф Андерсен' }, short: { en: 'Anderssen', ru: 'Андерсен' }, mono: { en: 'A', ru: 'А' },
+      bio: { en: 'Winner of the first international tournament, London 1851, where he also played the Immortal Game.', ru: 'Победитель первого международного турнира в Лондоне в 1851 году. Там же сыграл «Бессмертную партию».' } },
+    morphy: { legend: true, with: 'Морфи', years: '1837–1884', name: { en: 'Paul Morphy', ru: 'Пол Морфи' }, short: { en: 'Morphy', ru: 'Морфи' }, mono: { en: 'M', ru: 'М' },
+      bio: { en: 'In 1858 he beat the best masters of Europe, then left chess for good.', ru: 'В 1858 году обыграл сильнейших мастеров Европы и после этого оставил шахматы.' } }
+  };
+  function monogram(u, letter, years) {
+    return bg(u, '#3f6b5f', '#1f3a34') + '<circle cx="60" cy="48" r="27" fill="none" stroke="#f0b941" stroke-width="2.2" opacity=".85"/>' +
+      '<text x="60" y="60.5" text-anchor="middle" font-family="Georgia, \'Times New Roman\', serif" font-weight="700" font-size="35" fill="#f0b941">' + letter + '</text>' +
+      '<text x="60" y="94" text-anchor="middle" font-family="inherit" font-weight="700" font-size="11" fill="#e2dccb">' + years + '</text>';
+  }
+  function castOf(who) { for (var i = 0; i < BOTS.length; i++) if (BOTS[i].key === who) return { i: i, b: BOTS[i] }; return EXTRA[who] ? { i: -1, b: EXTRA[who] } : { i: 0, b: BOTS[0] }; }
+  function castAvatar(who, lang) {
+    var c = castOf(who), u = 'gcc' + (++uid), nm = c.b.name[lang] || c.b.name.en;
+    if (c.i >= 0) return svg(DRAW[c.i](u), nm);
+    return svg(c.b.legend ? monogram(u, c.b.mono[lang] || c.b.mono.en, c.b.years) : c.b.draw(u), nm);
+  }
+  // long: the full name of a master ("Paul Morphy"); otherwise the short one ("Morphy")
+  function castName(who, lang, long) { var b = castOf(who).b, n = (!long && b.short) || b.name; return n[lang] || n.en; }
+  function castBio(who, lang) { var b = castOf(who).b; return b.bio[lang] || b.bio.en; }
+  function castLegend(who) { return !!castOf(who).b.legend; }
+  // the Play button: "Play Morphy" / "Играть с Морфи"
+  function castPlay(who, lang) { var b = castOf(who).b; return lang === 'ru' ? 'Играть с ' + b.with : 'Play ' + ((b.short || b.name).en); }
+  return { list: BOTS, avatar: avatar, name: name, bio: bio, playWith: playWith, count: BOTS.length,
+    castAvatar: castAvatar, castName: castName, castBio: castBio, castLegend: castLegend, castPlay: castPlay };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;

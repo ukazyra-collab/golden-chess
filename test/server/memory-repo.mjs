@@ -7,7 +7,7 @@ export function createMemoryRepo(now) {
   // as gc_house_pair's house_wait; the browser suites set MOCK_HOUSE_WAIT=0 (their other pages are always "around")
   const HOUSE_WAIT = process.env.MOCK_HOUSE_WAIT != null ? +process.env.MOCK_HOUSE_WAIT : 5000;
   const iso = (t) => new Date(t).toISOString();
-  const db = { games: new Map(), profiles: new Map(), ratings: new Map(), seeks: new Map(), house: new Map(), admins: new Set(), seen: new Map(),
+  const db = { games: new Map(), profiles: new Map(), ratings: new Map(), seeks: new Map(), house: new Map(), admins: new Set(), seen: new Map(), progress: new Map(),
     blurs: [], reports: [], fairScores: [], refunds: new Set() };
   const closed = (uid) => (db.profiles.get(uid) || {}).fair === 'closed'; // out of the leaderboard (fair play)
   const GAME_DEFAULTS = { status: 'playing', white_id: null, black_id: null, white_name: null, black_name: null, white_rating: null, black_rating: null,
@@ -52,7 +52,7 @@ export function createMemoryRepo(now) {
     async insertProfile(uid, name, guest = true) {
       if (db.profiles.has(uid)) return null;
       for (const p of db.profiles.values()) if (p.username.toLowerCase() === name.toLowerCase()) return null;
-      const p = { id: uid, username: name, is_guest: !!guest, name_chosen: false, avatar_v: 0, created_at: iso(now()) };
+      const p = { id: uid, username: name, is_guest: !!guest, name_chosen: false, avatar_v: 0, xp: 0, created_at: iso(now()) };
       db.profiles.set(uid, p);
       return clone(p);
     },
@@ -151,7 +151,7 @@ export function createMemoryRepo(now) {
     async deleteSeek(uid) { db.seeks.delete(uid); },
     async top(pool, n) {
       return [...db.ratings.values()].filter((r) => r.pool === pool && r.games > 0 && !closed(r.user_id)).sort((a, b) => b.rating - a.rating).slice(0, n)
-        .map((r) => ({ uid: r.user_id, name: db.profiles.get(r.user_id)?.username || '?', avatar_v: db.profiles.get(r.user_id)?.avatar_v || 0, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses }));
+        .map((r) => ({ uid: r.user_id, name: db.profiles.get(r.user_id)?.username || '?', avatar_v: db.profiles.get(r.user_id)?.avatar_v || 0, xp: db.profiles.get(r.user_id)?.xp || 0, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses }));
     },
     async rankOf(uid, pool) {
       const r = db.ratings.get(uid + '|' + pool);
@@ -162,7 +162,14 @@ export function createMemoryRepo(now) {
     async rowOf(uid, pool) {
       const r = db.ratings.get(uid + '|' + pool);
       if (!r || !r.games || closed(uid)) return null;
-      return { uid, name: db.profiles.get(uid)?.username || '?', avatar_v: db.profiles.get(uid)?.avatar_v || 0, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses };
+      return { uid, name: db.profiles.get(uid)?.username || '?', avatar_v: db.profiles.get(uid)?.avatar_v || 0, xp: db.profiles.get(uid)?.xp || 0, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses };
+    },
+    // ---- the game layer on the account (as supabase/pending/*_progress.sql)
+    async progress(uid, data, xp) {
+      const p = db.profiles.get(uid);
+      if (data != null) { db.progress.set(uid, { data: clone(data), at: iso(now()) }); if (p) p.xp = Math.max(0, Math.min(5000000, xp || 0)); }
+      const r = db.progress.get(uid);
+      return { data: r ? clone(r.data) : null, xp: (p && p.xp) || 0, at: r ? r.at : null };
     },
     async setPrefs(uid, lang, tz, opt) {
       const p = db.profiles.get(uid);
