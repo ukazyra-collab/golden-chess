@@ -3045,6 +3045,8 @@
       y += 12; zones.push({ i: i, y: z0, h: y - z0 - 14 });
     });
     var H = y + 6, done = 0;
+    // the last season's tint runs to the bottom edge (no strip of the bare board under it)
+    var lastZ = zones[zones.length - 1]; lastZ.h = H - lastZ.y;
     pts.forEach(function (p) { if ((prog.career[p.ch] || 0) & 1) done = p.ch; });
     var line = function (upTo) {
       var d = '';
