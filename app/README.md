@@ -10,7 +10,7 @@
 | | iPhone | Android |
 |---|---|---|
 | Идентификатор | `com.kozyramedia.goldenchess` (для кабеля без платного аккаунта — `….dev`, см. ниже) | `com.kozyramedia.goldenchess` (в Play Console фиксируется навсегда) |
-| Версия | 1.0 (1) — Xcode → target App → General | 1.0 (1) — `android/app/build.gradle` |
+| Версия | 1.4 (6) — Xcode → target App → General | 1.4 (5) — `android/app/build.gradle` |
 
 ---
 
@@ -83,18 +83,28 @@ jarsigner -verify golden-chess-unsigned.aab   # jar verified.
 - Сайт: `NATIVE`, `nativeUrl`, `nativeBack`, `nativeInit` в `src/ui/app.js`; проверка — `python3 test/native_app.py`.
 - Сборки: `.github/workflows/app.yml`.
 
-## Напоминания (прототип, нужна версия приложения 1.4)
+## Напоминания (с версии приложения 1.4)
 
-Напоминания о задаче дня и серии — локальные уведомления, которые планирует сам сайт (`planReminders` в
-`src/ui/app.js`, расписание в `src/habits.js`): без сервера и без ключей пушей. Плагин должен быть вшит в приложение,
-поэтому они заработают со следующей сборкой в сторы:
+Напоминания о задаче дня, серии и карьере — локальные уведомления, которые планирует сам сайт (`planReminders` в
+`src/ui/app.js`, расписание в `src/habits.js`): без сервера и без ключей пушей. Плагин вшит в приложение начиная с 1.4
+(iOS build 6, Android versionCode 5); в 1.3 его нет, и там сайт про напоминания ничего не показывает.
 
-- `@capacitor/local-notifications` 8.3.1 уже в `package.json`, `npx cap sync` добавил его в оба проекта
+- `@capacitor/local-notifications` 8.3.1 в `package.json`; `npx cap sync` добавляет его в оба проекта
   (`ios/App/CapApp-SPM/Package.swift`, `android/capacitor.settings.gradle`).
 - `capacitor.config.json` → `plugins.LocalNotifications`: иконка в строке состояния Android `ic_stat_joker`
   (`android/app/src/main/res/drawable/ic_stat_joker.xml`, белая на прозрачном) и золотой акцент.
-- Android 13+ спрашивает разрешение на уведомления, когда игрок соглашается в приложении (плагин объявляет
-  `POST_NOTIFICATIONS`). Точные будильники не нужны: напоминание может прийти на пару минут позже, а
-  `SCHEDULE_EXACT_ALARM` Google Play для таких приложений не разрешает.
+- Когда спрашиваем: после первой законченной партии, когда игрок ушёл с доски (`afterGameAsk`), и после решённой
+  задачи дня; не чаще раза в два дня, три раза максимум. Одна яркая кнопка «Включить напоминания» → системный запрос.
+  Если уведомления на телефоне уже разрешены (Android 12 и старше разрешает их по умолчанию), напоминания включаются
+  сами при запуске, без вопроса; выключить — Профиль → Настройки.
+- Android: напоминания ставятся неточными будильниками (`isExactNotification: false`), поэтому приложение никогда не
+  открывает системный экран «Будильники и напоминания»; разрешение плагина `SCHEDULE_EXACT_ALARM` убрано из манифеста
+  (`tools:node="remove"`). Android 13+ спрашивает только разрешение на уведомления (`POST_NOTIFICATIONS`).
 - iOS: для локальных уведомлений ничего добавлять не нужно (capability Push не нужна), система спросит сама.
-- Пока не установлена 1.4, сайт не видит плагина и ничего про напоминания не показывает.
+
+**Выпуск 1.4** (12 ноя 2026). iOS: `~/hutka/_release/gc-11-joker14.command` на Маке (git pull → cap sync → archive →
+upload → What's New и заметки для ревью → ждёт обработку билда 6 → submit; демо-аккаунт для ревью остаётся тот, что
+уже записан в App Store Connect: `asc.py metadata` пишет только заметки, `GC_REVIEW_RESET=1` перезаписывает всё).
+Android: неподписанный `.aab` из релиза `android-bundle` подписывается ключом из `~/hutka/_release/android-key`
+(`jarsigner … -storepass:file upload-password.txt`) и загружается в Play Console → Production → Create new release;
+тексты «Что нового» EN/RU — `listing.play.json` → `whatsNew`.

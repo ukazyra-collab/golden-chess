@@ -132,9 +132,15 @@ def cmd_metadata():
     api('PATCH', f"/v1/appStoreVersions/{v['id']}", {'data': {'type': 'appStoreVersions', 'id': v['id'], 'attributes': {'copyright': L.get('copyright', '2026 Kozyra Media Group')}}})
     print('version texts: description, keywords, urls, what\'s new, copyright')
     # the review details: contact, demo account, notes
-    R = L['review']; pw = os.environ.get('GC_REVIEW_PASSWORD') or sys.exit('GC_REVIEW_PASSWORD (the demo account\'s password) is not set')
+    R = L['review']
     rd = api('GET', f"/v1/appStoreVersions/{v['id']}/appStoreReviewDetail").get('data')
+    # a new version starts with the review details of the one before it: when App Store Connect already holds the demo
+    # account, only the notes are written and the sign-in stays as it is (GC_REVIEW_RESET=1 writes it all again)
+    if rd and (rd.get('attributes') or {}).get('demoAccountName') and not os.environ.get('GC_REVIEW_RESET'):
+        api('PATCH', f"/v1/appStoreReviewDetails/{rd['id']}", {'data': {'type': 'appStoreReviewDetails', 'id': rd['id'], 'attributes': {'notes': R['notes']}}})
+        print('review details: notes (contact and demo account kept as they are)'); return
     # the contact and the demo account come from the environment, never from the repository (it is public)
+    pw = os.environ.get('GC_REVIEW_PASSWORD') or sys.exit('GC_REVIEW_PASSWORD (the demo account\'s password) is not set')
     need = lambda k: os.environ.get(k) or sys.exit(f'{k} is not set')
     attrs = {'contactFirstName': R['firstName'], 'contactLastName': R['lastName'], 'contactPhone': need('GC_REVIEW_PHONE'), 'contactEmail': need('GC_REVIEW_EMAIL'), 'demoAccountName': need('GC_REVIEW_ACCOUNT'), 'demoAccountPassword': pw, 'demoAccountRequired': True, 'notes': R['notes']}
     if rd: api('PATCH', f"/v1/appStoreReviewDetails/{rd['id']}", {'data': {'type': 'appStoreReviewDetails', 'id': rd['id'], 'attributes': attrs}})

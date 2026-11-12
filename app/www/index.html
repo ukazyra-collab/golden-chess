@@ -6738,7 +6738,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       emailOptLabel: 'Email me a weekly summary of my games. Stop any time.', emailsSw: 'Emails about my games',
       emailsNote: 'A summary on Sundays, and a puzzle if you’ve been away a week. Never more than one a week.',
       emailAskT: 'Your week by email?', emailAskB: 'Your games, rating and best win of the week, every Sunday evening. One email a week at most; stop any time.',
-      emailAskYes: 'Yes, send it', puzzleSeries: 'Puzzle series',
+      emailAskYes: 'Yes, send it', saveAskT: 'Save your progress?', saveAskSub: 'Your rating, career and games stay with you on any device. No password: we email you a code.', puzzleSeries: 'Puzzle series',
       careerTab: 'Road to Joker', freeTab: 'All bots', seasonNeed: '{n} ★ to open, you have {have}', lockedStage: 'Opens with season {n}', seasonN: 'Season {n}', starsOf: '{a} of {b} stars', seasonLocked: 'Opens at {n} stars. You have {have}.',
       seasonOpened: 'Season {n} is open: {name}', toCareer: 'Back to the career', statusH: 'Status', statStars: 'stars', statCards: 'Joker cards', statStreak: 'day streak',
       statusGuest: 'Your level and stars live on this device only. Sign in and they stay with you.',
@@ -6951,7 +6951,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       emailOptLabel: 'Присылать раз в неделю сводку моих партий. Можно отключить в любой момент.', emailsSw: 'Письма о моих партиях',
       emailsNote: 'Сводка по воскресеньям и задача, если тебя не было неделю. Не чаще раза в неделю.',
       emailAskT: 'Твоя неделя на почту?', emailAskB: 'Партии, рейтинг и лучшая победа недели — каждое воскресенье вечером. Не больше одного письма в неделю, отписаться можно в любой момент.',
-      emailAskYes: 'Да, присылайте', puzzleSeries: 'Задачи по порядку',
+      emailAskYes: 'Да, присылайте', saveAskT: 'Сохранить прогресс?', saveAskSub: 'Рейтинг, карьера и партии сохранятся на любом устройстве. Без пароля: пришлём код на почту.', puzzleSeries: 'Задачи по порядку',
       careerTab: 'Путь к Джокеру', freeTab: 'Все боты', seasonNeed: 'Нужно {n} ★, у тебя {have}', lockedStage: 'Откроется с сезоном {n}', seasonN: 'Сезон {n}', starsOf: 'Звёзд: {a} из {b}', seasonLocked: 'Откроется на {n} звёздах. У тебя {have}.',
       seasonOpened: 'Открыт сезон {n}: {name}', toCareer: 'К карьере', statusH: 'Статус', statStars: 'звёзд', statCards: 'карт джокера', statStreak: 'дней подряд',
       statusGuest: 'Уровень и звёзды хранятся только на этом устройстве. Войди, и они останутся с тобой.',
@@ -8326,7 +8326,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     var outcome = humanOutcome();
     if (!spectating() && !game.tracked && game.reason !== 'abort' && game.records.length >= 2) {
       noteDay(game.online ? 'online' : game.cfg.mode);
-      if (outcome === 1 && returningPlayer()) askWhenCalm(function () { askReminders('win'); }, 4200);
+      save('gamesDone', load('gamesDone', 0) + 1);
+      afterGameAsk();
     }
     if (!spectating() && !game.progDone && game.reason !== 'abort' && game.records.length >= 2) progGame();
     if (!spectating() && !game.tracked) {
@@ -9351,17 +9352,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     ch.then(function () { return NATIVE.call('LocalNotifications', 'cancel', { notifications: REMIND_IDS }); }).catch(function () { /* nothing pending */ }).then(function () {
       if (!items.length) return null;
       return NATIVE.call('LocalNotifications', 'schedule', { notifications: items.map(function (x) {
-        var n = { id: x.id, title: x.title, body: x.body, schedule: { at: x.at.toISOString(), allowWhileIdle: true }, extra: { go: x.go, kind: x.kind }, smallIcon: 'ic_stat_joker', iconColor: '#F0B941' };
+        // a reminder may come a few minutes late: no exact alarm, so Android never asks for the "Alarms & reminders" access
+        var n = { id: x.id, title: x.title, body: x.body, schedule: { at: x.at.toISOString(), allowWhileIdle: true }, isExactNotification: false, extra: { go: x.go, kind: x.kind }, smallIcon: 'ic_stat_joker', iconColor: '#F0B941' };
         if (NATIVE.platform === 'android' && remindChannel) n.channelId = 'reminders';
         return n;
       }) });
     }).catch(function () { /* the plugin refused: no reminders this time */ });
   }
-  // asked at a good moment (a solved daily puzzle, a won game), at most three times, five days apart
+  // asked at a good moment (after a finished game, a solved daily puzzle), at most three times, two days apart
+  function remindAskDue() {
+    if (!remindersAvailable() || settings.reminders != null) return false;
+    var a = load('remindAsk', { n: 0, at: 0 });
+    return a.n < 3 && Date.now() - a.at > 2 * 864e5;
+  }
   function askReminders(reason, force) {
     if (!remindersAvailable() || (settings.reminders != null && !force) || currentDialog) return;
+    if (!force && !remindAskDue()) return;
+    askedNow();
     var a = load('remindAsk', { n: 0, at: 0 });
-    if (!force && (a.n >= 3 || Date.now() - a.at < 5 * 864e5)) return;
     save('remindAsk', { n: a.n + 1, at: Date.now() });
     Track.event('reminders_ask', { reason: reason });
     openDialog(function (card) {
@@ -9830,6 +9838,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
 
   // ---- emails (prototype; the server says it keeps the yes / no in hello: me.mail)
   function mailOn() { return !!((me && me.mail) || (window.GC_PROTO && !NETCFG)); }
+  // the sign-in box: also before the server has said (a guest who has only played on this device has no session yet);
+  // the answer waits on the device until the account is saved, and goes nowhere if the server doesn't send emails
+  function mailBox() { return mailOn() || (!!NETCFG && !me); }
   // the server keeps the player's language and time zone (sent again only when they change) and the yes given while
   // saving the account (sent once the account is saved)
   function syncPrefs() {
@@ -9837,7 +9848,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     var tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { /* an old browser */ }
     var key = lang + '|' + tz, pend = load('emailOptPending', null), body = {};
     if (load('prefsSent', '') !== key) { body.lang = lang; if (tz) body.tz = tz; }
-    if (pend != null && !me.guest) body.email_opt = !!pend;
+    if (pend != null && !me.guest) {
+      // the box is ticked from the start: it turns emails on for an account that never answered, never over a no given before
+      if (pend === true && me.profile && me.profile.email_opt === false) save('emailOptPending', null);
+      else body.email_opt = !!pend;
+    }
     if (!Object.keys(body).length) return;
     net.call('prefs', body).then(function (r) {
       save('prefsSent', key);
@@ -9893,6 +9908,61 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       card.appendChild(h('div', { class: 'dlg-sub' }, esc(lang === 'ru' ? 'Так карточка выглядит в Профиле у сохранённого аккаунта, который ещё не ответил:' : 'How the card looks on the Profile tab of a saved account that hasn’t answered yet:')));
       card.appendChild(emailCard(true));
     });
+  }
+  // ---- after a finished game, once the player has left the board: one ask at a time, the most useful first —
+  // reminders on the phone (the app), the weekly email for a saved account that never answered, saving the progress
+  // for a guest (the emails box ticked there). Each keeps its own limits; six hours at least between two asks.
+  var askedAt = 0;
+  function askedNow() { askedAt = Date.now(); }
+  function afterGameAsk() {
+    if (window.__gcNoAsk || Date.now() - askedAt < 6 * 3600e3) return; // (__gcNoAsk: the automated tests of other things)
+    askWhenCalm(function () {
+      if (Date.now() - askedAt < 6 * 3600e3 || currentDialog) return;
+      if (remindAskDue()) askReminders('game');
+      else if (emailAskDue()) emailAskSheet();
+      else if (saveAskDue()) saveAskSheet();
+    }, 1500);
+  }
+  // the weekly email, one tap: a saved account that never answered (twice at most, three days apart; the card on the
+  // Profile tab stays until they answer)
+  function emailAskDue() {
+    if (!mailOn() || !me || me.guest || !me.profile || me.profile.email_opt != null || protoOffline()) return false;
+    var a = load('emailSheet', { n: 0, at: 0 });
+    return a.n < 2 && Date.now() - a.at > 3 * 864e5;
+  }
+  function emailAskSheet() {
+    var a = load('emailSheet', { n: 0, at: 0 }); save('emailSheet', { n: a.n + 1, at: Date.now() });
+    askedNow(); Track.event('email_ask', { where: 'game' });
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'email-ask';
+      card.classList.add('remind-card');
+      card.appendChild(h('div', { class: 'remind-art mail-art', 'aria-hidden': 'true' }, '<span class="env">' + jokerPiece() + '</span>'));
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(T('emailAskT'))));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('emailAskB'))));
+      var yes = bigBtn('start-btn', T('emailAskYes'), 'btn-email-ask-yes', function () {
+        yes.disabled = true;
+        setEmailOpt(true, 'game').then(function () {
+          closeDialog(); toast(T('fairDone'));
+          var c = document.getElementById('email-card'); if (c) c.remove();
+        }, function () { yes.disabled = false; toast(T('netError')); });
+      });
+      card.appendChild(yes);
+      var later = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-email-ask-later' }, esc(T('notNowBtn')));
+      later.addEventListener('click', function () { closeDialog(); Track.event('email_later', { where: 'game' }); });
+      card.appendChild(later);
+    });
+  }
+  // a guest who keeps playing: save the progress (the emails box ticked) after the second finished game, then again
+  // three days later, three times at most
+  function saveAskDue() {
+    if (!NETCFG || protoOffline() || signedIn() || liveOnlineGame() || load('gamesDone', 0) < 2) return false;
+    var a = load('saveAsk', { n: 0, at: 0 });
+    return a.n < 3 && Date.now() - a.at > 3 * 864e5;
+  }
+  function saveAskSheet() {
+    var a = load('saveAsk', { n: 0, at: 0 }); save('saveAsk', { n: a.n + 1, at: Date.now() });
+    askedNow(); Track.event('save_prompt', { where: 'game' });
+    showAccount(null, { title: T('saveAskT'), sub: T('saveAskSub'), onCancel: function () { Track.event('save_later', { where: 'game' }); } });
   }
   // an ask that must not land on top of a game: run it once nothing is open and the player has left the board
   function askWhenCalm(fn, delay) {
@@ -10318,10 +10388,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     if (!net || !me) return Promise.resolve();
     return Promise.all([net.call('hello'), net.account().catch(function () { return null; })]).then(function (rr) {
       var r = rr[0], a = rr[1];
-      me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; }); me.admin = !!r.admin; me.fair = !!r.fair; me.mail = !!r.mail; me.prog = !!r.prog; syncPrefs();
+      me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; }); me.admin = !!r.admin; me.fair = !!r.fair; me.mail = !!r.mail; me.prog = !!r.prog;
       noteAvatars([r.profile]);
       progSync();
       if (a) { me.email = a.email || null; me.guest = a.guest; me.gname = a.gname || ''; }
+      syncPrefs(); // after the account is known: the yes to emails given while saving goes with a saved account only
     }, function () { /* ignore */ });
   }
   function setUrl(key, val) {
@@ -10716,16 +10787,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
   function boldVar(key, name, value) { var v = {}; v[name] = '\u0000'; return esc(T(key, v)).replace('\u0000', '<b>' + esc(value) + '</b>'); }
   // The account dialog (save progress, sign out) and the sign-in page share one flow.
   // back: reopens the dialog the player came from once they are done here
-  function showAccount(back) {
+  function showAccount(back, ask) {
     openDialog(function (card) {
-      currentDialog.dataset.kind = 'account';
-      var flow = accountFlow(card, { onDone: function () { closeDialog(); if (back) back(); }, onCancel: closeDialog });
+      currentDialog.dataset.kind = ask ? 'save-ask' : 'account';
+      var flow = accountFlow(card, { onDone: function () { closeDialog(); if (back) back(); }, onCancel: function () { closeDialog(); if (ask && ask.onCancel) ask.onCancel(); },
+        title: ask && ask.title, sub: ask && ask.sub });
       currentDialog.onClose = flow.stop;
     });
   }
   // o: { page: the full-page sign-in, onDone(), onCancel() }
   function accountFlow(card, o) {
-    var st = { step: 'form', email: '', code: '', type: '', existing: false, err: '', busy: false, sentAt: 0, acct: null };
+    var st = { step: 'form', email: '', code: '', type: '', existing: false, err: '', busy: false, sentAt: 0, acct: null, opt: true };
     var timer = 0, again = null, alive = true;
     if (me && !me.guest) { st.step = 'signed'; st.acct = { email: me.email, guest: false }; }
     else if (hasNetSession() && !me) {
@@ -10753,7 +10825,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       if (!alive || !card.isConnected) return;
       card.innerHTML = ''; again = null;
       if (!o.page) card.appendChild(sheetHandle(card));
-      var title = st.step === 'signed' ? (o.page ? T('signedInTitle') : T('account')) : st.step === 'code' ? T('codeTitle') : st.step === 'name' ? T('nameTitle') : st.step === 'password' ? T('signIn') : (o.page ? T('signInTitle') : T('signIn'));
+      var title = st.step === 'signed' ? (o.page ? T('signedInTitle') : T('account')) : st.step === 'code' ? T('codeTitle') : st.step === 'name' ? T('nameTitle') : st.step === 'password' ? T('signIn') : (o.page ? T('signInTitle') : o.title || T('signIn'));
       if (o.page) card.appendChild(h('div', { class: 'mark', 'aria-hidden': 'true' }, STAR_SVG));
       card.appendChild(h('div', { class: 'dlg-title' }, esc(title)));
       if (st.step === 'loading') { card.appendChild(h('div', { class: 'muted' }, esc(T('connecting')) + '…')); return; }
@@ -10770,18 +10842,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       }
       if (st.step === 'name') { focus(nameForm(card, o.onDone)); return; }
       if (st.step === 'form') {
-        card.appendChild(h('div', { class: 'dlg-sub' }, esc(o.page ? T('signInPageSub') : T('signInSub'))));
+        card.appendChild(h('div', { class: 'dlg-sub' }, esc(o.page ? T('signInPageSub') : o.sub || T('signInSub'))));
         var form = h('form', { class: 'acct-form', novalidate: '' });
         var inp = h('input', { type: 'email', class: 'acct-input', id: 'acct-email', name: 'email', autocomplete: 'email', inputmode: 'email',
           autocapitalize: 'off', spellcheck: 'false', placeholder: 'you@example.com', 'aria-label': T('emailLabel') });
         inp.value = st.email;
         form.appendChild(inp);
-        // the yes to emails is the player's to give: unticked until they tick it (sent once the account is saved)
-        if (mailOn()) {
-          var opt = h('label', { class: 'acct-opt', id: 'acct-opt' }, '<input type="checkbox" id="acct-opt-box"' + (st.opt ? ' checked' : '') + '><span>' + esc(T('emailOptLabel')) + '</span>');
-          opt.querySelector('input').addEventListener('change', function (e) { st.opt = !!e.target.checked; });
-          form.appendChild(opt);
-        }
         if (err) form.appendChild(err);
         var go2 = h('button', { type: 'submit', class: 'primary', id: 'btn-send-code' }, esc(st.busy ? T('sending') + '…' : T('sendCode')));
         go2.disabled = st.busy;
@@ -10800,6 +10866,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
           var grow = row([gb]);
           card.appendChild(grow);
           if (!st.busy) gsiButton(grow, gb); // on the website: Google's own button (see gsiLoad)
+        }
+        // the emails about their games: ticked from the start, one tap to untick, for whichever way they sign in (sent
+        // once the account is saved; every email can stop them too)
+        if (mailBox()) {
+          var opt = h('label', { class: 'acct-opt', id: 'acct-opt' }, '<input type="checkbox" id="acct-opt-box"' + (st.opt ? ' checked' : '') + '><span>' + esc(T('emailOptLabel')) + '</span>');
+          // kept at once too: Google's own button on the website signs in without going through google() below
+          save('emailOptPending', !!st.opt);
+          opt.querySelector('input').addEventListener('change', function (e) { st.opt = !!e.target.checked; save('emailOptPending', st.opt); });
+          card.appendChild(opt);
         }
         if (o.page) {
           var alt = h('div', { class: 'signin-alt' }, esc(T('practise')) + ' ');
@@ -10856,7 +10931,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { st.email = email; st.err = T('emailInvalid'); render(); return; }
       if (NETCFG && NETCFG.reviewEmail && email.toLowerCase() === NETCFG.reviewEmail) { st.email = email; st.err = ''; st.step = 'password'; render(); return; }
       st.busy = true; st.err = ''; st.email = email; render();
-      if (mailOn()) { save('emailOptPending', st.opt ? true : null); if (st.opt) Track.event('email_opt', { on: true, where: 'save' }); }
+      optPending();
       ensureNet().then(function () { return net.account(); }).then(function (a) {
         if (a && a.guest) {
           // a guest: the email is added to this same account, so the name, rating and games stay
@@ -10938,8 +11013,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
       st.busy = true; render();
       doSignOut(function (e) { st.busy = false; st.err = authMsg(e); render(); });
     }
+    // the answer in the box goes to the server once the account is saved (syncPrefs): yes, or a no if they unticked it
+    function optPending() {
+      if (!mailBox()) return;
+      save('emailOptPending', !!st.opt); Track.event('email_opt', { on: !!st.opt, where: 'save' });
+    }
     function apple() {
       if (st.busy) return;
+      optPending();
       st.busy = true; st.err = ''; render();
       var connect = !!st.connect; st.connect = false;
       appleSignIn(connect).then(function () { if (alive) { st.busy = false; render(); } }, function (e) {
@@ -10949,6 +11030,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     }
     function google() {
       if (st.busy) return;
+      optPending();
       st.busy = true; st.err = ''; render();
       // Google's sign-in page (the page leaves for it here; in the app the system browser opens over the page) answers
       // through google.html; providerIdToken then links Google to this guest or signs in (see googleRedirect)
@@ -12833,6 +12915,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = GCBots;
     bootOnline();
     noteVisit();
     setTimeout(planReminders, 1500);
+    // notifications already allowed on this phone (Android 12 and older allow them unless turned off): the reminders
+    // are on without an ask; Settings turns them off
+    if (NATIVE.on && NATIVE.has('LocalNotifications') && settings.reminders == null) {
+      NATIVE.call('LocalNotifications', 'checkPermissions').then(function (p) {
+        if (!p || p.display !== 'granted' || settings.reminders != null) return;
+        settings.reminders = true; saveSettings(); planReminders(); Track.event('reminders', { on: true, reason: 'allowed' });
+      }, function () { /* asked after a game instead */ });
+    }
     NATIVE.listen('LocalNotifications', 'localNotificationActionPerformed', function (e) {
       var x = e && e.notification && e.notification.extra, v = x && x.go;
       Track.event('reminder_open', { kind: (x && x.kind) || '' });
