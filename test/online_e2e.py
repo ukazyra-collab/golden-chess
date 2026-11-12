@@ -119,7 +119,10 @@ async def main():
             ok("photo: B sees A's picture on the bar", await wait_for(B, '!!document.querySelector("#bar-top .ava.pic img")', 6000))
             ok("photo: A sees B's initial (no picture)", await A.evaluate('!!document.querySelector("#bar-top .ava:not(.pic) i")'))
             ok('no dialog left open', not await A.evaluate('__gc.dialogOpen') and not await B.evaluate('__gc.dialogOpen'))
-            ok('first-move countdown shown', 'first move' in (await W.inner_text('#ana-side' if W == A else '#ana')).lower() or 'first move' in (await W.inner_text('#ana')).lower())
+            # (the countdown is drawn on the game's first tick, a moment after the board)
+            await wait_for(W, '/first move/i.test((document.getElementById("ana-side") || {}).innerText || "") || /first move/i.test((document.getElementById("ana") || {}).innerText || "")', 3000)
+            ok('first-move countdown shown', 'first move' in (await W.inner_text('#ana-side' if W == A else '#ana')).lower() or 'first move' in (await W.inner_text('#ana')).lower(),
+               [await W.inner_text('#ana'), await W.evaluate('[__gc.online.firstSec, __gc.game.records.length, __gc.online.s.status, __gc.serverNow() - Date.parse(__gc.online.s.created_at), !!__gc.online.pending]')])
 
             # ---- 2. moves by clicking; boards stay in sync
             await click_move(W, 'e2', 'e4'); ok('move 1 synced', await synced(1))
@@ -220,6 +223,15 @@ async def main():
             ok('result dialog shows rating change', await wait_for(Bl, '!!document.querySelector(".fo-rating .up, .fo-rating .down")', 3000))
             diffs = admin('game', game=gid)
             ok('ratings changed by Glicko-2', diffs['white_diff'] < 0 < diffs['black_diff'], (diffs['white_diff'], diffs['black_diff']))
+            # fair play (prototype: on in the test server unless GC_FAIR=off, as production runs): a quiet report line on a game
+            # between two people, every move timed; off: neither
+            if os.environ.get('GC_FAIR') != 'off':
+                ok('fair: a report line on the result card', await wait_for(Bl, '!!document.querySelector("#btn-report")', 3000))
+                mt = diffs.get('mt') or []
+                ok('fair: the server timed every move', len(mt) == len(diffs['moves']) and all(isinstance(x, int) and x >= -1 for x in mt), (mt, len(diffs['moves'])))
+            else:
+                await Bl.wait_for_timeout(500)
+                ok('fair play off: no report line, no move times', not await Bl.evaluate('!!document.querySelector("#btn-report")') and not diffs.get('mt'), diffs.get('mt'))
             for nm, pg in (('A', A), ('B', B)):
                 r = await settle(pg); ok(f'board consistent ({nm})', r == [], r)
 

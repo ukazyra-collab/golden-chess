@@ -213,6 +213,27 @@ export function createLogic(opts) {
   const ACT_KINDS = new Set(['open', 'bot', 'online', 'learn', 'local', 'friend']);
   const platformOf = (b) => (['ios', 'android', 'web'].includes(b && b.platform) ? b.platform : 'web');
 
+  // ---- fair play (prototype, off unless opts.fair: the database needs supabase/pending/*_fair_play.sql first).
+  // What the server keeps for the checks: the time each move took, measured here (games.mt, ms, -1 where unknown), and
+  // how often the player's device left the game during their own turn (fair_blurs, the device's word: the window or the
+  // app switched away). Players report opponents (reports); the owner looks at the reports with the scan's numbers
+  // (tools/fairplay) and clears or closes the account: a closed account is out of the leaderboard, can't play other
+  // people any more, and the rating its opponents lost to it in the last 30 days goes back to them.
+  const FAIR = !!opts.fair;
+  // lifecycle emails (opts.mail; the database part: supabase/migrations/*_email_lifecycle.sql)
+  const MAIL = !!opts.mail;
+  // the game layer on the account (opts.prog; the database part: supabase/migrations/*_progress.sql)
+  const PROG = !!opts.prog, PROG_MAX = 24000; // a save as JSON, characters
+  const REPORT_WHY = new Set(['engine', 'abuse', 'other']);
+  const REPORTS_A_DAY = 20;
+  const clampInt = (x, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(x) || 0)));
+  async function notClosed(uid) {
+    if (!FAIR) return;
+    const p = await repo.getProfile(uid);
+    if (p && p.fair === 'closed') throw new Fail('closed');
+  }
+  async function admin(uid) { if (!(repo.isAdmin && (await repo.isAdmin(uid)))) throw new Fail('not_admin'); }
+
   // ---- actions ----
   const A = {};
 
@@ -228,7 +249,7 @@ export function createLogic(opts) {
     if (guest !== null && prof.is_guest !== guest) prof = (await repo.setGuest(uid, guest)) || Object.assign(prof, { is_guest: guest });
     const [ratings, live, admin] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid), repo.isAdmin ? repo.isAdmin(uid) : false, repo.touchSeen ? repo.touchSeen(uid) : null,
       repo.noteActivity ? repo.noteActivity(uid, platformOf(b), 'open').catch(() => null) : null]);
-    return { profile: prof, ratings: ratings || [], live: live || null, now: now(), admin: !!admin || undefined };
+    return { profile: prof, ratings: ratings || [], live: live || null, now: now(), admin: !!admin || undefined, fair: FAIR || undefined, mail: MAIL || undefined, prog: PROG || undefined };
   };
 
   // the day's activity of a player (the owner's retention numbers): what they did today, on which platform. The app sends
@@ -238,6 +259,33 @@ export function createLogic(opts) {
     if (!ACT_KINDS.has(what)) throw new Fail('bad_kind');
     if (repo.noteActivity) await repo.noteActivity(uid, platformOf(b), what);
     return { ok: true };
+  };
+
+  // the player's language and time zone (emails in their language, at a sensible hour) and their yes / no to emails
+  // about their games (a saved account only: a guest has no address)
+  A.prefs = async (uid, b, caller) => {
+    if (!MAIL || !repo.setPrefs) throw new Fail('unsupported');
+    const opt = typeof b.email_opt === 'boolean' ? b.email_opt : null;
+    if (opt !== null && caller && caller.guest === true) throw new Fail('guest');
+    const lang = ['en', 'ru'].includes(b.lang) ? b.lang : null;
+    const tz = typeof b.tz === 'string' && b.tz.length <= 40 && /^[A-Za-z_]+(\/[A-Za-z0-9_+-]+){0,2}$/.test(b.tz) ? b.tz : null;
+    return { prefs: await repo.setPrefs(uid, lang, tz, opt) };
+  };
+
+  // the game layer on the account: the device sends its progress, already merged with what it read here,
+  // and reads it back on another device; its XP goes on the profile, the rank badge an opponent sees. Games against
+  // the bots are played on the device, so what is sent is kept as it is, bounded in size and in its numbers.
+  A.progress = async (uid, b) => {
+    if (!PROG || !repo.progress) throw new Fail('unsupported');
+    let data = null, xp = 0;
+    if (b.data != null) {
+      if (typeof b.data !== 'object' || Array.isArray(b.data)) throw new Fail('bad_data');
+      if (JSON.stringify(b.data).length > PROG_MAX) throw new Fail('too_big');
+      data = b.data;
+      xp = Math.max(0, Math.min(5000000, Math.floor(+(data.prog && data.prog.xp)) || 0));
+    }
+    const r = (await repo.progress(uid, data, xp)) || {};
+    return { data: r.data || null, xp: r.xp || 0, at: r.at || null };
   };
 
   // who is around: for the search dialog ("12 players online · 3 games on")
@@ -263,8 +311,10 @@ export function createLogic(opts) {
     const t = TCS[b.tc];
     if (!t) throw new Fail('bad_tc');
     const pool = poolOf(t[0], t[1]), rated = b.rated !== false;
+    const closed = notClosed(uid); closed.catch(() => {}); // read alongside the rating: no extra wait
     for (let i = 0; i < 3; i++) {
       const r = await rating(uid, pool);
+      if (i === 0) await closed;
       const res = await repo.pair({ user: uid, tc: b.tc, pool, rating: r.rating, rated, base: t[0], inc: t[1], startFen: GC.START_FEN });
       if (!res || !res.game) return { waiting: true, now: now() };
       const g = await game(res.game);
@@ -301,7 +351,7 @@ export function createLogic(opts) {
     const t = TCS[b.tc];
     if (!t) throw new Fail('bad_tc');
     const pool = poolOf(t[0], t[1]), rated = b.rated !== false;
-    const r = await rating(uid, pool);
+    const [r] = await Promise.all([rating(uid, pool), notClosed(uid)]);
     const res = await repo.housePair({ user: uid, tc: b.tc, pool, rating: r.rating, rated, base: t[0], inc: t[1], startFen: GC.START_FEN });
     if (!res || !res.game) return { waiting: true, now: now() };
     const g = await game(res.game);
@@ -323,7 +373,7 @@ export function createLogic(opts) {
     const t = TCS[b.tc];
     if (!t) throw new Fail('bad_tc');
     const color = ['w', 'b', 'r'].includes(b.color) ? b.color : 'r';
-    await repo.abortWaiting(uid);
+    await Promise.all([repo.abortWaiting(uid), notClosed(uid)]);
     // a 4-digit code the friend types in (unique among waiting invites: a clash just draws again)
     let row = null;
     for (let i = 0; i < 25 && !row; i++) {
@@ -349,6 +399,7 @@ export function createLogic(opts) {
       throw new Fail('taken', view(g));
     }
     if (g.host_id === uid) return { game: view(g) };
+    await notClosed(uid);
     const hostWhite = g.host_color === 'w' || (g.host_color === 'r' && rnd() < 0.5);
     const w = hostWhite ? g.host_id : uid, bl = hostWhite ? uid : g.host_id;
     const [pw, pb, rw, rb] = await Promise.all([repo.getProfile(w), repo.getProfile(bl), rating(w, g.pool), rating(bl, g.pool)]);
@@ -404,9 +455,23 @@ export function createLogic(opts) {
     const patch = { moves, sans: (g.sans || []).concat([san]), fen: pos.fen(), clock_w: cw, clock_b: cb,
       draw_offer: g.draw_offer === other(color) ? null : g.draw_offer, // moving declines the opponent's offer, keeps your own
       turn_started_at: moves.length >= 2 ? iso(t) : null };
+    if (FAIR) {
+      // the time this move took: from the start of the turn (the first two moves: from the game's start / the first move)
+      const from = since != null ? since : Date.parse(g.moves.length === 0 ? g.created_at : g.updated_at);
+      const took = b.house ? Math.max(200, Math.round(Number(b.think) || 0)) : Number.isFinite(from) ? Math.max(0, t - from) : -1;
+      const mt = (g.mt || []).slice(0, g.moves.length);
+      while (mt.length < g.moves.length) mt.push(-1);
+      mt.push(Math.min(2147483647, Math.round(took)));
+      patch.mt = mt;
+    }
     const end = endOf(pos, counts);
     if (end) Object.assign(patch, { status: 'over', result: end.result, reason: end.reason, draw_offer: null });
-    return { game: await commit(g, patch) };
+    const out = await commit(g, patch);
+    // the device says it left the game during this turn (n times, ms in all): kept apart from the game, for the checks
+    if (FAIR && !b.house && (b.bl > 0 || b.aw > 0) && repo.noteBlur) {
+      await later(repo.noteBlur({ game_id: g.id, user_id: uid, ply: g.moves.length, n: clampInt(b.bl, 0, 1000), away_ms: clampInt(b.aw, 0, 86400000) }).catch(() => null));
+    }
+    return { game: out };
   };
 
   A.claim = async (uid, b) => settled(await game(b.game));
@@ -501,6 +566,42 @@ export function createLogic(opts) {
     if (b.op === 'decline') return drawAs(g, color, 'decline');
     if (b.op === 'leave') return leaveAs(g, color);
     throw new Fail('bad_op');
+  };
+
+  // a player reports the opponent of a game they played (an engine or other help, abuse): once a game, a few a day.
+  // Not for a house player's game (the developer's own account, played by the reporter's device).
+  A.report = async (uid, b) => {
+    if (!FAIR || !repo.addReport) throw new Fail('unsupported');
+    const g = await game(b.game);
+    const color = colorOf(g, uid);
+    if (!color) throw new Fail('not_player');
+    if (g.house) throw new Fail('house');
+    const accused = color === 'w' ? g.black_id : g.white_id;
+    if (!accused || g.status === 'waiting') throw new Fail('no_opponent');
+    const why = REPORT_WHY.has(b.why) ? b.why : 'engine';
+    const note = String(b.note || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+    const r = await repo.addReport({ reporter: uid, accused, game_id: g.id, why, note, limit: REPORTS_A_DAY });
+    if (r && r.limited) throw new Fail('too_many');
+    return { ok: true, again: !!(r && r.again) || undefined };
+  };
+
+  // the owner: the players reported or flagged by the scan, the most reported first (with the scan's numbers)
+  A.fair_list = async (uid) => {
+    await admin(uid);
+    if (!FAIR || !repo.fairList) throw new Fail('unsupported');
+    return { players: await repo.fairList(50) };
+  };
+  // the owner's decision on one player: 'ok' (reports cleared), 'watch' (looked at again after more games), 'closed'
+  A.fair_set = async (uid, b) => {
+    await admin(uid);
+    if (!FAIR || !repo.fairSet) throw new Fail('unsupported');
+    const state = ['ok', 'watch', 'closed'].includes(b.state) ? b.state : null;
+    if (!state || typeof b.user !== 'string') throw new Fail('bad_state');
+    const p = await repo.getProfile(b.user);
+    if (!p) throw new Fail('no_player');
+    if (p.house) throw new Fail('house');
+    const r = await repo.fairSet(b.user, state, uid);
+    return Object.assign({ ok: true, state }, r || {});
   };
 
   // the leaderboard: the top 50, the pool's size, the caller's place and (when outside the top) their own row

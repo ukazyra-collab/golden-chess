@@ -451,7 +451,8 @@ var Engine = (function (GC) {
     }
     if (opts.noGolden) { pos.golden &= ~(1 << pos.side); pos._recompute(); repN = 0; pushRep(); }
     var t0 = now();
-    var lv = LEVELS[Math.max(1, Math.min(8, opts.level || 8)) - 1];
+    // lv: a setting of its own in place of a level (the bots that stand between the eight levels)
+    var lv = (opts.lv && typeof opts.lv === 'object') ? opts.lv : LEVELS[Math.max(1, Math.min(8, opts.level || 8)) - 1];
     var timeMs = opts.timeMs != null ? opts.timeMs : lv.time;
     var maxDepth = Math.min(opts.maxDepth || lv.depth || 64, 64);
     deadline = t0 + Math.max(10, timeMs);

@@ -1,0 +1,1 @@
+{"fen":"r1bb1r1k/p4Qpp/2p2n1N/8/2p5/2B2N2/1PP2PPP/q1KR3R w - - 1 20 G","best":"h1b1*","score":1632,"normal":324,"plain":258,"plainMove":"c1d2","mate":0,"depth":14,"found":1,"pv":["h1b1*","d8e7","d1d8"],"accept":{"h1b1*":["d8e7","d1d8"],"f3b1*":["d8e7","d1d8","c8e6","d8f8"]},"id":"tal-smyslov-1959","ply":38,"side":"w","loser":false,"total":51,"real":"c1d2"}

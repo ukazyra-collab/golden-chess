@@ -1,0 +1,1 @@
+{"fen":"6rk/1N3p1p/2n2q2/2Q5/3p1p2/PP5P/5PP1/2R3K1 b - - 0 29 g","best":"f6f3*","score":29981,"normal":217,"plain":-44,"plainMove":"c6e5","mate":10,"depth":13,"found":5,"pv":["f6f3*","g1f1","f3g2","f1e2"],"accept":{"f6f3*":["g1f1","f3g2","f1e2"]},"id":"deepblue-kasparov-1996-g1","ply":57,"side":"b","loser":true,"total":73,"real":"c6e5"}

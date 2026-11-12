@@ -51,7 +51,7 @@ if (/'/.test(PIECE)) throw new Error('piece.svg contains a single quote');
 // each copy put in the page gets its own ids (clip paths, masks)
 let uniqN = 0;
 const uniq = (svg) => { const n = 'b' + (++uniqN); return svg.replace(/id="([^"]+)"/g, 'id="$1' + n + '"').replace(/url\(#([^)]+)\)/g, 'url(#$1' + n + ')'); };
-const mainSrc = [core, engine, rd('src/book.js'), rd('src/review.js'), rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/puzzles.js'), rd('src/ui/learn.js'), rd('src/ui/bots.js'), rd('src/ui/app.js').replace("'__LOGO_SVG__'", () => "'" + LOGO + "'").replace("'__WORDMARK__'", () => "'" + WORDMARK + "'")].join('\n;\n').split("'__PIECE_SVG__'").join("'" + PIECE + "'");
+const mainSrc = [core, engine, rd('src/book.js'), rd('src/review.js'), rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/puzzles.js'), (fs.existsSync(path.join(__dirname, 'src/realgames.js')) ? rd('src/realgames.js') : ''), (fs.existsSync(path.join(__dirname, 'src/daily.js')) ? rd('src/daily.js') : ''), rd('src/habits.js'), rd('src/progress.js'), rd('src/ui/learn.js'), rd('src/ui/bots.js'), rd('src/ui/app.js').replace("'__LOGO_SVG__'", () => "'" + LOGO + "'").replace("'__WORDMARK__'", () => "'" + WORDMARK + "'")].join('\n;\n').split("'__PIECE_SVG__'").join("'" + PIECE + "'").split("'__ICON_INNER__'").join("'" + ICON_INNER + "'");
 const supa = rd('vendor/supabase-js-2.117.2.umd.js');
 for (const [name, src] of [['worker', workerSrc], ['main', mainSrc], ['supabase', supa]]) if (/<\/script/i.test(src)) throw new Error(name + ' contains </script');
 
@@ -83,6 +83,8 @@ const webHead = TO_HTTPS + '<title>Joker Chess</title><meta name="description" c
 const webBody = body.replace(/^<title>[^<]*<\/title>\n/, '').replace(/^<meta name="claude:viewport-fit-sides"[^>]*>\n/m, '');
 
 write('dist/golden-chess.html', artifactBody);
+// the retention prototype's preview (a tour of the new screens with made-up days), never deployed
+write('dist/proto.html', page('window.GC_SITE = ' + JSON.stringify(SITE) + ';\nwindow.GC_PROTO = true;\n'));
 write('dist/preview.html', doc('', artifactBody));
 // the build's id: the app (which shows the live site) checks it when it opens or comes back and reloads when the site
 // has moved on, instead of waiting for the phone's cached copy to expire
@@ -95,4 +97,20 @@ write('dist/mock/index.html', doc('<title>Joker Chess (local server)</title><scr
 const appBody = page('window.GC_SITE = ' + JSON.stringify(SITE) + ';\nwindow.GC_APP_OFFLINE = true;\n').replace(/^<title>[^<]*<\/title>\n/, '').replace(/^<meta name="claude:viewport-fit-sides"[^>]*>\n/m, '');
 write('app/www/index.html', doc('<title>Joker Chess</title><meta name="theme-color" content="#2a2f2d">', appBody));
 write('supabase/functions/play/core.js', '// Generated from src/core.js by build.js. Do not edit.\n' + core + '\nexport default GC;\n');
+// the mail function's daily puzzle (PROTOTYPE): the same streak rules and puzzle list as the app
+write('supabase/functions/mail/daily.js', '// Generated from src/habits.js and the puzzle lists by build.js. Do not edit.\n' + rd('src/puzzles.js') + '\n' +
+  (fs.existsSync(path.join(__dirname, 'src/daily.js')) ? rd('src/daily.js') : '') + '\n' + rd('src/habits.js').replace(/\nif \(typeof module[^\n]*/, '') +
+  '\nconst LIST = typeof JOKER_DAILY !== \'undefined\' ? JOKER_DAILY : JOKER_PUZZLES;\nexport { Habits, LIST };\n');
+// the mail function's look at the career (PROTOTYPE): who is next for a player, from the progress their device keeps on
+// the account; the bots' names come from the app's own list
+{
+  const Road = require('./src/progress.js'), Cast = require('./src/ui/bots.js'), names = {};
+  Road.BOTS.forEach((b) => { names[b.who] = { en: Cast.castName(b.who, 'en'), ru: Cast.castName(b.who, 'ru') }; });
+  write('supabase/functions/mail/road.js', '// Generated from src/progress.js and the bots\' names by build.js. Do not edit.\n' + rd('src/progress.js').replace(/\nif \(typeof module[^\n]*/, '') +
+    '\nconst NAMES = ' + JSON.stringify(names) + ';\n' +
+    '// the next opponent on the Road to Joker and the stars so far (null: the progress is not on the account, or the road is done)\n' +
+    'export function roadOf(save, lang) {\n  const career = save && save.prog && save.prog.career;\n  if (!career || typeof career !== \'object\') return null;\n' +
+    '  const nx = Progress.nextStage(career);\n  if (!nx) return null;\n  const n = NAMES[nx.who] || {};\n' +
+    '  return { name: n[lang] || n.en || nx.who, elo: nx.elo, stars: Progress.careerStars(career), total: Progress.CHAPTERS * 3 };\n}\nexport { Progress };\n');
+}
 console.log('built: artifact', (body.length / 1024).toFixed(0) + ' KB, web', (fs.statSync(path.join(__dirname, 'dist/web/index.html')).size / 1024).toFixed(0) + ' KB');

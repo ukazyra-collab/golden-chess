@@ -4,3 +4,7 @@ project_id = "wduoqpoqbtpkrgbcsegg"
 [functions.play]
 # the function verifies the user's access token itself (works with both legacy and new JWT signing keys)
 verify_jwt = false
+
+[functions.mail]
+# the lifecycle emails: the one-click unsubscribe links and the hourly job (pg_cron) call it without a user token
+verify_jwt = false

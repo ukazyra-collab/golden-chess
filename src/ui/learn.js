@@ -1,4 +1,5 @@
-/* Joker Chess — the Learn tab: what the Joker Move is, autoplay boards that show it, and one-move puzzles.
+/* Joker Chess — the Learn tab: a coach and one-move puzzles (he says what to look for, reacts to every try and
+ * explains the answer), with the rules and the autoplay boards behind a button.
  * Positions and answers were checked with the engine (see README): every accepted answer wins or saves the game,
  * every other Joker Move falls short.
  */
@@ -45,10 +46,11 @@ var GCLearn = (function () {
   REEL.forEach(function (d, i) { d.next = REEL[(i + 1) % REEL.length]; });
   // where a rook may teleport: gold dots; empty squares it may not use (they would give check): red crosses
   var RULE_DIAGRAM = { fen: '4k3/8/2n5/8/8/8/5PPP/R5K1 w - - 0 1 G', sel: 'a1' };
-  // the three first ones explain themselves (they teach the move); the made-up ones after them (src/puzzles.js, made by
-  // the engine: tools/puzzles) only say whose move it is, easy to hard
-  var PUZZLES = [
-    { id: 'i1', lvl: 1, fen: '2r3k1/RQ3ppp/8/8/8/8/5PPP/3q2K1 w - - 0 1 G', last: ['d5', 'd1'], prompt: 'p1Prompt', good: 'p1Good', hint: 'p1Hint',
+  // the three first ones are the coach's lesson (they teach the move, in words of their own); after them, level by
+  // level, the engine-made ones (src/puzzles.js, tools/puzzles) and moments from real games where one side gets a
+  // Joker Move the players never had (src/realgames.js, tools/history) take turns: two made up, one real
+  var INTRO = [
+    { id: 'i1', lvl: 1, fen: '2r3k1/RQ3ppp/8/8/8/8/5PPP/3q2K1 w - - 0 1 G', last: ['d5', 'd1'], prompt: 'p1Prompt', guide: 'p1Guide', good: 'p1Good', hint: 'p1Hint',
       accept: { 'a7f1*': [], 'b7f1*': [] } },
     { id: 'i2', lvl: 1, fen: 'r4r1k/pb3p1p/1p4p1/4q3/8/8/PP3PPP/R1BQ1RK1 w - - 0 1 G', prompt: 'p2Prompt', good: 'p2Good', hint: 'p2Hint',
       accept: { 'c1d4*': ['e5d4', 'd1d4', 'h8g8'], 'c1c3*': ['e5c3', 'b2c3'] } },
@@ -56,7 +58,17 @@ var GCLearn = (function () {
       accept: { 'g8c1*': ['a7b7', 'h5h6', 'b7c6', 'h6h7', 'c6d5', 'h7h8q'], 'g8e2*': ['a7b6', 'h5h6', 'b6c5', 'h6h7', 'c5c4', 'h7h8q'],
         'g8a2*': ['a7b6', 'h5h6', 'b6c5', 'h6h7', 'c5d5', 'h7h8q'], 'g8d3*': ['a7b6', 'h5h6', 'b6b5', 'h6h7', 'b5c4', 'h7h8q'],
         'g8b3*': ['a7b6', 'h5h6', 'b6b5', 'b3c1', 'b5c4', 'h6h7'] } }
-  ].concat(typeof JOKER_PUZZLES !== 'undefined' ? JOKER_PUZZLES : []);
+  ];
+  var MADE = typeof JOKER_PUZZLES !== 'undefined' ? JOKER_PUZZLES : [], REAL = typeof JOKER_REAL !== 'undefined' ? JOKER_REAL : [];
+  var PUZZLES = INTRO.slice();
+  [1, 2, 3].forEach(function (lv) {
+    var of = function (list) { return list.filter(function (p) { return (p.lvl || 1) === lv; }); }, g = of(MADE), r = of(REAL), i = 0, j = 0;
+    while (i < g.length || j < r.length) {
+      if (i < g.length) PUZZLES.push(g[i++]);
+      if (i < g.length) PUZZLES.push(g[i++]);
+      if (j < r.length) PUZZLES.push(r[j++]);
+    }
+  });
 
   function speedOf(ctx) { return ctx.settings.anim === 'off' ? 0 : ctx.settings.anim === 'fast' ? 0.6 : 1; }
   function goldenTargets(pos, from) {
@@ -146,6 +158,7 @@ var GCLearn = (function () {
   function Puzzle(boardHost, p, ctx, ui) {
     this.p = p; this.ctx = ctx; this.ui = ui;
     this.selected = -1; this.locked = false; this.solved = false; this.timers = [];
+    this.tries = 0; this.hints = 0; this.shown = false; // misses, hints asked for, the answer shown
     var self = this;
     this.mb = new MiniBoard(boardHost, { coords: false, handlers: {
       onAny: function () { ctx.Sound.unlock(); },
@@ -173,7 +186,8 @@ var GCLearn = (function () {
     if (this.hinted && !this.solved) marks.push({ sq: sq(Object.keys(this.p.accept)[0].slice(0, 2)), cls: 'hl-hint' });
     return marks;
   };
-  Puzzle.prototype.hint = function () { this.hinted = true; this.paint(); };
+  // the piece that makes the Joker Move, ringed (free: the coach's own pointer on the very first puzzle)
+  Puzzle.prototype.hint = function (free) { this.hinted = true; if (!free) this.hints++; this.paint(); };
   Puzzle.prototype.paint = function () {
     var marks = this.baseMarks(), dots = [];
     if (this.selected >= 0) {
@@ -214,7 +228,7 @@ var GCLearn = (function () {
       this.ctx.Sound.play('golden');
       this.solved = true;
       this.ui.flash(T('pzYes'), 'good');
-      this.ui.status(this.ui.goodText(this.p), 'good');
+      this.ui.status(this.ui.goodText(this.p, uci), 'good');
       var t = 900;
       cont.forEach(function (u) {
         self.later(function () {
@@ -234,8 +248,9 @@ var GCLearn = (function () {
       // wrong: red squares, the error sound, "Not this one" on the board, and the piece goes straight back
       this.mb.view.setMarks([{ sq: from, cls: 'hl-bad' }, { sq: to, cls: 'hl-bad' }]);
       this.ctx.Sound.play('illegal');
+      this.tries++;
       this.ui.flash(T('pzNo'), 'bad');
-      this.ui.status(T('badMove'), 'bad');
+      this.ui.status(T(this.tries > 1 && !this.hinted ? 'badMove2' : 'badMove'), 'bad', 2600);
       this.later(function () {
         self.pos.unmakeMove();
         self.mb.show(self.pos, [{ from: to, to: from }]);
@@ -248,6 +263,7 @@ var GCLearn = (function () {
   Puzzle.prototype.answer = function () {
     if (this.solved) return;
     this.reset();
+    this.shown = true;
     var u = Object.keys(this.p.accept)[0], m = this.pos.moveFromUci(u), self = this;
     this.selected = m & 127; this.paint();
     this.locked = true;
@@ -262,6 +278,12 @@ var GCLearn = (function () {
     // solved puzzles by id (the first version kept the three of then by their place: 0, 1, 2)
     ['0', '1', '2'].forEach(function (k, i) { if (done[k]) { done['i' + (i + 1)] = 1; delete done[k]; } });
     function saveDone() { try { localStorage.setItem('goldenchess.puzzles', JSON.stringify(done)); } catch (e) { /* ignore */ } }
+    // the solved puzzles were replaced from outside (the account's progress merged in): read them again
+    // (and if the one the player was on is solved now, go on to the first one that is not)
+    function reload() {
+      try { done = JSON.parse(localStorage.getItem('goldenchess.puzzles') || '{}') || {}; } catch (e) { done = {}; }
+      if (done[PUZZLES[pIndex].id]) for (var j = 0; j < PUZZLES.length; j++) if (!done[PUZZLES[j].id]) { pIndex = j; savePlace(); break; }
+    }
     // where the player is: the puzzle open last time, else the first one not solved yet
     (function () {
       var at = -1;
@@ -300,6 +322,8 @@ var GCLearn = (function () {
         '<div class="row">' + star(false) + '<span>' + esc(T('black')) + '<small>' + esc(T('usedUp')) + '</small></span></div>');
     }
 
+    var wantDaily = false; // asked for from outside (the daily board on Play): the next render opens the daily puzzle
+    function showDaily() { wantDaily = true; }
     function render(host) {
       demos.forEach(function (d) { d.stop(); if (io) io.unobserve(d.mb.wrap); });
       demos = [];
@@ -308,101 +332,240 @@ var GCLearn = (function () {
       var inn = el('div', 'page-in learn');
       host.appendChild(inn);
 
-      // the first screen: the tab's name, the rule in one line, and straight into the puzzles (the Play tab already
-      // shows what a Joker Move looks like); the rule in full, why it matters and every rule follow below
+      // the first screen is the coach and a puzzle: he says what to look for, answers every try, explains the Joker Move
+      // once it is found, and the next puzzle is one tap away. XP for every puzzle the player finds, the level under
+      // the board. The rule in full, why it matters and every rule wait behind a button below.
       var ts = el('section', 'learn-hero');
       ts.id = 'try';
-      var ht = el('div', 'hero-text');
-      ht.appendChild(el('h1', 'page-h', esc(T('navLearn'))));
-      ht.appendChild(el('p', 'lead', esc(T('learnLead'))));
-      ts.appendChild(ht);
+      ts.appendChild(el('h1', 'page-h vh', esc(T('navLearn'))));
+      var coach = el('div', 'tutor'), say = el('div', 'tutor-say');
+      coach.id = 'tutor'; say.id = 'tutor-say';
+      say.setAttribute('role', 'status'); say.setAttribute('aria-live', 'polite');
+      var cap = el('div', 'tutor-cap'), prompt = el('div', 'try-prompt'), status = el('div', 'try-status');
+      cap.id = 'try-game'; cap.hidden = true;
+      say.appendChild(cap); say.appendChild(prompt); say.appendChild(status);
+      coach.appendChild(el('span', 'tutor-face', ctx.coachFace ? ctx.coachFace() : ''));
+      coach.appendChild(say);
+      ts.appendChild(coach);
+      // the daily puzzle: the same for everyone today. Played first when it isn't solved yet (a newcomer starts with the
+      // easy ones and finds it on the line above them); once solved, the line says so and opens the streak
+      var dailyNow = ctx.daily ? ctx.daily() : null, inDaily = false;
+      var dLine = el('button', 'daily-line'); dLine.type = 'button'; dLine.id = 'daily-line';
+      // (a newcomer meets it after the coach's three first puzzles: nothing else on the screen until then)
+      var dailyShown = !!dailyNow && (PUZZLES.filter(function (p) { return done[p.id]; }).length >= INTRO.length || !ctx.newcomer || !ctx.newcomer());
+      if (dailyShown) ts.appendChild(dLine);
+      function drawDailyLine() {
+        if (!dailyNow) return;
+        var sl = ctx.streakLine ? ctx.streakLine() : null;
+        dLine.classList.toggle('done', !!dailyNow.solved); dLine.classList.toggle('here', inDaily);
+        dLine.innerHTML = '<span class="dl-t"><b>' + esc(T('dailyN', { n: dailyNow.n })) + '</b><span class="try-lvl l' + dailyNow.lvl + '">' + esc(T(['', 'lvlEasy', 'lvlMedium', 'lvlHard'][dailyNow.lvl])) + '</span></span>' +
+          '<span class="dl-s">' + (sl ? '<span class="dl-flame">' + sl.html + '</span>' : '') + (dailyNow.solved ? '<span class="dl-ok">✓ ' + esc(T('dailySolvedLine')) + '</span>' : inDaily ? '' : '<span class="dl-go">' + esc(T('dailyOpen')) + '</span>') + '</span>';
+      }
+      dLine.addEventListener('click', function () {
+        if (!dailyNow) return;
+        if (dailyNow.solved || inDaily) { if (ctx.streakSheet) ctx.streakSheet(); return; }
+        if (ctx.track) ctx.track('daily_open', { from: 'learn' });
+        openDaily();
+      });
       // which puzzle, how hard, how many solved: one line (there are too many for a row of numbers)
       var head = el('div', 'try-head'), tTitle = el('div', 'try-title'), tCount = el('div', 'try-count');
       head.appendChild(tTitle); head.appendChild(tCount); ts.appendChild(head);
-      // how far along: a thin bar of solved puzzles, the Joker walking along it; where Medium and Hard begin, marked
-      var prog = el('div', 'try-prog'), pFill = el('i', 'tp-fill'), pWalk = el('span', 'tp-walk');
-      prog.setAttribute('aria-hidden', 'true');
-      pWalk.innerHTML = ctx.piece ? ctx.piece() : '';
-      prog.appendChild(pFill);
-      [2, 3].forEach(function (lv) {
-        for (var q = 0; q < PUZZLES.length; q++) if ((PUZZLES[q].lvl || 1) >= lv) { var mk = el('b', 'tp-mark'); mk.style.left = (q / PUZZLES.length * 100).toFixed(2) + '%'; prog.appendChild(mk); break; }
-      });
-      prog.appendChild(pWalk); ts.appendChild(prog);
       var body = el('div', 'try-body'), bhost = el('div', 'try-host'), side = el('div', 'try-side');
-      var prompt = el('div', 'try-prompt'), status = el('div', 'try-status'), acts = el('div', 'try-actions');
-      side.appendChild(prompt); side.appendChild(status); side.appendChild(acts);
+      var xpRow = el('div', 'tutor-xp'), acts = el('div', 'try-actions');
+      xpRow.id = 'tutor-xp';
+      var rulesBtn = el('button', 'linkbtn rules-btn', esc(T('rulesOpen'))); rulesBtn.type = 'button'; rulesBtn.id = 'btn-rules'; rulesBtn.setAttribute('aria-expanded', 'false');
+      side.appendChild(xpRow); side.appendChild(acts); side.appendChild(rulesBtn);
       body.appendChild(bhost); body.appendChild(side); ts.appendChild(body);
       inn.appendChild(ts);
       function btn(label, cls, fn, id) { var b = el('button', 'sbtn' + (cls ? ' ' + cls : ''), esc(label)); b.type = 'button'; if (id) b.id = id; b.addEventListener('click', fn); return b; }
       var LVL = ['', 'lvlEasy', 'lvlMedium', 'lvlHard'];
       function solvedCount() { return PUZZLES.filter(function (p) { return done[p.id]; }).length; }
       function drawHead() {
+        drawDailyLine();
+        dLine.hidden = inDaily;
+        if (inDaily) {
+          tTitle.innerHTML = esc(T('dailyN', { n: dailyNow.n })) + '<span class="try-lvl l' + dailyNow.lvl + '">' + esc(T(['', 'lvlEasy', 'lvlMedium', 'lvlHard'][dailyNow.lvl])) + '</span>';
+          var dt = new Date(); try { tCount.textContent = dt.toLocaleDateString(document.documentElement.lang === 'ru' ? 'ru-RU' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { tCount.textContent = ''; }
+          return;
+        }
         var p = PUZZLES[pIndex];
         tTitle.innerHTML = esc(T('puzzleN', { n: pIndex + 1 })) + '<span class="try-lvl l' + (p.lvl || 1) + '">' + esc(T(LVL[p.lvl || 1])) + '</span>';
         tCount.textContent = T('solvedOf', { n: solvedCount(), total: PUZZLES.length });
-        var at = ((pIndex + 0.5) / PUZZLES.length * 100).toFixed(2) + '%';
-        pFill.style.width = (solvedCount() / PUZZLES.length * 100).toFixed(2) + '%';
-        pWalk.style.left = at;
+      }
+      // the player's level under the board: the rank, the bar to the next level, and what the last puzzle gave
+      function drawXp(aw) {
+        var L = ctx.levelInfo ? ctx.levelInfo() : null;
+        if (!L) { xpRow.hidden = true; return; }
+        var pct = function (x) { return Math.max(0, Math.min(100, Math.round(x.into / x.need * 100))); };
+        if (!xpRow.firstChild) {
+          xpRow.innerHTML = '<span class="cx-badge"></span><span class="cx-lv"></span><span class="cx-bar"><i></i></span><span class="cx-gain" aria-hidden="true"></span>';
+          xpRow.querySelector('.cx-bar i').style.width = pct(aw ? aw.before : L) + '%';
+        }
+        var bar = xpRow.querySelector('.cx-bar i'), gain = xpRow.querySelector('.cx-gain');
+        xpRow.querySelector('.cx-badge').innerHTML = L.badge || '';
+        xpRow.querySelector('.cx-lv').textContent = T('coachLevel', { n: L.level });
+        xpRow.setAttribute('aria-label', T('coachLevel', { n: L.level }) + ', ' + L.rank);
+        if (!aw || !aw.xp) { bar.style.width = pct(L) + '%'; gain.textContent = ''; gain.classList.remove('pop'); return; }
+        gain.textContent = T('xpPlus', { n: aw.xp });
+        gain.classList.remove('pop'); void gain.offsetWidth; gain.classList.add('pop');
+        if (aw.up) {
+          // a new level: the bar runs to the end, then starts again from the left
+          bar.style.width = '100%'; xpRow.classList.add('up');
+          setTimeout(function () { bar.classList.add('jump'); bar.style.width = '0%'; void bar.offsetWidth; bar.classList.remove('jump'); bar.style.width = pct(L) + '%'; }, 650);
+          setTimeout(function () { xpRow.classList.remove('up'); }, 2200);
+        } else bar.style.width = pct(L) + '%';
       }
       function nextIndex() {
         for (var k = 1; k <= PUZZLES.length; k++) { var j = (pIndex + k) % PUZZLES.length; if (!done[PUZZLES[j].id]) return j; }
         return (pIndex + 1) % PUZZLES.length;
       }
+      // ---- the coach's words
+      // what a Joker Move does, the plainest first: starts a mate, blocks a check, forks, pins, takes a piece out of danger
+      function ideaOf(p, uci) {
+        if (typeof Progress === 'undefined') return '';
+        try {
+          var pos = new GC.Position(p.fen), m = pos.moveFromUci(uci || Object.keys(p.accept)[0]);
+          var tags = Progress.classify(GC, pos, m, 99, p.mate || null), order = ['mate', 'shield', 'fork', 'pin', 'escape'];
+          for (var i = 0; i < order.length; i++) if (tags.indexOf(order[i]) >= 0) return order[i];
+        } catch (e) { /* no idea to name */ }
+        return '';
+      }
+      // a moment from a real game: who played, where and when (the line above the task)
+      function gameLine(g) {
+        var ru = document.documentElement.lang === 'ru';
+        return (ru && g.wr || g.w) + ' – ' + (ru && g.br || g.b) + ', ' + ((ru && g.atr || g.at) ? (ru && g.atr || g.at) + ', ' : '') + g.y;
+      }
+      // the task: the coach's own words for the three first ones; for a moment from a real game, what was played there;
+      // otherwise by the kind of moment (lost without the Joker Move, a short mate, a win)
+      function promptOf(p, pos, guided) {
+        if (p.prompt) return T(guided && p.guide ? p.guide : p.prompt);
+        var s = pos.side ? 'B' : 'W';
+        if (p.g) {
+          var was = !p.g.real ? T(p.g.lost ? 'rgEnd' + s : 'rgEnd') : T((p.g.lost ? 'rgLost' : 'rgPlayed') + s, { m: p.g.real });
+          return was + ' ' + T(p.k === 'save' ? 'rgSave' : 'rgFind');
+        }
+        if (p.k === 'save') return T((pos.inCheck() ? 'pzCheck' : 'pzSave') + s);
+        if (p.k === 'mate' && p.mate) return T('pzMateIn' + s, { n: p.mate });
+        return T(pos.side ? 'pzBlack' : 'pzWhite');
+      }
+      function goodOf(p, uci) {
+        if (p.good) return T(p.good);
+        var idea = ideaOf(p, uci), text = idea === 'mate' ? T('pzMate', { n: p.mate }) : idea ? T('good_' + idea) : T('pzGood');
+        if (p.g) {
+          var ru = document.documentElement.lang === 'ru', black = new GC.Position(p.fen).side === 1;
+          text += ' ' + (p.g.lost ? T('rgWon', { name: black ? (ru && p.g.br || p.g.b) : (ru && p.g.wr || p.g.w) }) : T('rgBetter'));
+        }
+        return text;
+      }
+      var revert = 0;
+      function setStatus(text, cls, ms) {
+        clearTimeout(revert);
+        status.className = 'try-status' + (cls ? ' ' + cls : ''); status.textContent = text || '';
+        say.classList.toggle('answered', !!text);
+        if (text && ms) revert = setTimeout(function () { if (puzzle && !puzzle.solved) setStatus('', ''); }, ms);
+      }
       function actions(kind) {
         acts.innerHTML = '';
+        if (kind === 'daily-solved') {
+          acts.appendChild(btn(T('morePuzzles'), 'hot', function () { inDaily = false; open(pIndex); }, 'try-next'));
+          return;
+        }
         if (kind === 'solved') {
           if (solvedCount() < PUZZLES.length) acts.appendChild(btn(T('nextPuzzle'), 'hot', function () { open(nextIndex()); }, 'try-next'));
           else { status.textContent = ui.goodText(PUZZLES[pIndex]) + ' ' + T('allSolved'); acts.appendChild(btn(T('learnCta'), 'hot', function () { ctx.go('bots'); }, 'try-play')); }
           acts.appendChild(btn(T('tryAgain'), '', function () { open(pIndex); }, 'try-again'));
           return;
         }
-        acts.appendChild(btn(T('puzzleHint'), '', function () {
-          var p = PUZZLES[pIndex];
-          status.className = 'try-status'; status.textContent = p.hint ? T(p.hint) : T('pzHint');
-          if (!p.hint) puzzle.hint();
-        }, 'try-hint'));
+        // the hint comes in two steps: the piece that jumps (ringed), then what to look for
+        var asked = 0, hb = btn(T('puzzleHint'), '', function () {
+          var p = inDaily ? dailyNow.p : PUZZLES[pIndex];
+          if (!asked++) { puzzle.hint(); setStatus(p.hint ? T(p.hint) : T('pzHint'), ''); if (p.hint) hb.disabled = true; }
+          else { puzzle.hints++; setStatus(T('idea_' + (ideaOf(p) || 'none')), ''); hb.disabled = true; }
+        }, 'try-hint');
+        acts.appendChild(hb);
         acts.appendChild(btn(T('showAnswer'), '', function () { puzzle.answer(); }, 'try-answer'));
+        // from the daily puzzle back to the series at any time (the daily stays a tap away on its line)
+        if (inDaily) acts.appendChild(btn(T('puzzleSeries'), '', function () { inDaily = false; open(pIndex); }, 'try-series'));
       }
       var ui = {
-        status: function (text, cls) { status.className = 'try-status' + (cls ? ' ' + cls : ''); status.textContent = text; },
-        goodText: function (p) { return p.good ? T(p.good) : p.mate ? T('pzMate', { n: p.mate }) : T('pzGood'); },
+        status: setStatus,
+        goodText: goodOf,
         solved: function () {
-          var first = !done[PUZZLES[pIndex].id];
-          done[PUZZLES[pIndex].id] = 1; saveDone(); drawHead(); actions('solved');
-          if (ctx.track) ctx.track('puzzle_solved', { puzzle: PUZZLES[pIndex].id, first: first, solved: solvedCount() });
+          var how = { shown: puzzle.shown, hint: puzzle.hints, wrong: puzzle.tries };
+          if (inDaily) {
+            if (ctx.solveDaily) ctx.solveDaily(dailyNow);
+            dailyNow.solved = true;
+            setStatus(T('dailyDone'), 'good');
+            drawHead(); actions('daily-solved'); drawXp();
+            return;
+          }
+          // found by the player: 1; the answer was shown: 2 (it counts as passed, and its XP can still be earned)
+          var p = PUZZLES[pIndex], first = !done[p.id], own = !how.shown, firstOwn = own && done[p.id] !== 1;
+          done[p.id] = own ? 1 : (done[p.id] || 2); saveDone(); drawHead(); actions('solved');
+          var aw = ctx.puzzleDone ? ctx.puzzleDone(p, { first: firstOwn, shown: how.shown, hint: how.hint, wrong: how.wrong }) : null;
+          if (aw) {
+            var more = [];
+            if (how.shown && done[p.id] === 2) more.push(T('coachShown'));
+            if (aw.quests && aw.quests.length) more.push(T('coachQuest'));
+            if (aw.up) more.push(T('coachUp', { n: aw.after.level, rank: aw.after.rank }));
+            if (more.length) status.textContent += ' ' + more.join(' ');
+            drawXp(aw);
+          }
+          if (ctx.track) ctx.track('puzzle_solved', { puzzle: p.id, first: first, own: own, solved: solvedCount() });
         },
-        wrong: function () { /* keep the message until the next try */ },
+        wrong: function () { /* the coach's line stays a moment, then the task is back */ },
         // right or wrong, said on the board itself, where the eyes are
         flash: function (text, cls) {
           if (!puzzle) return;
           var w = puzzle.mb.wrap, old = w.querySelector('.pz-flash'); if (old) old.remove();
-          var f = el('div', 'pz-flash ' + cls, '<i aria-hidden="true">' + (cls === 'good' ? '\u2713' : '\u2715') + '</i>' + esc(text));
-          f.setAttribute('role', 'status'); w.appendChild(f);
+          var f = el('div', 'pz-flash ' + cls, '<i aria-hidden="true">' + (cls === 'good' ? '✓' : '✕') + '</i>' + esc(text));
+          f.setAttribute('aria-hidden', 'true'); w.appendChild(f);
           setTimeout(function () { f.classList.add('out'); }, cls === 'good' ? 1300 : 750);
           setTimeout(function () { f.remove(); }, cls === 'good' ? 1700 : 1100);
         }
       };
-      function open(i) {
-        pIndex = i; savePlace();
+      function show(p, guided) {
         if (puzzle) puzzle.clearTimers();
         bhost.innerHTML = '';
-        var p = PUZZLES[i];
         puzzle = new Puzzle(bhost, p, ctx, ui);
         puzzle.mb.wrap.classList.add('try-board'); puzzle.mb.wrap.id = 'try-board';
-        prompt.textContent = p.prompt ? T(p.prompt) : T(puzzle.pos.side ? 'pzBlack' : 'pzWhite');
-        ui.status('', '');
-        drawHead(); actions('open'); fitTry();
+        cap.hidden = !p.g; cap.textContent = p.g ? gameLine(p.g) : '';
+        prompt.textContent = promptOf(p, puzzle.pos, guided);
+        setStatus('', '');
+        if (guided && p.guide) puzzle.hint(true);
+        drawHead(); actions('open'); drawXp(); fitTry();
       }
-      // on a phone the first screen is the whole puzzle: the board takes the height the text and buttons leave
+      function openDaily() { inDaily = true; show(dailyNow.p, false); }
+      // the very first puzzle of a newcomer is led by the hand: the coach names the move and rings the piece
+      function open(i) {
+        inDaily = false;
+        pIndex = i; savePlace();
+        show(PUZZLES[i], !solvedCount());
+      }
+      // on a phone the first screen is the whole puzzle: the board takes the height the coach and the buttons leave
       function fitTry() {
         if (!inn.isConnected) return;
         if (window.innerWidth >= 760) { bhost.style.removeProperty('--try-board'); return; }
         var H = host.clientHeight - 18 - 12;
-        var used = ht.offsetHeight + head.offsetHeight + prog.offsetHeight + 26 + side.offsetHeight + 14 * 4;
+        var used = coach.offsetHeight + head.offsetHeight + side.offsetHeight + 14 * 4 + (dailyShown && !dLine.hidden ? dLine.offsetHeight + 14 : 0);
         bhost.style.setProperty('--try-board', Math.max(240, Math.min(bhost.clientWidth || 9999, H - used)) + 'px');
       }
       if (typeof ResizeObserver !== 'undefined') { var tro = new ResizeObserver(function () { fitTry(); }); tro.observe(host); }
-      open(Math.min(pIndex, PUZZLES.length - 1));
+      // a player back from an earlier day starts on the daily puzzle, once a day (the daily line above the board opens it
+      // any time); a new player goes through the series undisturbed, and a reload keeps the place in it
+      var asked = wantDaily; wantDaily = false;
+      if (dailyNow && !dailyNow.solved && (asked || (ctx.newcomer && !ctx.newcomer() && (!ctx.dailyAuto || ctx.dailyAuto())))) openDaily();
+      else open(Math.min(pIndex, PUZZLES.length - 1));
+
+      // ---- behind the button: the rule, why it matters, every rule
+      var more = el('div', 'learn-more'); more.id = 'learn-more'; more.hidden = true;
+      inn.appendChild(more);
+      rulesBtn.addEventListener('click', function () {
+        more.hidden = !more.hidden;
+        rulesBtn.textContent = T(more.hidden ? 'rulesOpen' : 'rulesClose'); rulesBtn.setAttribute('aria-expanded', String(!more.hidden));
+        if (ctx.track && !more.hidden) ctx.track('rules_open', {});
+        if (!more.hidden) try { more.scrollIntoView({ behavior: ctx.motionOK && !ctx.motionOK() ? 'auto' : 'smooth', block: 'start' }); } catch (e) { more.scrollIntoView(); }
+      });
 
       // the rule
       var rs = section(T('ruleH')), grid = el('div', 'rule-grid');
@@ -415,14 +578,14 @@ var GCLearn = (function () {
       var c3 = el('div', 'card rule-card'); c3.appendChild(starsArt());
       c3.appendChild(el('h3', null, esc(T('r3T')))); c3.appendChild(el('p', null, esc(T('r3P'))));
       grid.appendChild(c1); grid.appendChild(c2); grid.appendChild(c3);
-      rs.appendChild(grid); inn.appendChild(rs);
+      rs.appendChild(grid); more.appendChild(rs);
 
       // why it matters
       var ws = section(T('whyH')), ug = el('div', 'usp-grid');
       [1, 2, 3, 4].forEach(function (i) { ug.appendChild(el('div', 'usp', '<b>' + esc(T('u' + i + 'N')) + '</b><span>' + esc(T('u' + i + 'T')) + '</span>')); });
       ws.appendChild(ug);
       ws.appendChild(el('p', 'vs960', esc(T('vs960'))));
-      inn.appendChild(ws);
+      more.appendChild(ws);
 
 
       // every rule
@@ -430,15 +593,15 @@ var GCLearn = (function () {
       rr.className = 'rules-full';
       var ol = el('ol', 'rules');
       ['rule1', 'rule2', 'rule3', 'rule4', 'rule5', 'premoveRule'].forEach(function (k) { ol.appendChild(el('li', null, '<span>' + esc(T(k)) + '</span>')); });
-      rr.appendChild(ol); inn.appendChild(rr);
+      rr.appendChild(ol); more.appendChild(rr);
 
       var cta = el('button', 'start-btn learn-cta', esc(T('learnCta')));
       cta.type = 'button'; cta.id = 'learn-play';
       cta.addEventListener('click', function () { ctx.go('bots'); });
-      inn.appendChild(cta);
+      more.appendChild(cta);
       // the closing titles: where the game came from
-      inn.appendChild(el('p', 'credits learn-credits', esc(T('credits'))));
-      var pv = el('a', 'page-foot', esc(T('privacy'))); pv.href = ctx.privacyUrl ? ctx.privacyUrl() : 'privacy.html'; pv.target = '_blank'; pv.rel = 'noopener'; inn.appendChild(pv);
+      more.appendChild(el('p', 'credits learn-credits', esc(T('credits'))));
+      var pv = el('a', 'page-foot', esc(T('privacy'))); pv.href = ctx.privacyUrl ? ctx.privacyUrl() : 'privacy.html'; pv.target = '_blank'; pv.rel = 'noopener'; more.appendChild(pv);
 
       demos.forEach(function (d) { d.wanted = view === 'learn'; watch(d); d.update(); });
     }
@@ -448,13 +611,27 @@ var GCLearn = (function () {
       else { playDemo = new Demo(host, REEL[0], ctx, cap || null); watch(playDemo); }
       playDemo.wanted = view === 'play'; playDemo.update();
     }
+    // the Play tab for a returning player: today's daily puzzle on the board (the pieces that can jump glowing), a tap
+    // opens it on the Learn tab
+    function dailyBoard(host, d, onTap) {
+      if (playDemo) { playDemo.stop(); playDemo.wanted = false; }
+      var mb = new MiniBoard(host, { demo: true }), pos = new GC.Position(d.p.fen);
+      mb.view.speed = 0;
+      mb.view.setOrientation(pos.side);
+      mb.show(pos, [], true);
+      if (!d.solved) { mb.el.classList.add('pz-glow'); mb.view.markGolden(pos.side); }
+      mb.wrap.classList.add('daily-board'); mb.wrap.id = 'daily-board';
+      if (d.solved) mb.wrap.appendChild(el('div', 'daily-done', '<i>\u2713</i>'));
+      mb.wrap.addEventListener('click', onTap);
+      return mb;
+    }
     function active(v) {
       view = v;
       demos.forEach(function (d) { d.wanted = v === 'learn'; d.update(); });
       if (playDemo) { playDemo.wanted = v === 'play' && playDemo.mb.wrap.isConnected; playDemo.update(); }
       if (puzzle && v !== 'learn') puzzle.clearTimers();
     }
-    return { render: render, active: active, heroBoard: heroBoard, PUZZLES: PUZZLES };
+    return { render: render, active: active, heroBoard: heroBoard, dailyBoard: dailyBoard, showDaily: showDaily, reload: reload, PUZZLES: PUZZLES };
   }
   return { create: create, DEMOS: DEMOS, PUZZLES: PUZZLES, REEL: REEL };
 })();

@@ -41,6 +41,10 @@
       "insetsHandling": "css",
       "initialViewportFitValueHint": "cover",
       "style": "DARK"
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_joker",
+      "iconColor": "#F0B941"
     }
   }
 }

@@ -9,7 +9,10 @@ const path = require('path');
 
 const MAX = +process.argv[2] || 200;
 const files = process.argv.slice(3);
-const OUT = path.join(__dirname, '../../src/puzzles.js');
+// PICK_OUT / PICK_VAR / PICK_ID: another list (the daily puzzles: src/daily.js, JOKER_DAILY, ids d1, d2...);
+// PICK_AVOID: a list whose positions never come back in this one (the Learn puzzles, for the daily list)
+const OUT = process.env.PICK_OUT ? path.resolve(process.env.PICK_OUT) : path.join(__dirname, '../../src/puzzles.js');
+const VAR = process.env.PICK_VAR || 'JOKER_PUZZLES', ID = process.env.PICK_ID || 'j';
 const MATE_BOUND = E.MATE_BOUND;
 const isMate = (s) => Math.abs(s) > MATE_BOUND;
 
@@ -40,6 +43,10 @@ try {
   old = JSON.parse(src.slice(src.indexOf('['), src.lastIndexOf(']') + 1));
 } catch (e) { old = []; }
 old.forEach((p) => seen.add(p.fen.split(' ').slice(0, 4).join(' ')));
+if (process.env.PICK_AVOID) {
+  const a = fs.readFileSync(path.resolve(process.env.PICK_AVOID), 'utf8');
+  JSON.parse(a.slice(a.indexOf('['), a.lastIndexOf(']') + 1)).forEach((p) => seen.add(p.fen.split(' ').slice(0, 4).join(' ')));
+}
 
 const finds = [];
 for (const f of files) for (const line of fs.readFileSync(f, 'utf8').split('\n')) { if (line.trim()) finds.push(JSON.parse(line)); }
@@ -65,17 +72,19 @@ for (const v of finds) {
   const c0 = accept[best.uci];
   const quiet = c0.length >= 2 && !(() => { const q = new GC.Position(v.fen); q.makeMove(q.moveFromUci(best.uci)); q.makeMove(q.moveFromUci(c0[0])); return q.moveFromUci(c0[1]) & GC.F_CAPTURE; })();
   const diff = (v.found || 3) * 2 + (best.mate > 0 ? Math.min(best.mate, 5) : 3) + (quiet ? 3 : 0) + (opp ? 2 : 0) - (Object.keys(accept).length - 1) * 2;
-  fresh.push({ fen: v.fen, accept, mate: best.mate > 0 ? best.mate : 0, diff });
+  // the kind of moment (tools/puzzles/kinds.js): lost without the Joker Move, a short mate, or a plain win
+  const k = normal.score <= -250 ? 'save' : best.mate > 0 && best.mate <= 3 ? 'mate' : 'win';
+  fresh.push({ fen: v.fen, accept, mate: best.mate > 0 ? best.mate : 0, k, diff });
   console.log('ok', fresh.length, v.fen, best.uci, best.mate ? 'M' + best.mate : best.score, 'diff', diff);
 }
 
 // old ones keep their place and id; new ones are numbered on and everything is sorted by difficulty
 let nextId = old.reduce((n, p) => Math.max(n, +String(p.id).slice(1) || 0), 0) + 1;
-const all = old.concat(fresh.map((p) => Object.assign({ id: 'j' + nextId++ }, p)));
+const all = old.concat(fresh.map((p) => Object.assign({ id: ID + nextId++ }, p)));
 all.sort((a, b) => a.diff - b.diff);
 const list = all.slice(0, MAX);
 list.forEach((p, i) => { p.lvl = i < list.length * 0.35 ? 1 : i < list.length * 0.75 ? 2 : 3; });
-const body = list.map((p) => '  ' + JSON.stringify({ id: p.id, lvl: p.lvl, fen: p.fen, accept: p.accept, mate: p.mate || undefined, diff: p.diff })).join(',\n');
+const body = list.map((p) => '  ' + JSON.stringify({ id: p.id, lvl: p.lvl, fen: p.fen, accept: p.accept, mate: p.mate || undefined, k: p.k, diff: p.diff })).join(',\n');
 fs.writeFileSync(OUT, '/* Joker Move puzzles made by the engine (tools/puzzles/gen.js finds them, pick.js checks and sorts them): easy to hard.\n' +
-  ' * Every accepted answer wins (or mates) and beats the best normal move by three pawns or more. */\nvar JOKER_PUZZLES = [\n' + body + '\n];\n');
+  ' * Every accepted answer wins (or mates) and beats the best normal move by three pawns or more. */\nvar ' + VAR + ' = [\n' + body + '\n];\n');
 console.log('wrote', list.length, 'puzzles (', fresh.length, 'new )');
