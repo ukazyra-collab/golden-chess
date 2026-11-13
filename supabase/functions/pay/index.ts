@@ -11,7 +11,8 @@
 // subscription as Stripe has it at that moment, whatever order the events come in.
 // The owner's requests (POST with the one-time key kept in billing_config): setup (the product, the prices, the page
 // that manages a subscription, the webhook: made at Stripe once for each of its two modes), selftest (test mode only:
-// a subscription made and cancelled through Stripe's API, to see the webhook bring the account along), admin_state.
+// the pages a player would be sent to, then a subscription made and cancelled through Stripe's API to see the webhook
+// bring the account along; with a customer of its own, and the account put back as it was), admin_state.
 //
 // Settings: STRIPE_SECRET_KEY and STRIPE_TEST_KEY (Stripe's live and test secret keys; the owner enters them in the
 // Supabase dashboard; which is which is read off the key itself), PAY_SITE (default https://joker-chess.com/),
@@ -128,6 +129,8 @@ async function applySub(sub: any, hint?: string): Promise<string> {
   if (!prof) return 'no_profile';
   const row = await rowOf(uid);
   if (row && row.livemode && !ent.livemode) return 'test_news_for_a_live_account'; // (the test side never writes over real money's side)
+  // (the owner's self-test puts the account back as it was: late news of its ended subscription must not come back)
+  if (sub.metadata && sub.metadata.selftest === '1' && !ent.live && !(row && row.subscription === ent.id)) return 'selftest_over';
   if (!replaces(row, ent)) return 'older_subscription';
   const until = ent.until ? new Date(ent.until) : null, end = ent.periodEnd ? new Date(ent.periodEnd) : null;
   await sql.begin(async (tx) => {
@@ -231,6 +234,20 @@ async function stateOf(uid: string): Promise<any> {
   return { pro: publicState(prof, mine, Date.now()), can: access(mode, S ? S.km : null, admin), test: (S && !S.live) || undefined,
     foundersLeft: Math.max(0, PLANS.founder.seats - Number(founders[0].n)), now: Date.now() };
 }
+// what Stripe's payment page is asked for: a subscription (the year with its trial, once an account) or the one payment
+function sessionParams(plan: string, price: string, customer: string, uid: string, back: string, lang: string, trial: boolean) {
+  // deno-lint-ignore no-explicit-any
+  const params: any = { mode: plan === 'founder' ? 'payment' : 'subscription', customer, client_reference_id: uid, locale: lang,
+    line_items: [{ price, quantity: 1 }], allow_promotion_codes: true, metadata: { user_id: uid, plan },
+    success_url: back + '?pro=ok&sid={CHECKOUT_SESSION_ID}', cancel_url: back + '?pro=back' };
+  if (plan === 'founder') params.payment_intent_data = { metadata: { user_id: uid, plan } };
+  else {
+    params.subscription_data = { metadata: { user_id: uid, plan } };
+    const days = (PLANS as Record<string, { trialDays?: number }>)[plan].trialDays;
+    if (days && trial) params.subscription_data.trial_period_days = days;
+  }
+  return params;
+}
 // deno-lint-ignore no-explicit-any
 async function checkout(uid: string, caller: Caller, b: any) {
   const plan = String(b.plan || '');
@@ -253,17 +270,7 @@ async function checkout(uid: string, caller: Caller, b: any) {
   if (!prices[plan]) throw new Fail('not_set_up');
   const customer = await customerFor(S, uid, prof, row);
   const lang = b.lang === 'ru' || (b.lang == null && prof.lang === 'ru') ? 'ru' : 'auto';
-  // deno-lint-ignore no-explicit-any
-  const params: any = { mode: plan === 'founder' ? 'payment' : 'subscription', customer, client_reference_id: uid, locale: lang,
-    line_items: [{ price: prices[plan], quantity: 1 }], allow_promotion_codes: true, metadata: { user_id: uid, plan },
-    success_url: back + '?pro=ok&sid={CHECKOUT_SESSION_ID}', cancel_url: back + '?pro=back' };
-  if (plan === 'founder') params.payment_intent_data = { metadata: { user_id: uid, plan } };
-  else {
-    params.subscription_data = { metadata: { user_id: uid, plan } };
-    const days = (PLANS as Record<string, { trialDays?: number }>)[plan].trialDays;
-    if (days && !(mine && mine.trial_used)) params.subscription_data.trial_period_days = days;
-  }
-  const s = await stripe(S, 'POST', 'checkout/sessions', params);
+  const s = await stripe(S, 'POST', 'checkout/sessions', sessionParams(plan, prices[plan], customer, uid, back, lang, !(mine && mine.trial_used)));
   return { url: s.url };
 }
 async function portalUrl(S: Side, customer: string, back: string, lang?: string): Promise<string> {
@@ -336,8 +343,9 @@ async function setup(b: any) {
   for (const k of want) out[k] = SIDES[k] ? await setupSide(SIDES[k]!) : 'no_key';
   return out;
 }
-// the test side only: a subscription made and cancelled through the API, each time waiting for the webhook to bring
-// the account along
+// the test side only, and nothing of a person in it: a customer of the test's own; the pages a player would be sent to,
+// asked for and closed again; a subscription made and cancelled through the API, each time waiting for the webhook to
+// bring the account along. The account is then put back as it was.
 // deno-lint-ignore no-explicit-any
 async function selftest(b: any) {
   const S = SIDES.test;
@@ -346,12 +354,31 @@ async function selftest(b: any) {
   if (!uid || !(await isAdmin(uid))) throw new Fail('no_admin');
   const prof = await profileOf(uid);
   if (!prof) throw new Fail('profile');
+  const before = await rowOf(uid);
+  if (before && before.livemode) throw new Fail('live_account'); // (real money on file: nothing is tried on that account)
+  if (before && LIVE.includes(before.status || '')) throw new Fail('busy'); // (a test subscription of its own is running)
   const prices = await priceIds(S, true);
-  if (!prices.month) throw new Fail('not_set_up');
-  const customer = await customerFor(S, uid, prof, await rowOf(uid));
-  const pm = await stripe(S, 'POST', 'payment_methods/pm_card_visa/attach', { customer });
-  await stripe(S, 'POST', 'customers/' + customer, { invoice_settings: { default_payment_method: pm.id } });
-  const sub = await stripe(S, 'POST', 'subscriptions', { customer, items: [{ price: prices.month }], metadata: { user_id: uid, plan: 'month', selftest: '1' } });
+  if (Object.keys(PLANS).some((p) => !prices[p])) throw new Fail('not_set_up');
+  const c = await stripe(S, 'POST', 'customers', { name: 'Joker Pro self-test', metadata: { app: 'joker-chess', selftest: '1' } });
+  // the pages: each plan's payment page (closed again at once) and the page that manages a subscription
+  const pages: Record<string, true | string> = {};
+  const page = async (name: string, f: () => Promise<unknown>) => {
+    try { await f(); pages[name] = true; } catch (e) {
+      pages[name] = e instanceof Fail && e.extra ? [e.extra.type, e.extra.code, e.extra.message].filter(Boolean).join(': ').slice(0, 240) : 'failed';
+    }
+  };
+  for (const plan of Object.keys(PLANS)) {
+    await page(plan, async () => {
+      const s = await stripe(S, 'POST', 'checkout/sessions', sessionParams(plan, prices[plan], c.id, uid, SITE, plan === 'year' ? 'ru' : 'auto', true));
+      if (!/^https:\/\//.test(String(s.url || ''))) throw new Fail('stripe', { message: 'no page address' });
+      await stripe(S, 'POST', 'checkout/sessions/' + s.id + '/expire');
+    });
+  }
+  await page('portal', async () => { if (!(await portalUrl(S, c.id, SITE))) throw new Fail('stripe', { message: 'no page address' }); });
+  // the subscription
+  const pm = await stripe(S, 'POST', 'payment_methods/pm_card_visa/attach', { customer: c.id });
+  await stripe(S, 'POST', 'customers/' + c.id, { invoice_settings: { default_payment_method: pm.id } });
+  const sub = await stripe(S, 'POST', 'subscriptions', { customer: c.id, items: [{ price: prices.month }], metadata: { user_id: uid, plan: 'month', selftest: '1' } });
   const wait = async (status: string) => {
     for (let i = 0; i < 40; i++) {
       const r = await rowOf(uid);
@@ -360,12 +387,23 @@ async function selftest(b: any) {
     }
     return false;
   };
+  const running = async () => { const p = await profileOf(uid); return !!(p && p.pro_until && new Date(p.pro_until).getTime() > Date.now()); };
   const started = await wait('active');
-  const proOn = publicState(await profileOf(uid), await rowOf(uid), Date.now()).on;
+  const proOn = await running();
   await stripe(S, 'DELETE', 'subscriptions/' + sub.id);
   const ended = await wait('canceled');
-  const proOff = !publicState(await profileOf(uid), await rowOf(uid), Date.now()).on;
-  return { ok: started && proOn && ended && proOff, subscription: sub.status, webhookOnStart: started, proOn, webhookOnCancel: ended, proOff };
+  const proOff = !(await running());
+  // the account goes back to what it had before
+  let restored = false;
+  await sql.begin(async (tx) => {
+    const mine = before
+      ? await tx`update public.billing set customer = ${before.customer}, subscription = ${before.subscription}, status = ${before.status}, plan = ${before.plan}, period_end = ${before.period_end},
+          cancel_at_period_end = ${before.cancel_at_period_end}, trial_used = ${before.trial_used}, updated_at = now() where user_id = ${uid} and subscription = ${sub.id} returning user_id`
+      : await tx`delete from public.billing where user_id = ${uid} and subscription = ${sub.id} returning user_id`;
+    if (mine.length) { await tx`update public.profiles set pro_until = ${prof.pro_until}, pro_plan = ${prof.pro_plan} where id = ${uid}`; restored = true; }
+  });
+  const pagesOk = Object.values(pages).every((v) => v === true);
+  return { ok: started && proOn && ended && proOff && pagesOk, subscription: sub.status, webhookOnStart: started, proOn, webhookOnCancel: ended, proOff, pages, restored };
 }
 async function adminState() {
   const [mode, hookT, hookL, portT, portL, n] = await Promise.all([modeNow(), config('hook:test'), config('hook:live'), config('portal:test'), config('portal:live'),

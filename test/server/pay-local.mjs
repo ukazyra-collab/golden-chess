@@ -86,6 +86,7 @@ const fake = http.createServer((req, res) => {
     const path = u.pathname.slice(4), b = req.method === 'GET' ? parseForm(u.search.slice(1)) : parseForm(data);
     S.calls.push({ method: req.method, path, body: b });
     const m = (re) => (req.method + ' ' + path).match(re);
+    if (S.refuse && S.refuse.test(req.method + ' ' + path)) return send(400, { error: { type: 'invalid_request_error', code: 'parameter_unknown', message: 'refused by the stand-in' } });
     let x;
     if (m(/^GET prices$/)) return send(200, { data: S.prices.filter((p) => (b.lookup_keys || []).includes(p.lookup_key) && p.active) });
     if ((x = m(/^GET prices\/(\w+)$/))) return send(200, S.prices.find((p) => p.id === x[1]) || {});
@@ -108,6 +109,7 @@ const fake = http.createServer((req, res) => {
         livemode: S.livemode, url: 'https://checkout.stripe.test/c/' + sid, subscription: null, payment_intent: null, params: b };
       S.sessions.set(sid, s); return send(200, s);
     }
+    if ((x = m(/^POST checkout\/sessions\/(\w+)\/expire$/))) { const s = S.sessions.get(x[1]); if (!s) return send(404, { error: { message: 'No such checkout.session' } }); s.status = 'expired'; return send(200, s); }
     if ((x = m(/^GET checkout\/sessions\/(\w+)$/))) { const s = S.sessions.get(x[1]); return s ? send(200, s) : send(404, { error: { message: 'No such checkout.session' } }); }
     if (m(/^POST billing_portal\/sessions$/)) { const p = { id: id(S, 'bps'), customer: b.customer, configuration: b.configuration || null, return_url: b.return_url, url: 'https://billing.stripe.test/p/' + S.n }; S.portalSessions.push(p); return send(200, p); }
     if ((x = m(/^GET subscriptions\/(\w+)$/))) { const s = S.subs.get(x[1]); return s ? send(200, s) : send(404, { error: { type: 'invalid_request_error', code: 'resource_missing', message: 'No such subscription' } }); }
@@ -364,11 +366,43 @@ try {
   check('the owner still can, on the test side', /cs_test_/.test((await call(token(OWNER), { action: 'checkout', plan: 'month' })).body.url || ''));
 
   // ---- the owner's self-test: a subscription through the API, the webhook brings the account along both ways
+  // (with a customer of its own, nothing of a person in it; the pages a player would be sent to; the account put back)
   await setMode('test');
   T.autoHooks = true;
+  const same = (x) => JSON.stringify(Object.assign({}, x, { updated_at: null }));
+  const ownerBill = await bill(OWNER), ownerProf = await prof(OWNER), nCalls = T.calls.length, nCus = T.customers.size, nSes = T.sessions.size, nPor = T.portalSessions.length;
   r = await own('selftest');
-  check('the self-test passes', r.body.ok === true && r.body.webhookOnStart && r.body.proOn && r.body.webhookOnCancel && r.body.proOff, r.body);
-  check('and leaves the owner without Pro', !(await isOn(OWNER)) && (await bill(OWNER)).status === 'canceled');
+  check('the self-test passes', r.body.ok === true && r.body.webhookOnStart && r.body.proOn && r.body.webhookOnCancel && r.body.proOff && r.body.restored === true, r.body);
+  check('it asked for every page a player would get', r.body.pages.month === true && r.body.pages.year === true && r.body.pages.founder === true && r.body.pages.portal === true &&
+    T.sessions.size === nSes + 3 && T.portalSessions.length === nPor + 1, r.body.pages);
+  const testSes = [...T.sessions.values()].slice(nSes), testCus = [...T.customers.values()].slice(nCus);
+  check('and closed the payment pages again', testSes.every((x) => x.status === 'expired') && testSes.map((x) => x.mode).join() === 'subscription,subscription,payment' &&
+    testSes[1].params.subscription_data.trial_period_days === '7' && testSes[1].params.locale === 'ru', testSes.map((x) => [x.mode, x.status]));
+  check('its customer is its own: no address, no name of a person', testCus.length === 1 && testCus[0].email === undefined && testCus[0].name === 'Joker Pro self-test' && testCus[0].metadata.selftest === '1' &&
+    testSes.every((x) => x.customer === testCus[0].id) && !JSON.stringify(T.calls.slice(nCalls)).includes('owner@example.com') && !JSON.stringify(T.calls.slice(nCalls)).includes('"Owner"'), testCus);
+  check('the owner\'s account is as it was before', same(await bill(OWNER)) === same(ownerBill) && JSON.stringify(await prof(OWNER)) === JSON.stringify(ownerProf) && !(await isOn(OWNER)), [await bill(OWNER), ownerBill]);
+  const testSub = [...T.subs.values()].pop();
+  check('its subscription was a month, and is over', testSub.customer === testCus[0].id && testSub.status === 'canceled' && testSub.metadata.selftest === '1' && testSub.metadata.user_id === OWNER, testSub);
+  h = await sendHook(T, 'customer.subscription.updated', testSub);
+  check('late news of it does not come back to the account', h.status === 200 && h.body.note === 'selftest_over' && same(await bill(OWNER)) === same(ownerBill), h);
+  check('the log says what the test did', (await q("select count(*)::int as n from public.billing_events where note in ('active month', 'canceled month') and user_id = $1 and created_at > now() - interval '1 minute'", [OWNER]))[0].n >= 2);
+  // a payment page that Stripe refuses shows up in the answer
+  T.refuse = /^POST checkout\/sessions$/;
+  r = await own('selftest');
+  check('a page Stripe refuses fails the self-test, and says why', r.body.ok === false && /refused by the stand-in/.test(r.body.pages.month) && r.body.pages.portal === true && r.body.webhookOnStart && r.body.restored === true &&
+    same(await bill(OWNER)) === same(ownerBill), r.body);
+  T.refuse = null;
+  // an account with a test subscription of its own running is left alone
+  await q("update public.billing set status = 'active' where user_id = $1", [OWNER]);
+  r = await own('selftest');
+  check('not on an account whose own test subscription runs', r.body.error === 'busy' && T.customers.size === nCus + 2, r.body);
+  await q('update public.billing set status = $2 where user_id = $1', [OWNER, ownerBill.status]);
+  // an account that has nothing on file: the test leaves nothing on file
+  await q('insert into public.admins (user_id) values ($1)', [BOB]);
+  r = await own('selftest', { user: BOB });
+  check('an account with nothing on file is left with nothing on file', r.body.ok === true && (await bill(BOB)) === null && !(await isOn(BOB)) && (await prof(BOB)).pro_plan === null, [r.body, await bill(BOB)]);
+  await q('delete from public.admins where user_id = $1', [BOB]);
+  check('and only for the owner\'s accounts', (await own('selftest', { user: BOB })).body.error === 'no_admin');
   T.autoHooks = false;
 
   // ================================================================ real money next to the test side
@@ -406,6 +440,8 @@ try {
   // test news can't touch an account with real money on file
   const ownerLive = await bill(OWNER);
   h = await sendHook(T, 'customer.subscription.updated', sub2); // (the owner's old test subscription; their account is on the live side now)
+  r = await own('selftest');
+  check('no self-test on an account with real money on file', r.body.error === 'live_account' && JSON.stringify(await bill(OWNER)) === JSON.stringify(ownerLive), r.body);
   check('test news for an account on the live side: left alone', h.body.note === 'test_news_for_a_live_account' && JSON.stringify(await bill(OWNER)) === JSON.stringify(ownerLive) && (await bill(OWNER)).livemode === true, [h, await bill(OWNER)]);
   const annTest = mkSub(T, { customer: 'cus_test_ann', price: price('month').id, metadata: { user_id: ANN } });
   h = await sendHook(T, 'customer.subscription.created', annTest);
