@@ -190,7 +190,17 @@ async def main():
             C = await open_page(ctxC, 'C')
             ok('ratings tab', await nav(C, 'ratings'))
             ok('ratings: asks a guest to sign in', await wait_for(C, '!!document.getElementById("btn-ratings-signin")', 3000))
+            # a phone: the account sheet does not raise the keyboard by itself (it would cover Apple / Google and jump with
+            # every repaint); the field takes it only while an address is being put right
+            await C.evaluate('__gc.showAccount()')
+            await wait_for(C, '__gc.dialogKind === "account" && !!document.getElementById("acct-email")', 3000); await C.wait_for_timeout(250)
+            ok('phone: the account sheet opens without the keyboard', await C.evaluate('document.activeElement && document.activeElement.id') != 'acct-email')
+            await C.fill('#acct-email', 'not-an-email'); await C.click('#btn-send-code'); await C.wait_for_timeout(250)
+            ok('phone: a wrong address keeps the field in hand', await C.evaluate('!!document.getElementById("acct-err") && document.activeElement && document.activeElement.id') == 'acct-email')
+            await C.evaluate('__gc.closeDialog()'); await C.wait_for_timeout(350)
             await C.click('#btn-ratings-signin')
+            await wait_for(C, '!!document.getElementById("acct-email")', 3000); await C.wait_for_timeout(250)
+            ok('phone: the sign-in page opens without the keyboard too', await C.evaluate('document.activeElement && document.activeElement.id') != 'acct-email')
             admin('shift', ms=61000)  # past the one-code-a-minute limit for this address
             ok('existing email: code step', await send_code(C, 'alice@example.com'))
             ok('no switching note for a fresh guest', not await C.evaluate('!!document.getElementById("acct-existing")'))

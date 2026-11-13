@@ -5070,7 +5070,9 @@
 
     function btn(cls, label, fn, id) { var b = h('button', { class: cls, type: 'button' }, esc(label)); if (id) b.id = id; b.addEventListener('click', fn); return b; }
     function row(btns) { var r = h('div', { class: 'row-btns' }); btns.forEach(function (b) { r.appendChild(b); }); return r; }
-    function focus(el) { if (o.page && matchMedia('(pointer: coarse)').matches && st.step === 'form') return; setTimeout(function () { if (el.isConnected && !el.disabled) try { el.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 30); }
+    // on a phone the first step does not take the keyboard by itself: it would cover Apple / Google and come and go with
+    // every repaint (the sheet jumping under the finger). In the sheet it stays up only while an address is being put right
+    function focus(el) { if (st.step === 'form' && matchMedia('(pointer: coarse)').matches && (o.page || !st.err)) return; setTimeout(function () { if (el.isConnected && !el.disabled) try { el.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 30); }
     // the "send again" countdown (only that button changes, so typing in the code field is never disturbed)
     function tick() {
       if (!again || !again.isConnected) { clearInterval(timer); return; }
@@ -5107,7 +5109,7 @@
         inp.value = st.email;
         form.appendChild(inp);
         if (err) form.appendChild(err);
-        var go2 = h('button', { type: 'submit', class: 'primary', id: 'btn-send-code' }, esc(st.busy ? T('sending') + '…' : T('sendCode')));
+        var go2 = h('button', { type: 'submit', class: 'primary', id: 'btn-send-code' }, esc(st.busy && st.by === 'code' ? T('sending') + '…' : T('sendCode')));
         go2.disabled = st.busy;
         form.appendChild(o.page ? go2 : row([btn('secondary', T('cancel'), o.onCancel), go2]));
         form.addEventListener('submit', function (e) { e.preventDefault(); sendCode(inp.value); });
@@ -5188,7 +5190,7 @@
       if (st.busy) return;
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { st.email = email; st.err = T('emailInvalid'); render(); return; }
       if (NETCFG && NETCFG.reviewEmail && email.toLowerCase() === NETCFG.reviewEmail) { st.email = email; st.err = ''; st.step = 'password'; render(); return; }
-      st.busy = true; st.err = ''; st.email = email; render();
+      st.busy = true; st.by = 'code'; st.err = ''; st.email = email; render();
       optPending();
       ensureNet().then(function () { return net.account(); }).then(function (a) {
         if (a && a.guest) {
@@ -5279,7 +5281,7 @@
     function apple() {
       if (st.busy) return;
       optPending();
-      st.busy = true; st.err = ''; render();
+      st.busy = true; st.by = 'apple'; st.err = ''; render();
       var connect = !!st.connect; st.connect = false;
       appleSignIn(connect).then(function () { if (alive) { st.busy = false; render(); } }, function (e) {
         // the sheet closed without signing in (cancelled): nothing to say
@@ -5289,7 +5291,7 @@
     function google() {
       if (st.busy) return;
       optPending();
-      st.busy = true; st.err = ''; render();
+      st.busy = true; st.by = 'google'; st.err = ''; render();
       // Google's sign-in page (the page leaves for it here; in the app the system browser opens over the page) answers
       // through google.html; providerIdToken then links Google to this guest or signs in (see googleRedirect)
       var connect = !!st.connect; st.connect = false;
