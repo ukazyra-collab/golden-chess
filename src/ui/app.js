@@ -6356,6 +6356,9 @@
       } else learnKit.heroBoard(reelHost, reelCap);
       reelHost.appendChild(reelCap);
     }
+    // the website's own footer: who runs it and the legal pages (the apps show the same site, they don't need it)
+    if (NETCFG && !NATIVE.on) col.appendChild(h('div', { class: 'site-foot', id: 'site-foot' },
+      '<span>© Kozyra Media Group FZCO, Dubai</span><span><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="support.html">Support</a></span>'));
   }
   function onlineTc() { return ONLINE_TCS.indexOf(lastSetup.otc) >= 0 ? lastSetup.otc : '3+2'; }
   function bigBtn(cls, label, id, fn) {
