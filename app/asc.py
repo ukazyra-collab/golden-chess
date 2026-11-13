@@ -340,6 +340,14 @@ def cmd_products(check=False):
             s = api('POST', '/v1/subscriptions', {'data': {'type': 'subscriptions', 'attributes': {'name': sp['referenceName'], 'productId': pid, 'familySharable': False, 'subscriptionPeriod': sp['period'], 'groupLevel': sp['groupLevel'], 'reviewNote': P['reviewNote']},
                 'relationships': {'group': rel('subscriptionGroups', g['id'])}}})['data']
         sid = s['id']
+        # one buyer, one seat, the App Store only (Apple's default also offers seats in bulk to businesses and schools:
+        # nothing here knows what to do with a purchase of twenty seats)
+        sa = s['attributes']
+        if sa.get('multiSeatStatus') == 'ENABLED' or (sa.get('marketSettings') and sa.get('marketSettings') != ['APP_STORE']):
+            do(f'{pid}: one seat, the App Store only')
+            if not check:
+                ok, r = soft('PATCH', f"/v1/subscriptions/{sid}", {'data': {'type': 'subscriptions', 'id': sid, 'attributes': {'multiSeatStatus': 'DISABLED', 'marketSettings': ['APP_STORE']}}})
+                if not ok: print('  refused:', r[:400])
         have = {l['attributes']['locale'] for l in get_all(f"/v1/subscriptions/{sid}/subscriptionLocalizations?limit=50")}
         for loc, t in sp['localizations'].items():
             if loc in have: continue
