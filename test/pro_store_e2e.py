@@ -438,6 +438,52 @@ async def main():
             ok('no trial left for this store account: the button names the price', (await text(T, '#btn-pro-buy')) == 'Get Pro for $29.99 a year' and (await text(T, '#pro-fine')) == '$29.99 a year. Renews until you cancel.', [await text(T, '#btn-pro-buy'), await text(T, '#pro-fine')])
             await t_ctx.close()
 
+            # ================================================================ 8b. the app brings Pro up by itself the way the site does
+            # (the line on the Play tab, the sheet after a finished game), and the plans behind both carry the store's prices
+            day = lambda k: time.strftime('%Y-%m-%d', time.localtime(time.time() + k * 86400))
+            async def one_game(pg):
+                await pg.evaluate("""() => { __gc.closeDialog(); __gc.startGame({ mode: 'local', color: 'w', tc: 'none' });
+                    for (const u of ['e2e4', 'e7e5']) { const m = __gc.game.pos.moveFromUci(u); __gc.tryMove(m & 127, (m >> 7) & 127, false); } }""")
+                await wait_for(pg, '__gc.game.records.length === 2', 3000)
+                await pg.evaluate('__gc.game.end("1-0", "resign", performance.now()); __gc.gameOver()')
+                await pg.wait_for_timeout(350)
+                await pg.evaluate('__gc.closeDialog(); __gc.go("play")')
+            USD = [dict(p, price=v, priceString='$%.2f' % v, currencyCode='USD') for p, v in zip(IOS_PRODUCTS, (3.99, 29.99, 79.99))]
+            seed = dict(gamesDone=9, saveAsk=dict(n=3, at=0), remindAsk=dict(n=3, at=int(time.time() * 1000)), days=[day(-9), day(-8)])
+            # the first day the app sees Pro on sale: nothing is brought up
+            f_ctx = await br.new_context(**phone)
+            F = await open_page(f_ctx, 'F', iap=dict(platform='ios', products=USD, device='i7'), store=seed)
+            await prep(F, noask=False); await wait_for(F, '__gc.pro.sells', 5000)
+            await F.evaluate('__gc.go("learn"); __gc.go("play")'); await F.wait_for_timeout(400)
+            await one_game(F); await F.wait_for_timeout(2500)
+            ok('the app, the first day Pro is on sale there: no line, no sheet after a game', not await has(F, '#pro-banner') and (await kind(F)) != 'pro-offer', [await kind(F), (await pro(F))['offer']])
+            await f_ctx.close()
+            # a returning player: the quiet line on the Play tab, and the plans behind it at the store's prices
+            l_ctx = await br.new_context(**phone)
+            Ln = await open_page(l_ctx, 'L', iap=dict(platform='ios', products=USD, device='i8'), store=dict(seed, proOffer=dict(first=day(-9))))
+            await prep(Ln, noask=False); await wait_for(Ln, '__gc.pro.sells', 5000)
+            await Ln.evaluate('__gc.go("learn"); __gc.go("play")'); await Ln.wait_for_timeout(500)
+            ok('the app, a returning player: one quiet line about Pro on the Play tab, nothing over the screen', await has(Ln, '#pro-banner') and 'Joker Pro' in (await text(Ln, '#pro-banner .pb-t b') or '') and not await Ln.evaluate('__gc.dialogOpen'), await text(Ln, '#pro-banner'))
+            if SHOTS: await Ln.wait_for_timeout(500); await Ln.screenshot(path=SHOT_DIR + '/store-banner-ios.png')
+            await Ln.click('#pro-banner-go'); await Ln.wait_for_timeout(500)
+            ok('... a tap on it opens the plans with the App Store\'s prices', (await kind(Ln)) == 'pro' and (await text(Ln, '#plan-year .pl-price')) == '$29.99' and (await text(Ln, '#btn-pro-buy')) == 'Try 7 days free' and (await text(Ln, '#pro-payby') or '').startswith('Payment goes through the App Store.'), [await kind(Ln), await text(Ln, '#plan-year .pl-price'), await text(Ln, '#btn-pro-buy')])
+            await l_ctx.close()
+            # the sheet after a finished game (the Play tab's line already hidden for today)
+            o_ctx = await br.new_context(**phone)
+            Of = await open_page(o_ctx, 'Of', iap=dict(platform='ios', products=USD, device='i9'), store=dict(seed, proOffer=dict(first=day(-30), last=day(-8), n=3, banner=dict(id='plain', day=day(0), off=True))))
+            await prep(Of, noask=False); await wait_for(Of, '__gc.pro.sells', 5000)
+            await one_game(Of)
+            got = await wait_for(Of, '__gc.dialogKind === "pro-offer"', 6000)
+            ok('the app, after a finished game and back on the Play tab: the offer', got and (await text(Of, '#btn-offer-go')) == 'See what Pro gives' and await has(Of, '#btn-offer-later'), [await kind(Of), await text(Of, '.veil .sheetdlg')])
+            if SHOTS: await Of.wait_for_timeout(600); await Of.screenshot(path=SHOT_DIR + '/store-offer-ios.png')
+            if got: await Of.click('#btn-offer-go'); await Of.wait_for_timeout(600)
+            ok('... its button opens the plans with the App Store\'s prices, and buying from there works', (await kind(Of)) == 'pro' and (await text(Of, '#plan-month .pl-price')) == '$3.99' and 'Stripe' not in (await text(Of, '.pro-card') or ''), [await kind(Of), await text(Of, '#plan-month .pl-price')])
+            await Of.click('#btn-pro-buy')
+            ok('... bought from the offer: Pro is on', await wait_for(Of, '__gc.pro.on', 8000) and len(await calls(Of, 'purchaseProduct')) == 1, await pro(Of))
+            await one_game(Of); await Of.wait_for_timeout(2500)
+            ok('... and a Pro player is never offered it again', (await kind(Of)) not in ('pro-offer', 'pro') and not await has(Of, '#pro-banner'), await kind(Of))
+            await o_ctx.close()
+
             # ================================================================ 9. the website while a store subscription runs
             # (an account whose Pro ran out on the server's clock, but whose store subscription is still on file: only
             # the server can say so)
