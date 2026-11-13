@@ -7,6 +7,10 @@ import { APPLE_ROOT_G3, parseCert, issued, verifyJws, appleEntitlement, appleNot
 import { storeMerge, withStore } from '../../supabase/functions/pay/billing.js';
 import { googleSub, googleFounder, serviceAccount, serviceJwt } from '../../supabase/functions/pay/google.js';
 import { makeChain, signJws, transaction } from './apple-standin.mjs';
+import { createRequire } from 'node:module';
+import { APPLE_PRODUCTS } from '../../supabase/functions/pay/apple.js';
+import { GOOGLE_SUB, GOOGLE_FOUNDER, GOOGLE_PLANS } from '../../supabase/functions/pay/google.js';
+const Pro = createRequire(import.meta.url)('../../src/pro.js');
 
 let pass = 0, fail = 0;
 function check(name, cond, extra) { if (cond) pass++; else { fail++; console.log('FAIL ' + name + (extra !== undefined ? '  ' + JSON.stringify(extra) : '')); } }
@@ -163,6 +167,16 @@ const chain = makeChain(), opts = { root: chain.root };
   check('the service account\'s JWT: who, for what, for an hour, signed with its key', claims.iss === 'a@b.iam.gserviceaccount.com' && claims.scope === 'https://www.googleapis.com/auth/androidpublisher' && claims.aud === 'https://oauth2.googleapis.com/token' &&
     claims.exp - claims.iat === 3600 && crypto.verify('sha256', Buffer.from(parts[0] + '.' + parts[1]), k.publicKey, Buffer.from(parts[2], 'base64url')), claims);
   check('a key file that is not one: no account', serviceAccount('') === null && serviceAccount('{}') === null && serviceAccount('not json') === null && serviceAccount(JSON.stringify({ client_email: 'a', private_key: 'x' })) === null);
+}
+
+// ---- the products' names: what the page asks the stores for (src/pro.js) is what the pay function knows
+{
+  const A = Pro.STORE.apple, G = Pro.STORE.google;
+  check('the App Store products: the same three on the page and in the function', Object.keys(APPLE_PRODUCTS).sort().join() === [A.founder, A.month, A.year].sort().join() && APPLE_PRODUCTS[A.month] === 'month' && APPLE_PRODUCTS[A.year] === 'year' && APPLE_PRODUCTS[A.founder] === 'founder', [APPLE_PRODUCTS, A]);
+  check('Google Play: the subscription, its base plans named as our plans, the one-time product', G.sub === GOOGLE_SUB && G.founder === GOOGLE_FOUNDER && Object.keys(GOOGLE_PLANS).sort().join() === 'month,year' && GOOGLE_PLANS.month === 'month' && GOOGLE_PLANS.year === 'year', [G, GOOGLE_PLANS]);
+  // the trial's offer: the function reads it by this name too (googleSub: trial)
+  const v = { subscriptionState: 'SUBSCRIPTION_STATE_ACTIVE', startTime: new Date().toISOString(), lineItems: [{ productId: G.sub, expiryTime: new Date(Date.now() + 7 * 864e5).toISOString(), offerDetails: { basePlanId: 'year', offerId: G.trial }, autoRenewingPlan: { autoRenewEnabled: true } }] };
+  check('the free trial\'s offer has one name on both sides', googleSub(v, 'tok', Date.now()).trial === true && googleSub(Object.assign({}, v, { lineItems: [Object.assign({}, v.lineItems[0], { offerDetails: { basePlanId: 'year', offerId: 'other' } })] }), 'tok', Date.now()).trial === false);
 }
 
 console.log(`store (Apple's signed data, Google's answers, the rules): ${pass} passed, ${fail} failed`);

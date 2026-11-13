@@ -998,7 +998,17 @@ html { overscroll-behavior: none; overflow: hidden; }
 .pro-tiles { grid-template-columns: 1fr 1fr; }
 .pro-proto.test { max-width: 100%; text-align: center; line-height: 1.35; padding: 5px 10px; }
 .pro-fine.pay-by { margin-top: -3px; font-size: 12px; }
-.pro-fine.pay-by a { color: var(--bone); text-decoration: underline; text-underline-offset: 2px; }
+.pro-fine.pay-by a, .pro-fine.pay-by .pay-link { color: var(--bone); text-decoration: underline; text-underline-offset: 2px; }
+.pro-fine.pay-by .pay-link { display: inline; padding: 6px 0; margin: -6px 0; font: inherit; }
+.pro-fine.left { text-align: left; }
+.pro-manage-slot { display: flex; flex-direction: column; align-items: center; min-height: 32px; justify-content: center; }
+.pro-manage-slot .pro-fine { max-width: 300px; }
+.pro-welcome .pro-fine { margin-top: 2px; }
+.sub-field { gap: 4px; padding-top: 4px; }
+.sub-field .sub-line { font-size: 15px; font-weight: 700; color: var(--bone); line-height: 1.35; }
+.sub-field .sub-act { min-height: 32px; display: flex; flex-direction: column; justify-content: center; }
+.sub-field .linkbtn { color: var(--bone); text-decoration: underline; text-underline-offset: 3px; font-size: 14px; padding: 6px 0; }
+.pl-tag[hidden] { display: none; }
 /* an offer nobody asked for: the seal, one sentence, one button */
 .pro-offer-art { display: grid; place-items: center; margin: 4px 0 2px; }
 /* the Play tab's quiet line about Pro */

@@ -3318,15 +3318,17 @@
   // name and looks of its own.
   //   Who has it: the server's word (profiles.pro_until / pro_founder, written by the pay function as Stripe reports).
   //     hello brings it; the device keeps it between visits (proSrv) so that nothing flickers before hello answers.
-  //   Where it is sold: on the website only, on Stripe's own payment page, once the server says so (hello: pro; without
-  //     a session, the database's pro_public()). The apps sell nothing and show no way to buy: they honour what was
-  //     bought on the website (proSells() is false there, isPro() is not).
+  //   Where it is sold: on the website, on Stripe's own payment page, once the server says so (hello: pro; without a
+  //     session, the database's pro_public()). In the apps, through the App Store or Google Play (the section "Joker
+  //     Pro in the apps" below), once the server says so for that store (hello: iap) and the app has the purchase
+  //     plugin (from 1.5). An older app sells nothing and shows no way to buy: it honours what was bought elsewhere
+  //     (proSells() is false there, isPro() is not).
   //   The prototype page (GC_PROTO) has a switch of its own on this device and charges nothing.
   var PRO = typeof Pro !== 'undefined' ? Pro : null;
   var PROTO_PRO = !!(PRO && window.GC_PROTO);
   var proState = load('pro', null), proHints = load('proHints', null), proFz = load('proFz', null), proJk = load('proJk', null);
-  var proSrv = load('proSrv', null);          // the account's Pro as the server said it last: { uid, until, founder, plan }
-  var proPub = load('proPub', null);          // asked without a session: { on, left, at }
+  var proSrv = load('proSrv', null);          // the account's Pro as the server said it last: { uid, until, founder, plan, via }
+  var proPub = load('proPub', null);          // asked without a session: { on, ios, android, left, at }
   var proInfo = null;                         // the pay function's fuller answer about the account (this visit only)
   var proTally = load('proTally', null) || {}; // what Pro has given, or would have: { bonus, would, checks, hints }
   var proOf = load('proOffer', null);         // the offers made so far (Pro.offerDue)
@@ -3344,7 +3346,7 @@
   }
   function isPro() { return !!PRO && (PROTO_PRO ? PRO.active(proState, Date.now()) : PRO.entitled(proMine(), Date.now())); }
   // Pro can be bought here
-  function proSells() { return !!PRO && (PROTO_PRO || (!NATIVE.on && !!NETCFG && (me ? !!me.pro : !!(proPub && proPub.on)))); }
+  function proSells() { return !!PRO && (PROTO_PRO || (!!NETCFG && (NATIVE.on ? iapOn() : (me ? !!me.pro : !!(proPub && proPub.on))))); }
   // Pro exists for this player, to buy or to use
   function proAvail() { return proSells() || isPro(); }
   function proFounder() { if (PROTO_PRO) return !!(proState && proState.founder); var s = proMine(); return !!(s && s.founder); }
@@ -3371,19 +3373,26 @@
   function proTake() {
     if (!PRO || PROTO_PRO || !me) return;
     var s = me.profile ? PRO.ofProfile(me.profile) : null;
-    if (s) { proSrv = { uid: me.uid, until: s.until, founder: s.founder, plan: s.plan }; save('proSrv', proSrv); }
+    if (s) { proSrv = { uid: me.uid, until: s.until, founder: s.founder, plan: s.plan, via: proSrv && proSrv.uid === me.uid ? proSrv.via || null : null }; save('proSrv', proSrv); }
     var on = isPro();
     if (s && !on) proLooksBack(); // (only once the server has said so: the looks a Pro player wears must not go while the device waits for hello)
     if (proWas !== on) { proWas = on; proRefresh(); }
     proOfferStart();
+    iapTake();
   }
-  // the pay function's answer about the account: { pro: { on, founder, until, plan, status, cancel, trial, trialUsed, sub }, can, test, foundersLeft }
+  // where the account's Pro was bought: 'stripe' (the website), 'apple', 'google'; null when nobody has said
+  function proVia() {
+    if (proInfo && proInfo.pro) return proInfo.pro.via || null;
+    return proSrv && proSrv.uid === (me ? me.uid : bootUid) ? proSrv.via || null : null;
+  }
+  // the pay function's answer about the account: { pro: { on, founder, until, plan, status, cancel, trial, trialUsed, sub, via }, can, test, foundersLeft }
   function proApply(r) {
     if (!r || !r.pro || !me || !me.profile) return;
     proInfo = r;
     me.profile.pro_until = !r.pro.founder && r.pro.until ? new Date(r.pro.until).toISOString() : null;
     me.profile.pro_founder = !!r.pro.founder; me.profile.pro_plan = r.pro.plan || null;
     proTake();
+    if (proSrv && proSrv.uid === me.uid && proSrv.via !== (r.pro.via || null)) { proSrv.via = r.pro.via || null; save('proSrv', proSrv); }
   }
   function proAsk() {
     if (PROTO_PRO || !net || !net.pay || !me) return Promise.resolve(null);
@@ -3391,14 +3400,15 @@
   }
   // without a session nobody has said whether Pro is sold: the database answers anyone (kept for six hours)
   function proPublicAsk() {
-    if (!PRO || PROTO_PRO || !NETCFG || NATIVE.on || me || hasNetSession()) return;
-    if (proPub && Date.now() - (proPub.at || 0) < 6 * 3600e3) return;
+    if (!PRO || PROTO_PRO || !NETCFG || (NATIVE.on && !iapHere()) || me || hasNetSession()) return;
+    if (proPub && Date.now() - (proPub.at || 0) < 6 * 3600e3) { iapTake(); return; }
     // a plain request, not the client: asking opens no session and leaves the address alone
     (NETCFG.mock != null ? MockNet : SupaNet).proPublic(NETCFG).then(function (r) {
       var was = proSells();
-      proPub = { on: !!(r && r.on), left: r && r.founders_left != null ? r.founders_left : null, at: Date.now() }; save('proPub', proPub);
+      proPub = { on: !!(r && r.on), ios: !!(r && r.ios), android: !!(r && r.android), left: r && r.founders_left != null ? r.founders_left : null, at: Date.now() }; save('proPub', proPub);
       proOfferStart();
       if (proSells() !== was) proRefresh();
+      iapTake();
     }, function () { /* asked again next time */ });
   }
   function proRefresh() {
@@ -3408,6 +3418,154 @@
   }
   // the looks only Pro has go back in the box
   function proLooksBack() { var any = false; PRO.LOOKS.forEach(function (r) { if (isEquipped(r)) { equipReward(r); any = true; } }); return any; }
+
+  // ---- Joker Pro in the apps: bought through the App Store or Google Play, with the shell's NativePurchases plugin
+  // (in the apps from 1.5). The store knows the products and their prices in the player's currency, and it takes the
+  // money; the pay function checks every purchase with the store and puts it on the account, so what was bought in an
+  // app is Pro on the website too. A guest may buy (the stores ask for that): the purchase sits on the guest's
+  // account and stays with it when the account is saved; "Restore purchases" brings it to whichever account asks.
+  var IAP = 'NativePurchases';
+  var iapCat = load('iapCat', null);   // the store's word on the products: { store, at, cat: Pro.storeCatalog() }
+  var iapAsk = null, iapErr = false, iapSynced = false, iapSyncT = 0;
+  function iapStore() { return NATIVE.platform === 'ios' ? 'apple' : NATIVE.platform === 'android' ? 'google' : null; }
+  // this app can sell
+  function iapHere() { return !!PRO && !PROTO_PRO && NATIVE.on && !!iapStore() && NATIVE.has(IAP); }
+  // ... and the server lets it (hello: iap; without a session, the database's pro_public())
+  function iapAllowed() { return iapHere() && !!NETCFG && (me ? !!me.iap : !!(proPub && proPub[NATIVE.platform])); }
+  function iapPlans() { return iapCat && iapCat.store === iapStore() && iapCat.cat ? iapCat.cat : null; }
+  // ... and the store has named something to sell. Only then does Pro show a way to buy in the app
+  function iapOn() { var c = iapAllowed() ? iapPlans() : null; return !!(c && (c.year || c.month || c.founder)); }
+  // asks the store about the products (one question at a time; the answer is kept for the next visit)
+  function iapLoad() {
+    if (!iapHere()) return Promise.reject(new Error('no_store'));
+    if (iapAsk) return iapAsk;
+    var store = iapStore(), S = PRO.STORE[store], was = iapOn();
+    var got = function (r) { return (r && r.products) || []; };
+    var ask = store === 'apple'
+      ? NATIVE.call(IAP, 'getProducts', { productIdentifiers: [S.month, S.year, S.founder], productType: 'subs' }).then(got)
+      // (Google is asked for one kind at a time, one after the other: its billing client takes no two questions at once)
+      : NATIVE.call(IAP, 'getProducts', { productIdentifiers: [S.sub], productType: 'subs' }).then(got, function () { return []; }).then(function (subs) {
+        return NATIVE.call(IAP, 'getProducts', { productIdentifiers: [S.founder], productType: 'inapp' }).then(function (r) { return subs.concat(got(r)); }, function () { return subs; });
+      });
+    iapAsk = ask.then(function (list) {
+      iapAsk = null;
+      var cat = PRO.storeCatalog(store, list);
+      if (!(cat.year || cat.month || cat.founder)) throw new Error('no_products');
+      iapErr = false; iapCat = { store: store, at: Date.now(), cat: cat }; save('iapCat', iapCat);
+      if (iapOn() !== was) { proOfferStart(); proRefresh(); }
+      if (proRepaint) proRepaint();
+      return cat;
+    }, function (e) { iapAsk = null; throw e; });
+    iapAsk.catch(function () { iapErr = true; if (proRepaint) proRepaint(); });
+    return iapAsk;
+  }
+  // the server has spoken (hello, or the public answer): the prices are asked for, and once a visit the store's own
+  // list of purchases is looked through
+  function iapTake() {
+    if (!iapHere()) return;
+    if (iapAllowed() && (!iapPlans() || Date.now() - (iapCat.at || 0) > 3600e3)) iapLoad().catch(function () { /* the sheet asks again */ });
+    if (me && !iapSynced) { iapSynced = true; iapSync(); }
+  }
+  // a purchase as the plugin describes it: is it one of ours, paid for
+  function iapOurs(p) {
+    if (!p) return false;
+    if (iapStore() === 'apple') return typeof p.jwsRepresentation === 'string' && !!p.jwsRepresentation;
+    var S = PRO.STORE.google;
+    return typeof p.purchaseToken === 'string' && !!p.purchaseToken && (p.productIdentifier === S.sub || p.productIdentifier === S.founder) && String(p.purchaseState) === '1';
+  }
+  // the purchases go to the pay function, which checks them with the store; its answer is the account's Pro.
+  // quiet: nobody asked (a start of the app, the store's news): a purchase another account holds stays there
+  function iapClaim(list, quiet) {
+    var body = iapStore() === 'apple' ? { store: 'apple', jws: list.map(function (p) { return p.jwsRepresentation; }) }
+      : { store: 'google', items: list.map(function (p) { return { token: p.purchaseToken, type: p.productIdentifier === PRO.STORE.google.founder ? 'inapp' : 'subs' }; }) };
+    if (quiet) body.quiet = true;
+    return ensureNet().then(function () { return net.pay('store', body); }).then(function (r) { proApply(r); return r; });
+  }
+  // ... a few times, should the server be slow to hear from the store
+  function iapSettle(list, n) {
+    return iapClaim(list).then(function () { return isPro(); }, function () { return false; }).then(function (on) {
+      if (on || n >= 3) return on;
+      return new Promise(function (res) { setTimeout(res, (window.__gcFastBot ? 150 : 2500) * (n + 1)); }).then(function () { return iapSettle(list, n + 1); });
+    });
+  }
+  function iapWhy(e) {
+    var m = String((e && (e.message || e.errorMessage)) || e || ''), c = String((e && e.code) || '');
+    return /cancel/i.test(m) || /USER_CANCELED/.test(c) ? 'cancel' : /pending/i.test(m) ? 'pending' : /ITEM_ALREADY_OWNED/.test(c) ? 'owned' : 'error';
+  }
+  function iapList() { return NATIVE.call(IAP, 'getPurchases', iapStore() === 'apple' ? { onlyCurrentEntitlements: true } : {}).then(function (r) { return ((r && r.purchases) || []).filter(iapOurs); }); }
+  // buying: the store's own payment sheet, then the pay function hears of it
+  function iapBuy(plan, why, setBusy) {
+    var c = (iapPlans() || {})[plan];
+    if (!c) { toast(PX('storeErr')); iapLoad().catch(function () { /* said above */ }); return; }
+    var busy = function (on) { if (setBusy) setBusy(on); };
+    busy(true);
+    Track.event('pro_checkout', { plan: plan, why: why || 'open', via: iapStore() });
+    ensureNet().then(function () {
+      // (the account goes with the purchase: the store hands it back with every piece of news about it)
+      var o = { productIdentifier: c.id, productType: plan === 'founder' ? 'inapp' : 'subs', quantity: 1, appAccountToken: me.uid };
+      if (c.base) o.planIdentifier = c.base;
+      return NATIVE.call(IAP, 'purchaseProduct', o);
+    }).then(function (tx) {
+      save('iapPend', { plan: plan, at: Date.now() }); // (paid; until the server has heard of it, the next start tries again)
+      toast(PX('buyCheck'));
+      return iapSettle([tx], 0);
+    }).then(function (on) {
+      busy(false);
+      if (!on) { toast(PX('buyWait')); return; }
+      save('iapPend', null);
+      Track.event('pro_start', { plan: (proInfo && proInfo.pro && proInfo.pro.plan) || plan, why: why || 'open', via: iapStore() });
+      proFreezeCheck();
+      if (currentDialog && currentDialog.dataset.kind === 'pro') closeDialog();
+      proRefresh();
+      Sound.play('win'); haptic('win');
+      setTimeout(proWelcome, 260);
+    }, function (e) {
+      busy(false);
+      var w = iapWhy(e);
+      if (w === 'cancel') { Track.event('pro_back', { plan: plan, via: iapStore() }); return; }
+      if (w === 'owned') { iapRestore(); return; }
+      toast(PX(w === 'pending' ? 'buyPending' : 'buyErr'));
+    });
+  }
+  // "Restore purchases": what this store account has bought comes to the account that is playing here
+  function iapRestore(done) {
+    if (!iapHere()) return;
+    toast(PX('restoreBusy'));
+    (iapStore() === 'apple' ? NATIVE.call(IAP, 'restorePurchases') : Promise.resolve()).then(iapList).then(function (list) {
+      return list.length ? iapClaim(list).then(function () { return isPro(); }) : false;
+    }).then(function (on) {
+      Track.event('pro_restore', { ok: !!on, via: iapStore() });
+      toast(PX(on ? 'restoreOk' : 'restoreNone'));
+      if (on) { save('iapPend', null); if (currentDialog && currentDialog.dataset.kind === 'pro') closeDialog(); proRefresh(); }
+      if (done) done(!!on);
+    }, function (e) { if (iapWhy(e) !== 'cancel') toast(PX('restoreErr')); if (done) done(false); });
+  }
+  // quietly, when the app starts with an account and when the store has news: a purchase made for this account that
+  // the server has not heard of (its claim was lost on the way, a renewal's notice is late) is shown to it again.
+  // Another account's purchase is left alone: that is what "Restore purchases" is for.
+  function iapSync() {
+    if (!iapHere() || !me || !net || !net.pay) return;
+    var pend = load('iapPend', null);
+    iapList().then(function (all) {
+      var mine = String(me.uid).toLowerCase(), s = proMine();
+      var list = all.filter(function (p) {
+        if (pend) return true;
+        if (String(p.appAccountToken || '').toLowerCase() !== mine) return false;
+        if (!isPro()) return true;
+        var exp = p.expirationDate ? Date.parse(p.expirationDate) : NaN;
+        return isFinite(exp) && !!s && !s.founder && s.until != null && exp > s.until + 60000;
+      });
+      if (pend && (!list.length || Date.now() - (pend.at || 0) > 3 * 864e5)) save('iapPend', null);
+      if (list.length) return iapClaim(list, true).then(function () { if (isPro()) save('iapPend', null); });
+    }).catch(function () { /* the next start tries again */ });
+  }
+  function iapStart() {
+    if (!iapHere()) return;
+    NATIVE.listen(IAP, 'transactionUpdated', function () { clearTimeout(iapSyncT); iapSyncT = setTimeout(iapSync, 1500); });
+    iapTake();
+  }
+  // the store's own page for the subscription (cancelling, the payment method)
+  function iapManage() { return NATIVE.call(IAP, 'manageSubscriptions').catch(function () { toast(PX('manageErr')); }); }
 
   // ---- the seal: the Joker on a gold-rimmed chip (the offers, the Profile, wherever Pro is named in a picture)
   var sealN = 0;
@@ -3459,40 +3617,66 @@
       });
       body.appendChild(perks);
       var plans = h('div', { class: 'pro-plans', role: 'radiogroup', id: 'pro-plans', 'aria-label': PX('name') }), cta, fine, fb, busy = false;
-      function trialOn() { return !(proInfo && proInfo.pro && proInfo.pro.trialUsed); }
+      // in the apps the store sells: its products, its prices in the player's currency, its own payment sheet
+      var S = !PROTO_PRO && NATIVE.on ? iapStore() : null;
+      function cat() { return S ? iapPlans() : null; }
+      function has(id) { var c = cat(); return S ? !!(c && c[id]) : true; }
+      function priceOf(id) { var c = cat(); return S ? (c && c[id] ? c[id].price : '') : PRO.price(PRO.PLANS[id].usd); }
+      function trialDays() { var c = cat(); return S ? (c && c.year ? c.year.trialDays : 0) : (proInfo && proInfo.pro && proInfo.pro.trialUsed ? 0 : PRO.PLANS.year.trialDays); }
       function seatsLeft() { var n = proInfo && proInfo.foundersLeft != null ? proInfo.foundersLeft : proPub && proPub.left != null ? proPub.left : null; return n == null ? null : n; }
+      function put(sel, text) { var el = card.querySelector(sel); if (el) el.textContent = text; return el; }
       function paint() {
+        var c = cat(), left = seatsLeft(), ready = !S || !!c;
+        // a plan the store does not sell is not offered; nor is Founder once its places are gone
+        ['year', 'month'].forEach(function (id) { var b = card.querySelector('#plan-' + id); if (b && S && c) b.hidden = !c[id]; });
+        if (fb) fb.hidden = left === 0 || (!!S && !!c && !c.founder);
+        if (ready && (!has(plan) || (plan === 'founder' && fb.hidden))) plan = has('year') ? 'year' : has('month') ? 'month' : 'founder';
         card.querySelectorAll('[data-plan]').forEach(function (b) { b.setAttribute('aria-checked', String(b.dataset.plan === plan)); });
-        var P = PRO.PLANS[plan], key = plan === 'year' && !trialOn() ? 'year_paid' : plan;
-        cta.disabled = busy;
-        cta.textContent = busy ? PX('goPay') : PX('cta_' + key, { n: P.trialDays, p: PRO.price(P.usd) });
-        fine.textContent = PX('then_' + key, { p: PRO.price(P.usd) });
-        var left = seatsLeft(), fs = card.querySelector('.pf-sub');
+        var share = S ? (c && c.year ? PRO.storeShare(c.year.price, c.year.amount, 12) : null) : PRO.price(PRO.perMonth('year'));
+        var saving = S ? PRO.storeSaving(c) : PRO.yearSaving();
+        put('#plan-year .pl-price', priceOf('year') || '\u2026'); put('#plan-month .pl-price', priceOf('month') || '\u2026'); put('#plan-founder .pf-price', priceOf('founder') || '\u2026');
+        put('#plan-year .pl-sub', share ? PX('onlyMonth', { p: share }) : PX('perYearS'));
+        var tag = put('#plan-year .pl-tag', saving ? PX('save', { n: saving }) : ''); if (tag) tag.hidden = !saving;
+        var days = trialDays(), key = plan === 'year' && !days ? 'year_paid' : plan, vars = { n: days, p: priceOf(plan) };
+        if (!ready) {
+          // the store has not answered yet (or did not): nothing to buy until it has
+          cta.disabled = busy || !iapErr; cta.textContent = PX(iapErr ? 'storeRetry' : 'storeLoad'); fine.textContent = iapErr ? PX('storeErr') : '\u00a0';
+        } else {
+          cta.disabled = busy;
+          cta.textContent = busy ? PX(S ? 'goStore' : 'goPay') : PX('cta_' + key, vars);
+          fine.textContent = PX((S && plan !== 'founder' ? 'thenS_' : 'then_') + key, vars);
+        }
+        var fs = card.querySelector('.pf-sub');
         if (fs) fs.textContent = left != null && left < PRO.PLANS.founder.seats ? PX('seatsLeft', { n: fmtCount(left) }) : PX('seats', { n: fmtCount(PRO.PLANS.founder.seats) });
-        if (fb) { fb.hidden = left === 0; if (left === 0 && plan === 'founder') { plan = 'year'; paint(); } }
       }
-      var Y = PRO.PLANS.year, M = PRO.PLANS.month, F = PRO.PLANS.founder;
-      [['year', PX('plan_year'), PRO.price(Y.usd), PX('onlyMonth', { p: PRO.price(PRO.perMonth('year')) }), PX('save', { n: PRO.yearSaving() })],
-        ['month', PX('plan_month'), PRO.price(M.usd), PX('perMonth', { p: '' }).replace(/^\s+|\s+$/g, ''), '']].forEach(function (x) {
+      [['year', PX('plan_year'), true], ['month', PX('plan_month'), false]].forEach(function (x) {
         var b = h('button', { type: 'button', role: 'radio', class: 'pro-plan', 'data-plan': x[0], id: 'plan-' + x[0], 'aria-checked': 'false' },
-          (x[4] ? '<em class="pl-tag">' + esc(x[4]) + '</em>' : '') + '<span class="pl-name">' + esc(x[1]) + '</span><b class="pl-price">' + esc(x[2]) + '</b><span class="pl-sub">' + esc(x[3]) + '</span>');
+          (x[2] ? '<em class="pl-tag"></em>' : '') + '<span class="pl-name">' + esc(x[1]) + '</span><b class="pl-price"></b><span class="pl-sub">' + (x[2] ? '' : esc(PX('perMonth', { p: '' }).replace(/^\s+|\s+$/g, ''))) + '</span>');
         b.addEventListener('click', function () { if (busy) return; plan = x[0]; paint(); });
         plans.appendChild(b);
       });
       body.appendChild(plans);
       fb = h('button', { type: 'button', role: 'radio', class: 'pro-founder', 'data-plan': 'founder', id: 'plan-founder', 'aria-checked': 'false' },
-        '<i class="pf-dot"></i><span><b>' + esc(PX('plan_founder')) + '</b> · ' + esc(PRO.price(F.usd)) + '</span><span class="pf-sub"></span>');
-      fb.addEventListener('click', function () { if (busy) return; plan = plan === 'founder' ? 'year' : 'founder'; paint(); });
+        '<i class="pf-dot"></i><span><b>' + esc(PX('plan_founder')) + '</b> · <span class="pf-price"></span></span><span class="pf-sub"></span>');
+      fb.addEventListener('click', function () { if (busy) return; plan = plan === 'founder' ? (has('year') ? 'year' : 'month') : 'founder'; paint(); });
       body.appendChild(fb);
       if (PROTO_PRO) body.appendChild(h('div', { class: 'pro-proto', id: 'pro-proto' }, esc(PX('protoNote'))));
-      else if (me && me.pro === 'test') body.appendChild(h('div', { class: 'pro-proto test', id: 'pro-test' }, esc(PX('testNote'))));
+      else if (!S && me && me.pro === 'test') body.appendChild(h('div', { class: 'pro-proto test', id: 'pro-test' }, esc(PX('testNote'))));
       cta = bigBtn('start-btn', '', 'btn-pro-buy', function () {
         if (busy) return;
+        if (S && !cat()) { iapErr = false; paint(); iapLoad().catch(function () { /* the sheet says so */ }); return; }
         proBuy(plan, why, back, function (on) { busy = on; if (card.isConnected) paint(); });
       });
       foot.appendChild(cta);
       fine = h('div', { class: 'pro-fine', id: 'pro-fine' }); foot.appendChild(fine);
-      if (!PROTO_PRO) foot.appendChild(h('div', { class: 'pro-fine pay-by', id: 'pro-payby' }, esc(PX('payBy')) + ' <a href="' + esc(termsUrl()) + '" target="_blank" rel="noopener">' + esc(PX('terms')) + '</a>'));
+      var doc = function (url, key) { return '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(PX(key)) + '</a>'; };
+      if (S) {
+        // what the stores ask a subscription's sheet to carry: who takes the money, the terms, the privacy policy, and a way to bring back what was bought before
+        var by = h('div', { class: 'pro-fine pay-by', id: 'pro-payby' }, esc(PX('payBy_' + S)) + ' ' + doc(termsUrl(), 'terms') + ' · ' + doc(privacyUrl(), 'privacy') + ' · ');
+        var rs = h('button', { type: 'button', class: 'pay-link', id: 'btn-pro-restore' }, esc(PX('restore')));
+        rs.addEventListener('click', function () { if (busy) return; busy = true; paint(); iapRestore(function () { busy = false; if (card.isConnected) paint(); }); });
+        by.appendChild(rs); foot.appendChild(by);
+      } else if (!PROTO_PRO) foot.appendChild(h('div', { class: 'pro-fine pay-by', id: 'pro-payby' }, esc(PX('payBy')) + ' ' + doc(termsUrl(), 'terms')));
       var later = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-pro-later' }, esc(PX('notNow')));
       later.addEventListener('click', function () { Track.event('pro_later', { why: why || 'open' }); if (back) back(); else closeDialog(); });
       foot.appendChild(later);
@@ -3501,7 +3685,9 @@
       proRepaint = function () { if (card.isConnected) paint(); };
     });
     // whether the trial is still to be had, how many Founder places are left: the answer repaints the sheet
-    if (!PROTO_PRO && me && signedIn()) proAsk().then(function () { if (isPro()) { if (currentDialog && currentDialog.dataset.kind === 'pro') { closeDialog(); setTimeout(proStatus, 230); } } else if (proRepaint) proRepaint(); });
+    if (!PROTO_PRO && me && (signedIn() || NATIVE.on)) proAsk().then(function () { if (isPro()) { if (currentDialog && currentDialog.dataset.kind === 'pro') { closeDialog(); setTimeout(proStatus, 230); } } else if (proRepaint) proRepaint(); });
+    // in the apps: the store's prices of this moment (the ones kept from the last visit are on the sheet meanwhile)
+    if (!PROTO_PRO && NATIVE.on && iapHere() && (!iapPlans() || Date.now() - (iapCat.at || 0) > 600e3)) iapLoad().catch(function () { /* the sheet says so */ });
   }
   function termsUrl() { return (window.GC_SITE || '') + 'terms.html'; }
   // ---- buying. The prototype flips its switch. For real: a saved account first (Pro lives on it), then Stripe's own
@@ -3517,6 +3703,7 @@
       return;
     }
     if (!NETCFG) return;
+    if (NATIVE.on) { iapBuy(plan, why, setBusy); return; } // the apps: the store's own payment sheet, guests included
     if (!signedIn()) {
       // (a sign-in that reloads the page comes back here through the pending action)
       Track.event('pro_save_first', { plan: plan });
@@ -3538,6 +3725,8 @@
       if (setBusy) setBusy(false);
       var code = e && e.data && e.data.error;
       if (code === 'guest') { if (me) me.guest = true; proBuy(plan, why, back, setBusy); return; }
+      // (a subscription bought in an app runs: it is managed in that store, a second one is not sold beside it)
+      if (code === 'store_sub') { toast(PX('in_' + (e.data.store === 'google' ? 'google' : 'apple'))); proAsk().then(function () { if (isPro() && currentDialog && currentDialog.dataset.kind === 'pro') { closeDialog(); setTimeout(proStatus, 230); } }); return; }
       toast(PX(code === 'off' ? 'payOff' : code === 'sold_out' ? 'soldOut' : code === 'already' ? 'alreadyF' : 'payErr'));
       if (code === 'sold_out' || code === 'already') proAsk().then(function () { if (proRepaint) proRepaint(); });
     });
@@ -3584,16 +3773,27 @@
       card.appendChild(h('div', { class: 'pro-who big' }, '<span class="pro-nm">' + esc(nm) + '</span>' + proMark()));
       card.appendChild(h('div', { class: 'dlg-sub' }, esc(PX('welcomeSub'))));
       card.appendChild(bigBtn('start-btn', PX('welcomeBtn'), 'btn-pro-ok', function () { closeDialog(); }));
+      if (!PROTO_PRO && NETCFG && me && !signedIn()) {
+        // bought as a guest (the apps allow it): Pro sits on this guest account until it is saved
+        card.appendChild(h('div', { class: 'pro-fine', id: 'pro-save-note' }, esc(PX('welcomeSave'))));
+        var sv = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-pro-save' }, esc(PX('welcomeSaveBtn')));
+        sv.addEventListener('click', function () { closeDialog(); setTimeout(function () { showAccount(); }, 230); });
+        card.appendChild(sv);
+      }
     });
   }
   // the plan in a line: the prototype's own switch, or what the server knows (proInfo, when it has answered)
   function proPlanLine() {
     if (PROTO_PRO) { var st = proState || {}; return PX(st.trial ? 'on_trial' : 'on_' + (st.plan || 'year')) + (st.until ? ', ' + PX('until', { d: fmtDay(st.until) }) : ''); }
-    var s = proMine() || {}, i = proInfo && proInfo.pro;
+    var s = proMine() || {}, i = proInfo && proInfo.pro, via = proVia(), shop = via === 'apple' || via === 'google';
     if (s.founder) return PX('st_founder');
     var d = s.until ? fmtDay(s.until) : '';
-    if (i && i.status === 'past_due') return PX('st_due');
-    if (i && i.trial && !i.cancel) return PX('st_trial', { d: d, p: PRO.price(PRO.PLANS.year.usd) });
+    if (i && (i.status === 'past_due' || (shop && i.status === 'grace'))) return PX(shop ? 'st_dueS' : 'st_due');
+    if (i && i.trial && !i.cancel) {
+      // (a store's price is the store's to say: named only where this app has heard it)
+      var yp = shop ? (via === iapStore() && iapPlans() && iapPlans().year ? iapPlans().year.price : '') : PRO.price(PRO.PLANS.year.usd);
+      return yp ? PX('st_trial', { d: d, p: yp }) : PX('st_trialS', { d: d });
+    }
     if (i && i.cancel) return PX('st_ends', { d: d });
     if (i && i.sub) return PX('on_' + (i.plan || s.plan || 'year')) + '. ' + PX('st_renew', { d: d });
     return PX('on_' + (s.plan || 'year')) + (d ? ', ' + PX('until', { d: d }) : '');
@@ -3631,18 +3831,60 @@
         var off = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-pro-off' }, esc(PX('turnOff')));
         off.addEventListener('click', function () { closeDialog(); proOff(); });
         card.appendChild(off);
-      } else if (!NATIVE.on && NETCFG && signedIn()) {
-        // the card, the plan, the receipts, cancelling: Stripe's own page (a Founder has only receipts there)
-        var pb = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-pro-portal' }, esc(PX(proFounder() ? 'receipts' : 'portal')));
-        pb.addEventListener('click', function () {
-          pb.disabled = true;
-          ensureNet().then(function () { return net.pay('portal', { back: location.origin + location.pathname, lang: lang }); }).then(function (r) { if (!r || !r.url) throw new Error('no_url'); location.href = r.url; })
-            .catch(function () { pb.disabled = false; toast(PX('portalErr')); });
-        });
-        card.appendChild(pb);
-        proAsk().then(function () { if (line.isConnected) line.textContent = proPlanLine(); });
+      } else if (NETCFG) {
+        var slot = h('div', { class: 'pro-manage-slot', id: 'pro-manage-slot' }); card.appendChild(slot);
+        proManage(slot);
+        if (me) proAsk().then(function () { if (line.isConnected) { line.textContent = proPlanLine(); proManage(slot); } });
       }
     });
+  }
+  // Stripe's own page for the account: the card, the receipts, cancelling
+  function proPortal(btn) {
+    if (btn) btn.disabled = true;
+    ensureNet().then(function () { return net.pay('portal', { back: location.origin + location.pathname, lang: lang }); }).then(function (r) { if (!r || !r.url) throw new Error('no_url'); location.href = r.url; })
+      .catch(function () { if (btn) btn.disabled = false; toast(PX('portalErr')); });
+  }
+  // managing Pro where it was bought. On the website: Stripe's page (a Founder has only receipts there). In the app
+  // of the store that sold it: the store's own subscription page. Anywhere else: a line that says where it lives.
+  function proManage(host, quiet) {
+    host.innerHTML = '';
+    var via = proVia(), founder = proFounder(), cls = 'linkbtn' + (quiet ? '' : ' center'), pre = quiet ? 'sub' : 'pro'; // (the Profile's row and the status page may both be on the page)
+    var say = function (key) { host.appendChild(h('div', { class: 'pro-fine' + (quiet ? ' left' : ''), id: pre + '-where' }, esc(PX(key)))); };
+    if (via === 'apple' || via === 'google') {
+      if (founder) return; // (bought once: nothing to manage)
+      if (NATIVE.on && iapHere() && iapStore() === via) {
+        var mb = h('button', { type: 'button', class: cls, id: 'btn-' + pre + '-store' }, esc(PX('manage_' + via)));
+        mb.addEventListener('click', function () { iapManage(); });
+        host.appendChild(mb);
+      } else say('in_' + via);
+    } else if (NATIVE.on) {
+      if (via === 'stripe' && !founder) say('in_stripe');
+    } else if (signedIn()) {
+      var pb = h('button', { type: 'button', class: cls, id: 'btn-' + pre + '-portal' }, esc(PX(founder ? 'receipts' : quiet ? 'subCancel' : 'portal')));
+      pb.addEventListener('click', function () { proPortal(pb); });
+      host.appendChild(pb);
+    }
+  }
+  // the Profile's settings end with the subscription: the plan, and the way to cancel it or change the card. For a
+  // player without Pro in the apps: the way to bring back what was bought before.
+  function proSubRow() {
+    if (!PRO || PROTO_PRO || !NETCFG) return null;
+    var on = isPro();
+    if (!on && !(NATIVE.on && iapOn())) return null;
+    var f = h('div', { class: 'field sub-field', id: 'sub-row' });
+    f.appendChild(h('div', { class: 'lbl' }, esc(PX('subRow'))));
+    if (on) {
+      var line = h('div', { class: 'sub-line', id: 'sub-line' }, esc(proPlanLine())), slot = h('div', { class: 'sub-act', id: 'sub-act' });
+      f.appendChild(line); f.appendChild(slot);
+      proManage(slot, true);
+      if (me && !proInfo) proAsk().then(function () { if (f.isConnected && isPro()) { line.textContent = proPlanLine(); proManage(slot, true); } });
+    } else {
+      f.appendChild(h('div', { class: 'sub-line', id: 'sub-line' }, esc(PX('subNone'))));
+      var rb = h('button', { type: 'button', class: 'linkbtn', id: 'btn-sub-restore' }, esc(PX('restore')));
+      rb.addEventListener('click', function () { rb.disabled = true; iapRestore(function () { rb.disabled = false; }); });
+      f.appendChild(rb);
+    }
+    return f;
   }
   // "My Jokers": what the device knows about the player's Joker Moves (the cards count every one played) and the bots
   function proInsights() {
@@ -4371,7 +4613,7 @@
     try { getClient(); } catch (e) { return Promise.reject(e); }
     netReady = net.ready().then(function () { return Promise.all([net.call('hello', { platform: NATIVE.platform }), net.account().catch(function () { return null; })]); }).then(function (rr) {
       var r = rr[0], a = rr[1];
-      me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest, gname: a && a.gname || '', admin: !!r.admin, fair: !!r.fair, mail: !!r.mail, prog: !!r.prog, pro: r.pro || null, proc: !!r.proc };
+      me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest, gname: a && a.gname || '', admin: !!r.admin, fair: !!r.fair, mail: !!r.mail, prog: !!r.prog, pro: r.pro || null, proc: !!r.proc, iap: !!r.iap };
       noteAvatars([r.profile]);
       proTake(); // Joker Pro: the account's own, and whether it is sold to this player
       progSync(); // the progress of this device and of the account, merged (prototype: only when the server keeps it)
@@ -4393,9 +4635,9 @@
   }
   function refreshMe() {
     if (!net || !me) return Promise.resolve();
-    return Promise.all([net.call('hello'), net.account().catch(function () { return null; })]).then(function (rr) {
+    return Promise.all([net.call('hello', { platform: NATIVE.platform }), net.account().catch(function () { return null; })]).then(function (rr) {
       var r = rr[0], a = rr[1];
-      me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; }); me.admin = !!r.admin; me.fair = !!r.fair; me.mail = !!r.mail; me.prog = !!r.prog; me.pro = r.pro || null; me.proc = !!r.proc;
+      me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; }); me.admin = !!r.admin; me.fair = !!r.fair; me.mail = !!r.mail; me.prog = !!r.prog; me.pro = r.pro || null; me.proc = !!r.proc; me.iap = !!r.iap;
       noteAvatars([r.profile]);
       proTake();
       progSync();
@@ -5055,6 +5297,9 @@
       currentDialog.dataset.kind = 'delete';
       card.appendChild(h('div', { class: 'dlg-title' }, esc(T('deleteQ'))));
       card.appendChild(h('div', { class: 'dlg-sub' }, esc(T('deleteSub', { email: (me && me.email) || '' }).replace(' ()', ''))));
+      // a subscription bought in an app is the store's to stop: deleting the account here does not end it
+      var shop = PRO && !PROTO_PRO && isPro() && !proFounder() ? proVia() : null;
+      if (shop === 'apple' || shop === 'google') card.appendChild(h('div', { class: 'dlg-note', id: 'delete-store' }, esc(PX('delStore_' + shop))));
       var er = h('div', { class: 'err', id: 'delete-err', role: 'alert' });
       var row = h('div', { class: 'row-btns' });
       var n = h('button', { class: 'secondary', type: 'button' }, esc(T('cancel')));
@@ -6424,6 +6669,7 @@
     var sc = h('div', { class: 'card', id: 'settings-card' });
     sc.appendChild(h('h2', null, esc(T('settings'))));
     buildSettings(sc, renderProfile);
+    var subRow = proSubRow(); if (subRow) sc.appendChild(subRow);
     inn.appendChild(sc);
     tail.forEach(function (x) { inn.appendChild(x); });
     inn.appendChild(h('a', { class: 'page-foot', id: 'home-privacy', href: privacyUrl(), target: '_blank', rel: 'noopener' }, esc(T('privacy'))));
@@ -6966,7 +7212,7 @@
     }
     if (PROTO_PRO && proState && !isPro()) proOff(); // (the prototype) Pro has run out: its looks go back in the box
     // Pro never stands in the way of the game starting
-    if (PRO && !PROTO_PRO) { try { proOfferStart(); proPublicAsk(); proReturn(); } catch (e) { /* the game goes on without it */ } }
+    if (PRO && !PROTO_PRO) { try { proOfferStart(); proPublicAsk(); proReturn(); iapStart(); } catch (e) { /* the game goes on without it */ } }
     if (proFreezeCheck()) refreshView();
     Track.start();
     setTimeout(Track.ask, 2500);
@@ -6984,7 +7230,8 @@
     get goldenArmed() { return goldenArmed; }, get selected() { return selected; }, get dialogOpen() { return !!currentDialog; }, closeDialog: closeDialog,
     startCareer: function (ch) { startCareer(ch); }, gameOver: function () { gameOver(); }, get prog() { return prog; }, progPush: function () { return progPush(); }, cancelBot: function () { cancelBot(); },
     get dialogKind() { return currentDialog ? currentDialog.dataset.kind || '' : null; },
-    get pro() { return { on: isPro(), sells: proSells(), avail: proAvail(), founder: proFounder(), jk: proJk, offer: proOf, tally: proTally, info: proInfo, blind: !!(review && review.blind) }; },
+    get pro() { return { on: isPro(), sells: proSells(), avail: proAvail(), founder: proFounder(), jk: proJk, offer: proOf, tally: proTally, info: proInfo, blind: !!(review && review.blind),
+      via: PRO ? proVia() : null, store: PRO ? { here: iapHere(), allowed: iapAllowed(), on: iapOn(), plans: iapPlans() } : null }; },
     proSheet: function (why, vars) { proSheet(why, vars); }, proStatus: function () { proStatus(); }, proOfferSheet: function (id) { proOfferSheet(id); }, proOfferDue: function (plain) { return proOfferDue(plain); },
     afterGameAsk: function () { afterGameAsk(); },
     get online() { return online; }, get me() { return me; }, get lobby() { return lobby; }, startSeek: startSeek, startInvite: startInvite,

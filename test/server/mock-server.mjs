@@ -26,6 +26,37 @@ const avatars = new Map(); // uid -> JPEG bytes
 // Joker Pro's paying side in memory: what Stripe would hold about an account, the payment pages asked for
 const billing = new Map(), sessions = new Map(), portalVisits = [];
 let founderBase = 0;
+// ... and what the App Store or Google Play would hold: the purchases shown by the apps (store_purchases), by id.
+// A test purchase is its own description: 'apple.<base64 of JSON>' stands for a signed transaction, 'gp.<base64 of
+// JSON>' for a purchase token. { id (the purchase), product, base (Google's base plan), days (from now until it ends),
+// trial, cancel (it will not renew), refund, pending }
+const storeRows = new Map(), storeClaims = [];
+const APPLE_PLANS = { jokerpro_month: 'month', jokerpro_year: 'year', jokerpro_founder: 'founder' };
+function readPurchase(store, text) {
+  const pre = store === 'apple' ? 'apple.' : 'gp.';
+  if (typeof text !== 'string' || !text.startsWith(pre)) return null;
+  let d = null; try { d = JSON.parse(Buffer.from(text.slice(pre.length), 'base64').toString('utf8')); } catch { return null; }
+  if (!d || typeof d.id !== 'string') return null;
+  const plan = store === 'apple' ? APPLE_PLANS[d.product] : d.product === 'jokerpro_founder' ? 'founder' : d.product === 'jokerpro_sub' && ['month', 'year'].includes(d.base) ? d.base : null;
+  if (!plan) return null;
+  return { id: store + ':' + d.id, store, kind: plan === 'founder' ? 'founder' : 'sub', plan, expires: plan === 'founder' ? null : now() + (d.days == null ? (d.trial ? 7 : plan === 'year' ? 365 : 30) : d.days) * 86400000,
+    trial: !!d.trial, cancel: !!d.cancel, refund: !!d.refund, pending: !!d.pending };
+}
+// as gc_pro_refresh: the account's Pro is what Stripe's side and the stores' purchases give together
+function proRefresh(uid) {
+  const p = db.profiles.get(uid); if (!p) return;
+  const row = billing.get(uid) || null, mine = [...storeRows.values()].filter((r) => r.uid === uid && !r.refund && !r.pending);
+  const sub = mine.filter((r) => r.kind === 'sub').sort((a, b) => b.expires - a.expires)[0] || null;
+  const founder = !!(row && row.founder) || mine.some((r) => r.kind === 'founder');
+  const stripeUntil = row && row.until ? row.until : null, until = Math.max(stripeUntil || 0, sub ? sub.expires : 0) || null;
+  p.pro_until = until ? iso(until) : null; p.pro_founder = founder;
+  p.pro_plan = founder ? 'founder' : until === null ? p.pro_plan || null : sub && sub.expires === until ? sub.plan : (row && row.plan) || p.pro_plan || null;
+}
+// where the account's Pro comes from (the pay function's withStore)
+function storeOf(uid) {
+  const mine = [...storeRows.values()].filter((r) => r.uid === uid && !r.refund && !r.pending);
+  return mine.filter((r) => r.kind === 'sub').sort((a, b) => b.expires - a.expires)[0] || mine.find((r) => r.kind === 'founder') || null;
+}
 
 // ---- SSE "realtime"
 const subs = new Map(); // topic -> Set<{res, uid}>
@@ -171,14 +202,21 @@ const server = http.createServer(async (req, res) => {
     const b = await readBody(req), uid = typeof b.token === 'string' ? b.token : '';
     const send = (st, o) => { res.writeHead(st, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
     const mode = db.proMode === undefined ? 'off' : db.proMode, founders = () => founderBase + [...db.profiles.values()].filter((p) => p.pro_founder).length;
-    if (b.action === 'public') return send(200, { on: mode === 'on', founders_left: Math.max(0, 1000 - founders()) });
+    const shops = db.proStores || { ios: 'off', android: 'off' };
+    if (b.action === 'public') return send(200, { on: mode === 'on', ios: shops.ios === 'on', android: shops.android === 'on', founders_left: Math.max(0, 1000 - founders()) });
     const p = db.profiles.get(uid);
     if (!uid || !p) return send(401, { error: 'auth' });
     const admin = db.admins.has(uid), can = mode === 'on' || (mode === 'test' && admin), row = billing.get(uid) || null;
     const state = () => {
-      const until = p.pro_until ? Date.parse(p.pro_until) : null, f = !!p.pro_founder;
-      return { pro: { on: f || (until !== null && until > now()), founder: f, until: f ? null : until, plan: p.pro_plan || null, status: (row && row.status) || null, cancel: !!(row && row.cancel),
-        trial: !!(row && row.trial), trialUsed: !!(row && row.trialUsed), sub: !!(row && row.sub) }, can, test: mode === 'test' || undefined, foundersLeft: Math.max(0, 1000 - founders()), now: now() };
+      const until = p.pro_until ? Date.parse(p.pro_until) : null, f = !!p.pro_founder, on = f || (until !== null && until > now()), row = billing.get(uid) || null;
+      const pro = { on, founder: f, until: f ? null : until, plan: p.pro_plan || null, status: (row && row.status) || null, cancel: !!(row && row.cancel),
+        trial: !!(row && row.trial), trialUsed: !!(row && row.trialUsed), sub: !!(row && row.sub), via: null };
+      // (as the pay function's withStore: a store's purchase that runs longest speaks for the account)
+      const st = storeOf(uid), stripeUntil = row && row.until ? row.until : null;
+      if (f) pro.via = row && row.founder ? 'stripe' : st && st.kind === 'founder' ? st.store : null;
+      else if (on) pro.via = st && st.kind === 'sub' && st.expires > now() && (stripeUntil === null || st.expires >= stripeUntil) ? st.store : 'stripe';
+      if (pro.via && pro.via !== 'stripe' && st && st.kind === 'sub') Object.assign(pro, { status: 'active', cancel: st.cancel, trial: st.trial, sub: true });
+      return { pro, can, test: mode === 'test' || undefined, foundersLeft: Math.max(0, 1000 - founders()), now: now() };
     };
     const origin = 'http://' + req.headers.host, back = typeof b.back === 'string' && b.back.startsWith(origin) ? b.back.split('#')[0].split('?')[0] : origin + '/';
     if (b.action === 'state') return send(200, state());
@@ -188,6 +226,7 @@ const server = http.createServer(async (req, res) => {
       if (!accounts.emailOf.has(uid) || p.is_guest) return send(200, { error: 'guest' });
       if (b.plan === 'founder') { if (p.pro_founder) return send(200, { error: 'already' }); if (founders() >= 1000) return send(200, { error: 'sold_out' }); }
       else if (row && row.sub) return send(200, { already: true, url: origin + '/pay/portal?uid=' + encodeURIComponent(uid) + '&back=' + encodeURIComponent(back) });
+      else { const st = storeOf(uid); if (st && st.kind === 'sub' && st.expires > now()) return send(200, { error: 'store_sub', store: st.store }); }
       const sid = 'cs_test_' + crypto.randomBytes(8).toString('hex');
       sessions.set(sid, { sid, uid, plan: b.plan, back, lang: b.lang || '', status: 'open', trial: b.plan === 'year' && !(row && row.trialUsed) });
       return send(200, { url: origin + '/pay/checkout?sid=' + sid });
@@ -201,6 +240,24 @@ const server = http.createServer(async (req, res) => {
     if (b.action === 'portal') {
       if (!row || !row.customer) return send(200, { error: 'no_customer' });
       return send(200, { url: origin + '/pay/portal?uid=' + encodeURIComponent(uid) + '&back=' + encodeURIComponent(back) });
+    }
+    // what an app bought, or found again in its store: it goes on the caller's account (the last account to show a
+    // purchase holds it), guests included
+    if (b.action === 'store') {
+      if (b.store !== 'apple' && b.store !== 'google') return send(200, { error: 'bad_store' });
+      const list = b.store === 'apple' ? (Array.isArray(b.jws) ? b.jws : [b.jws]) : (Array.isArray(b.items) ? b.items : []).map((x) => x && x.token), notes = [];
+      storeClaims.push({ uid, store: b.store, n: list.length, quiet: b.quiet === true, at: now() });
+      if (db.storeDown) return send(500, { error: 'server' }); // (test hook: the pay function cannot reach the store)
+      for (const text of list.slice(0, 25)) {
+        const e = readPurchase(b.store, text);
+        if (!e) { notes.push('refused'); continue; }
+        const was = storeRows.get(e.id), old = was ? was.uid : null;
+        const owner = b.quiet === true && old ? old : uid; // (a quiet look by the app: a purchase on file stays with whoever holds it)
+        storeRows.set(e.id, Object.assign(e, { uid: owner }));
+        proRefresh(owner); if (old && old !== owner) proRefresh(old); if (owner !== uid) proRefresh(uid);
+        notes.push(e.pending ? 'pending' : e.refund ? 'revoked' : 'active ' + e.plan);
+      }
+      return send(200, Object.assign(state(), { notes }));
     }
     return send(200, { error: 'bad_action' });
   }
@@ -222,10 +279,10 @@ const server = http.createServer(async (req, res) => {
     if (s.status !== 'complete') {
       s.status = 'complete';
       const row = billing.get(s.uid) || { customer: true };
-      if (s.plan === 'founder') { p.pro_founder = true; p.pro_plan = 'founder'; row.sub = false; row.status = row.status ? 'canceled' : null; }
+      if (s.plan === 'founder') { p.pro_founder = true; p.pro_plan = 'founder'; row.sub = false; row.status = row.status ? 'canceled' : null; row.founder = true; }
       else {
         p.pro_until = iso(now() + (s.trial ? 7 : s.plan === 'year' ? 365 : 30) * 86400000); if (!p.pro_founder) p.pro_plan = s.plan;
-        Object.assign(row, { sub: true, cancel: false, status: s.trial ? 'trialing' : 'active', trial: !!s.trial, trialUsed: !!(row.trialUsed || s.trial) });
+        Object.assign(row, { sub: true, cancel: false, status: s.trial ? 'trialing' : 'active', trial: !!s.trial, trialUsed: !!(row.trialUsed || s.trial), until: Date.parse(p.pro_until), plan: s.plan });
       }
       billing.set(s.uid, row);
     }
@@ -355,8 +412,16 @@ const server = http.createServer(async (req, res) => {
     else if (b.op === 'pro') {                                   // a player's Pro set straight: { uid, days (from now; negative: ended), founder, plan, sub, cancel, trialUsed, status }
       const p = db.profiles.get(b.uid);
       if (p) { p.pro_until = b.days == null ? null : iso(now() + b.days * 86400000); p.pro_founder = !!b.founder; p.pro_plan = b.founder ? 'founder' : b.plan || (b.days != null ? 'year' : null); }
-      billing.set(b.uid, { sub: !!b.sub, cancel: !!b.cancel, trialUsed: !!b.trialUsed, status: b.status || (b.sub ? 'active' : null), trial: !!b.trial, customer: true });
+      billing.set(b.uid, { sub: !!b.sub, cancel: !!b.cancel, trialUsed: !!b.trialUsed, status: b.status || (b.sub ? 'active' : null), trial: !!b.trial, customer: true,
+        until: p && p.pro_until ? Date.parse(p.pro_until) : null, plan: p ? p.pro_plan : null, founder: !!b.founder });
       out = { profile: clone(p), billing: billing.get(b.uid) };
+    }
+    else if (b.op === 'prostores') db.proStores = { ios: b.ios || 'off', android: b.android || 'off' }; // may the apps sell: 'off' | 'test' | 'on' each (billing_config's stores)
+    else if (b.op === 'storedown') db.storeDown = !!b.on;        // the pay function cannot reach the store
+    else if (b.op === 'storelog') out = { rows: [...storeRows.values()].map(clone), claims: storeClaims.slice() };
+    else if (b.op === 'storeend') {                              // a store's purchase ends (expired, refunded): { id }
+      const r = storeRows.get(b.id); if (r) { r.expires = now() - 3600000; r.refund = !!b.refund; proRefresh(r.uid); } // (an hour ago: past the ten minutes a device waits for a renewal)
+      out = { row: clone(r || null) };
     }
     else if (b.op === 'founders') founderBase = +b.n || 0;        // Founder places already taken by others
     else if (b.op === 'paylog') out = { sessions: [...sessions.values()].map(clone), portal: portalVisits.slice() };
@@ -407,7 +472,7 @@ const server = http.createServer(async (req, res) => {
       await broadcast('g:' + g.id, 'state', Object.assign(clone(g), { now: now() }));
       out = clone(g);
     } else if (b.op === 'reset') {
-      delete db.proMode; billing.clear(); sessions.clear(); portalVisits.length = 0; founderBase = 0;
+      delete db.proMode; delete db.proStores; delete db.storeDown; billing.clear(); sessions.clear(); portalVisits.length = 0; founderBase = 0; storeRows.clear(); storeClaims.length = 0;
       for (const k of Object.keys(db)) db[k].clear();
       for (const k of ['emailOf', 'uidOf', 'pending', 'lastSent']) accounts[k].clear();
       accounts.outbox.length = 0;

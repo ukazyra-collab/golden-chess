@@ -331,11 +331,15 @@ async function confirm(uid: string, b: any) {
 type StoreNews = { id: string; store: 'apple' | 'google'; kind: 'sub' | 'founder'; plan: string | null; product: string; tx: string | null; token: string | null;
   status: string; expires: number | null; revoked: number | null; autoRenew: boolean | null; trial: boolean; sandbox: boolean; signed: number | null; account: string | null };
 // claim: the account that showed the purchase (it becomes its owner: the last account to buy or restore it holds it);
-// without one (a store's own news) the owner on file stays, or the account the app named when buying.
-async function applyStore(e: StoreNews, claim: string | null, notice = ''): Promise<{ note: string; uid: string | null }> {
+// without one (a store's own news) the owner on file stays, or the account the app named when buying. soft: the app
+// only looked through its store's list by itself (at a start, on the store's news), nobody asked for anything: a
+// purchase on file stays with whoever holds it, a new one goes to the account it was bought for, and only failing
+// both to the one that showed it. So a purchase restored to another account does not jump back by itself.
+async function applyStore(e: StoreNews, claim: string | null, notice = '', soft = false): Promise<{ note: string; uid: string | null }> {
   const row = one(await sql`select * from public.store_purchases where id = ${e.id}`);
-  let uid: string | null = claim || (row && row.user_id) || null;
+  let uid: string | null = (soft ? null : claim) || (row && row.user_id) || null;
   if (!uid && e.account && UUID.test(e.account) && (await profileOf(e.account))) uid = e.account;
+  if (!uid) uid = claim;
   const was: string | null = row ? row.user_id : null;
   // deno-lint-ignore no-explicit-any
   const m: any = storeMerge(row, e, notice, Date.now());
@@ -370,7 +374,7 @@ function appleNews(ent: any): StoreNews {
   return { id: 'apple:' + ent.id, store: 'apple', kind: ent.kind, plan: ent.plan, product: ent.product, tx: ent.tx, token: null, status: '', expires: ent.expires, revoked: ent.revoked,
     autoRenew: ent.autoRenew, trial: ent.trial, sandbox: ent.sandbox, signed: ent.signed || null, account: ent.token };
 }
-async function appleClaim(uid: string, list: unknown[]): Promise<string[]> {
+async function appleClaim(uid: string, list: unknown[], soft = false): Promise<string[]> {
   const notes: string[] = [];
   for (const j of list.slice(0, 25)) {
     // deno-lint-ignore no-explicit-any
@@ -379,7 +383,7 @@ async function appleClaim(uid: string, list: unknown[]): Promise<string[]> {
     const ent = appleEntitlement(tx, null, APPLE_BUNDLE);
     if (!ent) { notes.push('not_ours'); continue; }
     if (ent.upgraded) { notes.push('upgraded'); continue; } // (a plan left for a bigger one: the bigger one's own transaction counts)
-    notes.push((await applyStore(appleNews(ent), uid)).note);
+    notes.push((await applyStore(appleNews(ent), uid, '', soft)).note);
   }
   return notes;
 }
@@ -442,7 +446,7 @@ async function play(method: string, path: string, body?: unknown): Promise<any> 
 }
 const TOKEN = /^[A-Za-z0-9._~-]{20,2000}$/; // a purchase token
 // one purchase token asked about and put on file. type: 'subs' | 'inapp'
-async function googleApply(token: string, type: string, claim: string | null): Promise<string> {
+async function googleApply(token: string, type: string, claim: string | null, soft = false): Promise<string> {
   if (!TOKEN.test(token)) return 'bad_token';
   const t = encodeURIComponent(token);
   // deno-lint-ignore no-explicit-any
@@ -465,7 +469,7 @@ async function googleApply(token: string, type: string, claim: string | null): P
   if (!e) return 'not_ours';
   const news: StoreNews = { id: e.id, store: 'google', kind: e.kind, plan: e.plan, product: e.product, tx: e.tx, token, status: e.status, expires: e.expires, revoked: null,
     autoRenew: e.autoRenew, trial: e.trial, sandbox: e.sandbox, signed: null, account: e.account };
-  const r = await applyStore(news, claim);
+  const r = await applyStore(news, claim, '', soft);
   // the purchase this one replaced (a change of plan, a new start) is over
   if (e.linked && TOKEN.test(e.linked)) {
     const old = one(await sql`select user_id from public.store_purchases where id = ${'google:' + e.linked} and (expires_at is null or expires_at > now())`);
@@ -480,17 +484,19 @@ async function googleApply(token: string, type: string, claim: string | null): P
   }
   return r.note;
 }
-// what the app bought, or found again in its store, goes on the caller's account
+// what the app bought, or found again in its store, goes on the caller's account. quiet: the app looked through its
+// store's list by itself (see applyStore's soft): nothing changes hands
 // deno-lint-ignore no-explicit-any
 async function storeClaim(uid: string, b: any) {
   if (!(await profileOf(uid))) throw new Fail('profile');
+  const soft = b.quiet === true;
   let notes: string[] = [];
-  if (b.store === 'apple') notes = await appleClaim(uid, Array.isArray(b.jws) ? b.jws : [b.jws]);
+  if (b.store === 'apple') notes = await appleClaim(uid, Array.isArray(b.jws) ? b.jws : [b.jws], soft);
   else if (b.store === 'google') {
     // deno-lint-ignore no-explicit-any
     for (const it of (Array.isArray(b.items) ? b.items : []).slice(0, 25) as any[]) {
       if (!it || typeof it.token !== 'string') { notes.push('bad_token'); continue; }
-      notes.push(await googleApply(it.token, it.type === 'inapp' ? 'inapp' : 'subs', uid));
+      notes.push(await googleApply(it.token, it.type === 'inapp' ? 'inapp' : 'subs', uid, soft));
     }
   } else throw new Fail('bad_store');
   return Object.assign(await stateOf(uid), { notes });

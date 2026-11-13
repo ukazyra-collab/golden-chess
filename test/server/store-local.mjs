@@ -226,6 +226,20 @@ try {
   check('Apple still names the first account at renewals: the holder on file keeps it', (await row('apple:1001')).user_id === FAY && !(await isOn(DAN)) && r.body.note === 'active month');
   r = await apple(DAN, true, signJws(t5, chain));
   check('and back again by showing it', (await row('apple:1001')).user_id === DAN && (await isOn(DAN)) && near(await until(DAN), Date.now() + 61 * DAY));
+  // ---- the app looking through its store's list by itself (a start, the store's news) moves nothing
+  const quiet = (uid, guest, jws) => call(token(uid, guest), { action: 'store', store: 'apple', quiet: true, jws: [jws] });
+  r = await quiet(FAY, false, signJws(t5, chain));
+  check('a quiet look from another account: the purchase stays where it is', r.status === 200 && (await row('apple:1001')).user_id === DAN && (await isOn(DAN)) && r.body.pro.via !== 'apple-moved' && (await state(DAN)).pro.on === true, r.body);
+  const t8 = transaction({ transactionId: '1022', originalTransactionId: '1001', appAccountToken: DAN, expiresDate: Date.now() + 92 * DAY });
+  r = await quiet(FAY, false, signJws(t8, chain));
+  check('... even with news in it (a renewal): the holder gets the later end, not the account that looked', (await row('apple:1001')).user_id === DAN && near(await until(DAN), t8.expiresDate) && r.body.notes[0] === 'active month', r.body);
+  const t9 = transaction({ transactionId: '4001', originalTransactionId: '4001', appAccountToken: EVE.toUpperCase(), expiresDate: Date.now() + 30 * DAY });
+  r = await quiet(FAY, false, signJws(t9, chain));
+  check('a quiet look at a purchase nobody told us about: it goes to the account it was bought for', (await row('apple:4001')).user_id === EVE, await row('apple:4001'));
+  const t10 = transaction({ transactionId: '4101', originalTransactionId: '4101', expiresDate: Date.now() + 30 * DAY });
+  r = await quiet(OWNER, false, signJws(t10, chain));
+  check('... and one bought for no account we know: to the account whose app shows it', (await row('apple:4101')).user_id === OWNER && r.body.pro.on === true, r.body.pro);
+  await q("delete from public.store_purchases where id in ('apple:4001', 'apple:4101')"); await q('select public.gc_pro_refresh($1::uuid)', [EVE]); await q('select public.gc_pro_refresh($1::uuid)', [OWNER]);
 
   // ---- the founder's purchase; a tester's takes no place
   const f1 = transaction({ transactionId: '3001', originalTransactionId: '3001', productId: 'jokerpro_founder', appAccountToken: EVE });

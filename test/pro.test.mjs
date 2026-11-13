@@ -265,5 +265,45 @@ check('every reason for the Pro sheet has its line', ['check', 'hints', 'puzzles
 check('every offer has its two lines', ['streak', 'rank', 'plain'].every((id) => Pro.TEXT.en['offer_' + id + '_t'] && Pro.TEXT.ru['offer_' + id + '_s']));
 check('the perks: the coach, the pack, the Road, the XP, the status', Pro.PERKS.join() === 'coach,puzzles,road,xp,status');
 
+// ---- Joker Pro in the apps: what the purchase plugin says about the products → the plans as the sheet shows them
+{
+  const free = { price: 0, priceString: 'Free', paymentMode: 0, numberOfPeriods: 1, subscriptionPeriod: { numberOfUnits: 1, unit: 1 } };
+  const ios = [
+    { identifier: 'jokerpro_month', price: 3.99, priceString: '$3.99', currencyCode: 'USD', introductoryPrice: null, introEligibility: 0 },
+    { identifier: 'jokerpro_year', price: 29.99, priceString: '$29.99', currencyCode: 'USD', introductoryPrice: free, introEligibility: 2 },
+    { identifier: 'jokerpro_founder', price: 79.99, priceString: '$79.99', currencyCode: 'USD', introEligibility: 0 },
+    { identifier: 'somebody_elses', price: 1, priceString: '$1.00', currencyCode: 'USD' }];
+  let c = Pro.storeCatalog('apple', ios);
+  check('the App Store: three plans, the store\'s words and amounts', Object.keys(c).sort().join() === 'founder,month,year' && c.year.id === 'jokerpro_year' && c.year.price === '$29.99' && c.year.amount === 29.99 && c.year.cur === 'USD' && c.month.id === 'jokerpro_month' && c.founder.id === 'jokerpro_founder' && !c.year.base, c);
+  check('... the free week on the year, for a player who may still have it', c.year.trialDays === 7 && c.month.trialDays === 0 && c.founder.trialDays === 0);
+  check('... seven days written as days are seven days too', Pro.storeCatalog('apple', [Object.assign({}, ios[1], { introductoryPrice: Object.assign({}, free, { subscriptionPeriod: { numberOfUnits: 7, unit: 0 } }) })]).year.trialDays === 7);
+  check('... no trial for a player who has had it (1), or when the store does not say (0)', Pro.storeCatalog('apple', [Object.assign({}, ios[1], { introEligibility: 1 })]).year.trialDays === 0 && Pro.storeCatalog('apple', [Object.assign({}, ios[1], { introEligibility: 0 })]).year.trialDays === 0);
+  check('... an introductory price that is not free is not a free trial', Pro.storeCatalog('apple', [Object.assign({}, ios[1], { introductoryPrice: { price: 9.99, paymentMode: 1, numberOfPeriods: 1, subscriptionPeriod: { numberOfUnits: 1, unit: 3 } } })]).year.trialDays === 0);
+  check('... a product without a price, or a plan the store did not name, is not offered', !Pro.storeCatalog('apple', [{ identifier: 'jokerpro_year', price: 0, priceString: '' }]).year && Object.keys(Pro.storeCatalog('apple', ios.slice(0, 1))).join() === 'month' &&
+    Object.keys(Pro.storeCatalog('apple', null)).length === 0 && Object.keys(Pro.storeCatalog('apple', [null, 'x', 5])).length === 0);
+  const play = [
+    { identifier: 'year', planIdentifier: 'jokerpro_sub', offerId: 'trial', offerToken: 't1', price: 109.99, priceString: 'AED 109.99', currencyCode: 'AED' },
+    { identifier: 'year', planIdentifier: 'jokerpro_sub', offerId: null, offerToken: 't0', price: 109.99, priceString: 'AED 109.99', currencyCode: 'AED' },
+    { identifier: 'month', planIdentifier: 'jokerpro_sub', offerId: null, offerToken: 't2', price: 14.99, priceString: 'AED 14.99', currencyCode: 'AED' },
+    { identifier: 'jokerpro_founder', price: 299.99, priceString: 'AED 299.99', currencyCode: 'AED' }];
+  c = Pro.storeCatalog('google', play);
+  check('Google Play: the subscription\'s base plans and the one-time product', c.year.id === 'jokerpro_sub' && c.year.base === 'year' && c.month.id === 'jokerpro_sub' && c.month.base === 'month' && c.founder.id === 'jokerpro_founder' && !c.founder.base && c.year.price === 'AED 109.99', c);
+  check('... the trial when its offer comes first for the base plan (that one is bought)', c.year.trialDays === 7 && c.month.trialDays === 0);
+  check('... no trial when Google does not list the offer, or lists the plain plan first', Pro.storeCatalog('google', play.slice(1)).year.trialDays === 0 && Pro.storeCatalog('google', [play[1], play[0]]).year.trialDays === 0);
+  check('... another subscription\'s plans are not ours', !Pro.storeCatalog('google', [Object.assign({}, play[2], { planIdentifier: 'other_sub' })]).month);
+  check('what the year saves at the store\'s prices', Pro.storeSaving(c) === 39 && Pro.storeSaving(Pro.storeCatalog('apple', ios)) === 37 && Pro.storeSaving({ year: c.year }) === null &&
+    Pro.storeSaving({ year: c.year, month: Object.assign({}, c.month, { cur: 'USD' }) }) === null && Pro.storeSaving({ year: { amount: 60, cur: 'X' }, month: { amount: 5, cur: 'X' } }) === null);
+  const share = (p, a) => Pro.storeShare(p, a, 12);
+  check('a month of the year, in the store\'s own writing', share('$29.99', 29.99) === '$2.50' && share('US$29.99', 29.99) === 'US$2.50' && share('AED 109.99', 109.99) === 'AED 9.17' && share('29,99 €', 29.99) === '2,50 €' &&
+    share('2 990,00 ₽', 2990) === '249,17 ₽' && share('1.234,56 kr', 1234.56) === '102,88 kr', [share('2 990,00 ₽', 2990), share('1.234,56 kr', 1234.56)]);
+  check('... currencies without cents, with thousands, with three decimals', share('¥4,500', 4500) === '¥375' && share('₩39,000', 39000) === '₩3,250' && share('Rp 499.000', 499000) === 'Rp 41.583' && share('KWD 9.900', 9.9) === 'KWD 0.825',
+    [share('¥4,500', 4500), share('Rp 499.000', 499000), share('KWD 9.900', 9.9)]);
+  check('... words it cannot read give nothing (the sheet then names no monthly share)', share('٢٩٫٩٩', 29.99) === null && share('$29.99', 31) === null && share('', 5) === null && share('Free', 0) === null && Pro.storeShare('$29.99', 29.99, 0) === null);
+  check('the stores\' words: every line in both languages', ['payBy_apple', 'payBy_google', 'thenS_year', 'thenS_year_paid', 'thenS_month', 'restore', 'restoreOk', 'restoreNone', 'restoreErr', 'storeErr', 'storeRetry', 'buyErr', 'buyPending', 'buyWait',
+    'manage_apple', 'manage_google', 'in_apple', 'in_google', 'in_stripe', 'subRow', 'subCancel', 'welcomeSave', 'delStore_apple', 'delStore_google', 'st_trialS', 'st_dueS', 'perYearS', 'privacy'].every((k) => Pro.TEXT.en[k] && Pro.TEXT.ru[k] && Pro.TEXT.en[k] !== Pro.TEXT.ru[k]));
+  check('a subscription\'s small print says the price, the period and that it renews', /\{p\} a year/.test(Pro.TEXT.en.thenS_year) && /\{n\} days/.test(Pro.TEXT.en.thenS_year) && /Renews/.test(Pro.TEXT.en.thenS_year) && /\{p\} a month/.test(Pro.TEXT.en.thenS_month) && /Renews/.test(Pro.TEXT.en.thenS_month) &&
+    /\{p\} в год/.test(Pro.TEXT.ru.thenS_year) && /Продлевается/.test(Pro.TEXT.ru.thenS_month));
+}
+
 console.log(`pro: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

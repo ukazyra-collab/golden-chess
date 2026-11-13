@@ -4,9 +4,11 @@
  * bots), the puzzle pack and its marathon, speed (more XP, every season open, the Joker any time, streak freezes) and
  * status (a gold name, the Pro mark, looks of its own).
  *
- * Who has Pro is the server's word (supabase/functions/pay: Stripe's own payment page, on the website only; the apps
- * honour it and sell nothing). The amounts here are what that page charges: test/server/pay.test.mjs holds the two
- * tables against each other. The prototype page (GC_PROTO) keeps a switch of its own on the device instead.
+ * Who has Pro is the server's word (supabase/functions/pay). On the website it is bought on Stripe's own payment page;
+ * the amounts here are what that page charges (test/server/pay.test.mjs holds the two tables against each other). In
+ * the iPhone and Android apps it is bought through the App Store and Google Play, at the stores' own prices in the
+ * player's currency (STORE below names the products). Bought in one place, Pro is on everywhere: it lives on the
+ * account. The prototype page (GC_PROTO) keeps a switch of its own on the device instead.
  *
  * Prices are set against chess.com's cheapest plan, Gold: 6.99 a month, 49.99 a year (USD, Oct 2026). */
 var Pro = (function () {
@@ -39,6 +41,78 @@ var Pro = (function () {
   }
   var GRACE_MS = 10 * 60 * 1000; // a renewal on its way: the device waits this long before it takes Pro for ended
   function entitled(s, now) { return !!s && (!!s.founder || (s.until != null && s.until + GRACE_MS > now)); }
+
+  // ---- Joker Pro bought in the apps. The App Store sells three products: two subscriptions of one group (the yearly
+  // one starts with a free week for a new subscriber) and Founder, bought once. Google Play sells one subscription
+  // with two base plans, named as our plans (the yearly one has a free-trial offer), and Founder as a one-time
+  // product. The same names stand in supabase/functions/pay (apple.js, google.js): test/server/store.test.mjs holds
+  // the tables against each other. The prices are the stores' own, in the player's currency: nothing here knows them.
+  var STORE = {
+    apple: { month: 'jokerpro_month', year: 'jokerpro_year', founder: 'jokerpro_founder' },
+    google: { sub: 'jokerpro_sub', founder: 'jokerpro_founder', trial: 'trial' }
+  };
+  var UNIT_DAYS = [1, 7, 30, 365]; // the purchase plugin's period units: day, week, month, year
+  // an introductory offer's length in days when it is a free one (0 otherwise)
+  function freeDays(o) {
+    if (!o || !(Number(o.price) === 0 || o.paymentMode === 0)) return 0;
+    var p = o.subscriptionPeriod || {}, d = UNIT_DAYS[p.unit];
+    return d ? d * (p.numberOfUnits || 1) * (o.numberOfPeriods || 1) : 0;
+  }
+  // what the app's purchase plugin said about the products (getProducts) → the plans as the sheet shows them:
+  // { month, year, founder }, each { id (what is bought), base (Google's base plan), price (the store's own words),
+  // amount, cur, trialDays }. A plan the store did not name is not there.
+  function storeCatalog(store, products) {
+    var out = {}, list = Array.isArray(products) ? products.filter(function (x) { return x && typeof x === 'object'; }) : [];
+    function entry(p, more) {
+      var amount = Number(p.price);
+      if (typeof p.priceString !== 'string' || !p.priceString || !isFinite(amount) || amount <= 0) return null;
+      return Object.assign({ id: p.identifier, price: p.priceString, amount: amount, cur: p.currencyCode || '', trialDays: 0 }, more);
+    }
+    if (store === 'apple') {
+      Object.keys(STORE.apple).forEach(function (plan) {
+        var p = list.filter(function (x) { return x.identifier === STORE.apple[plan]; })[0], e = p ? entry(p) : null;
+        if (!e) return;
+        // (2: the store says this player may still have the introductory offer)
+        if (plan !== 'founder' && p.introEligibility === 2) e.trialDays = freeDays(p.introductoryPrice);
+        out[plan] = e;
+      });
+    } else if (store === 'google') {
+      // one entry for every offer of a base plan, in Google's order, and only the offers this player may have. Buying
+      // takes the first one of the base plan (the plugin does), so the first one says whether the free trial is there
+      ['month', 'year'].forEach(function (plan) {
+        var all = list.filter(function (x) { return x.planIdentifier === STORE.google.sub && x.identifier === plan; });
+        var e = all.length ? entry(all[0], { id: STORE.google.sub, base: plan }) : null;
+        if (!e) return;
+        if (all[0].offerId === STORE.google.trial) e.trialDays = PLANS.year.trialDays;
+        out[plan] = e;
+      });
+      var f = list.filter(function (x) { return x.identifier === STORE.google.founder && !x.planIdentifier; })[0], fe = f ? entry(f) : null;
+      if (fe) out.founder = fe;
+    }
+    return out;
+  }
+  // a part of a price, written the way the store wrote the price itself: ('$29.99', 29.99, 12) → '$2.50',
+  // ('2 990,00 ₽', 2990, 12) → '249,17 ₽', ('¥4,500', 4500, 12) → '¥375'. null when the store's words can't be read
+  // (other digits than 0-9, or a number that isn't the amount).
+  function storeShare(price, amount, parts) {
+    var m = /\d(?:[\d.,'   ]*\d)?/.exec(String(price || ''));
+    if (!m || !(amount > 0) || !(parts > 0)) return null;
+    var num = m[0], digits = num.replace(/\D/g, ''), dec = -1;
+    for (var d = 0; d <= 3; d++) if (Math.abs(Number(digits) / Math.pow(10, d) - amount) < 1e-6 * Math.max(1, amount)) { dec = d; break; }
+    if (dec < 0) return null;
+    var decSep = dec ? num.charAt(num.length - dec - 1) : '', head = dec ? num.slice(0, num.length - dec - 1) : num;
+    if (dec && /\d/.test(decSep)) return null;
+    var grp = /\D/.exec(head), v = (amount / parts).toFixed(dec), whole = dec ? v.slice(0, v.length - dec - 1) : v;
+    if (grp) whole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, grp[0]);
+    return price.slice(0, m.index) + whole + (dec ? decSep + v.slice(v.length - dec) : '') + price.slice(m.index + num.length);
+  }
+  // what the yearly plan saves against twelve monthly payments at the store's prices, in whole percent (null: unknown)
+  function storeSaving(cat) {
+    var y = cat && cat.year, mo = cat && cat.month;
+    if (!y || !mo || y.cur !== mo.cur || !(mo.amount > 0)) return null;
+    var n = Math.round((1 - y.amount / (mo.amount * 12)) * 100);
+    return n > 0 ? n : null;
+  }
 
   // ---- the Joker analysis of a game (where the Joker Move was, how good the one played was). Pro has it in every
   // review; a free player has FREE_CHECKS of them, each kept for the game it was used on.
@@ -189,7 +263,23 @@ var Pro = (function () {
       cta_year: 'Try {n} days free', cta_year_paid: 'Get Pro for {p} a year', cta_month: 'Get Pro for {p} a month', cta_founder: 'Become a Founder for {p}',
       then_year: 'Then {p} a year. Cancel any time.', then_year_paid: 'Cancel any time.', then_month: 'Cancel any time.', then_founder: 'One payment. Pro for life and the Founder mark.',
       notNow: 'Not now', protoNote: 'Prototype: no payment is taken.',
-      payBy: 'You pay on Stripe’s secure page.', terms: 'Terms',
+      payBy: 'You pay on Stripe’s secure page.', terms: 'Terms', privacy: 'Privacy',
+      payBy_apple: 'Payment goes through the App Store.', payBy_google: 'Payment goes through Google Play.',
+      thenS_year: 'Free for {n} days, then {p} a year. Renews until you cancel.', thenS_year_paid: '{p} a year. Renews until you cancel.',
+      thenS_month: '{p} a month. Renews until you cancel.', perYearS: 'for a year',
+      restore: 'Restore purchases', restoreBusy: 'Checking your purchases…', restoreOk: 'Joker Pro is back on this account.',
+      restoreNone: 'No Joker Pro purchase was found in this store account.', restoreErr: 'The purchases could not be checked. Try again.',
+      storeLoad: 'Loading the prices…', storeErr: 'The store did not answer.', storeRetry: 'Try again',
+      goStore: 'Opening the purchase…', buyCheck: 'Checking the purchase…', buyErr: 'The purchase did not go through. Try again.',
+      buyPending: 'The purchase is waiting for approval. Pro turns on by itself once it goes through.',
+      buyWait: 'The purchase is on its way. Pro turns on by itself in a moment.',
+      manage_apple: 'Manage in the App Store', manage_google: 'Manage in Google Play', manageErr: 'The store did not open. Try again.',
+      in_apple: 'Bought in the App Store on an iPhone or iPad. It is managed there.', in_google: 'Bought on Google Play. It is managed there.',
+      in_stripe: 'Bought on joker-chess.com. It is managed there.',
+      subRow: 'Subscription', subCancel: 'Cancel or change the card', subNone: 'No subscription',
+      welcomeSave: 'Save your account, and Pro is with you on every device.', welcomeSaveBtn: 'Save the account',
+      delStore_apple: 'Your Joker Pro subscription is billed by the App Store. Deleting the account does not stop it: cancel it in the App Store as well.',
+      delStore_google: 'Your Joker Pro subscription is billed by Google Play. Deleting the account does not stop it: cancel it on Google Play as well.',
       testNote: 'Test mode: nothing is charged. Card 4242 4242 4242 4242, any future date, any CVC.',
       saveFirstT: 'Save your account first', saveFirstSub: 'Pro lives on your account, so it works on every device.',
       goPay: 'Opening the payment page…', payCheck: 'Checking the payment…',
@@ -212,8 +302,8 @@ var Pro = (function () {
       cardSub: 'Joker analysis, the puzzle pack, +50% XP, a gold name', cardBtn: 'Learn more',
       onT: 'Joker Pro is on', on_year: 'Yearly plan', on_month: 'Monthly plan', on_founder: 'Founder, for life', on_trial: 'Free trial', until: 'until {d}', manage: 'Manage',
       manageT: 'Your Joker Pro', turnOff: 'Turn Pro off (prototype)', freezes: 'Streak freezes left this month: {n}', frozenNote: 'A Pro freeze kept your streak. Left this month: {n}.',
-      st_trial: 'Free trial until {d}. Then {p} a year.', st_renew: 'Renews on {d}.', st_ends: 'On until {d}. No more payments.',
-      st_due: 'The last payment did not go through. Update your card to keep Pro.', st_founder: 'Founder. Pro for life.',
+      st_trial: 'Free trial until {d}. Then {p} a year.', st_trialS: 'Free trial until {d}. Then the yearly plan starts.', st_renew: 'Renews on {d}.', st_ends: 'On until {d}. No more payments.',
+      st_due: 'The last payment did not go through. Update your card to keep Pro.', st_dueS: 'The last payment did not go through. Update the payment method in the store to keep Pro.', st_founder: 'Founder. Pro for life.',
       portal: 'Manage the subscription', receipts: 'Receipts', portalErr: 'The page did not open. Try again.',
       factCheck: 'The Joker analysis in every game', factHints: 'Hints without a limit',
       delSub: 'Cancel your Joker Pro subscription first (Profile, Joker Pro, Manage), then delete the account.',
@@ -250,7 +340,23 @@ var Pro = (function () {
       cta_year: 'Попробовать {n} дней бесплатно', cta_year_paid: 'Оформить Pro за {p} в год', cta_month: 'Оформить Pro за {p} в месяц', cta_founder: 'Стать основателем за {p}',
       then_year: 'Потом {p} в год. Отменить можно в любой момент.', then_year_paid: 'Отменить можно в любой момент.', then_month: 'Отменить можно в любой момент.', then_founder: 'Один платёж. Pro навсегда и знак основателя.',
       notNow: 'Не сейчас', protoNote: 'Прототип: оплата не списывается.',
-      payBy: 'Оплата на защищённой странице Stripe.', terms: 'Условия',
+      payBy: 'Оплата на защищённой странице Stripe.', terms: 'Условия', privacy: 'Конфиденциальность',
+      payBy_apple: 'Оплата проходит через App Store.', payBy_google: 'Оплата проходит через Google Play.',
+      thenS_year: '{n} дней бесплатно, потом {p} в год. Продлевается, пока не отменишь.', thenS_year_paid: '{p} в год. Продлевается, пока не отменишь.',
+      thenS_month: '{p} в месяц. Продлевается, пока не отменишь.', perYearS: 'за год',
+      restore: 'Восстановить покупки', restoreBusy: 'Проверяю покупки…', restoreOk: 'Joker Pro снова на этом аккаунте.',
+      restoreNone: 'В этом аккаунте магазина покупок Joker Pro не нашлось.', restoreErr: 'Не получилось проверить покупки. Попробуй ещё раз.',
+      storeLoad: 'Загружаю цены…', storeErr: 'Магазин не ответил.', storeRetry: 'Попробовать ещё раз',
+      goStore: 'Открываю покупку…', buyCheck: 'Проверяю покупку…', buyErr: 'Покупка не прошла. Попробуй ещё раз.',
+      buyPending: 'Покупка ждёт подтверждения. Pro включится сам, когда она пройдёт.',
+      buyWait: 'Покупка в пути. Pro включится сам через минуту.',
+      manage_apple: 'Управлять в App Store', manage_google: 'Управлять в Google Play', manageErr: 'Магазин не открылся. Попробуй ещё раз.',
+      in_apple: 'Куплено в App Store на iPhone или iPad. Управление подпиской там же.', in_google: 'Куплено в Google Play. Управление подпиской там же.',
+      in_stripe: 'Куплено на joker-chess.com. Управление подпиской там же.',
+      subRow: 'Подписка', subCancel: 'Отменить или сменить карту', subNone: 'Подписки нет',
+      welcomeSave: 'Сохрани аккаунт, и Pro будет с тобой на любом устройстве.', welcomeSaveBtn: 'Сохранить аккаунт',
+      delStore_apple: 'Подписку Joker Pro списывает App Store. Удаление аккаунта её не остановит: отмени её ещё и в App Store.',
+      delStore_google: 'Подписку Joker Pro списывает Google Play. Удаление аккаунта её не остановит: отмени её ещё и в Google Play.',
       testNote: 'Тестовый режим: деньги не списываются. Карта 4242 4242 4242 4242, любая будущая дата, любой CVC.',
       saveFirstT: 'Сначала сохрани аккаунт', saveFirstSub: 'Pro привязан к аккаунту и работает на всех устройствах.',
       goPay: 'Открываю страницу оплаты…', payCheck: 'Проверяю оплату…',
@@ -273,8 +379,8 @@ var Pro = (function () {
       cardSub: 'Разбор джокера, пак задач, +50% опыта, золотое имя', cardBtn: 'Подробнее',
       onT: 'Joker Pro включён', on_year: 'План на год', on_month: 'План на месяц', on_founder: 'Основатель, навсегда', on_trial: 'Пробный период', until: 'до {d}', manage: 'Управлять',
       manageT: 'Твой Joker Pro', turnOff: 'Выключить Pro (прототип)', freezes: 'Заморозок серии в этом месяце: {n}', frozenNote: 'Заморозка Pro сохранила серию. Осталось в этом месяце: {n}.',
-      st_trial: 'Пробный период до {d}. Потом {p} в год.', st_renew: 'Продлится {d}.', st_ends: 'Действует до {d}. Списаний больше не будет.',
-      st_due: 'Последний платёж не прошёл. Обнови карту, чтобы Pro не отключился.', st_founder: 'Основатель. Pro навсегда.',
+      st_trial: 'Пробный период до {d}. Потом {p} в год.', st_trialS: 'Пробный период до {d}. Потом начнётся годовой план.', st_renew: 'Продлится {d}.', st_ends: 'Действует до {d}. Списаний больше не будет.',
+      st_due: 'Последний платёж не прошёл. Обнови карту, чтобы Pro не отключился.', st_dueS: 'Последний платёж не прошёл. Обнови способ оплаты в магазине, чтобы Pro не отключился.', st_founder: 'Основатель. Pro навсегда.',
       portal: 'Управлять подпиской', receipts: 'Чеки', portalErr: 'Страница не открылась. Попробуй ещё раз.',
       factCheck: 'Разбор джокера в каждой партии', factHints: 'Подсказки без лимита',
       delSub: 'Сначала отмени подписку Joker Pro (Профиль, Joker Pro, Управлять), потом удали аккаунт.',
@@ -306,6 +412,7 @@ var Pro = (function () {
 
   return { PLANS: PLANS, CHESSCOM_GOLD: CHESSCOM_GOLD, FREE_CHECKS: FREE_CHECKS, FREE_HINTS: FREE_HINTS, XP_BONUS: XP_BONUS, FREEZES: FREEZES, PERKS: PERKS, LOOKS: LOOKS,
     perMonth: perMonth, cheaper: cheaper, yearSaving: yearSaving, price: price, ofProfile: ofProfile, GRACE_MS: GRACE_MS, entitled: entitled,
+    STORE: STORE, storeCatalog: storeCatalog, storeShare: storeShare, storeSaving: storeSaving,
     checkOpen: checkOpen, checksLeft: checksLeft, useCheck: useCheck, hintState: hintState, hintsLeft: hintsLeft, hintShown: hintShown, useHint: useHint,
     bonusXp: bonusXp, FREEZE_SPAN: FREEZE_SPAN, freezesLeft: freezesLeft, useFreeze: useFreeze, variant: variant, turnFen: turnFen, turnMove: turnMove,
     offerFirst: offerFirst, offerDue: offerDue, offerShown: offerShown, offerEnded: offerEnded, OFFER: { gap: OFFER_GAP, plain: OFFER_PLAIN, skips: OFFER_SKIPS, rest: OFFER_REST, games: OFFER_GAMES, again: OFFER_AGAIN }, MOMENTS: MOMENTS,
