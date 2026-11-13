@@ -40,22 +40,47 @@ def start_server():
             time.sleep(0.1)
     raise RuntimeError('server did not start')
 
-# the app's bridge, Android: the notifications plugin answers "prompt" until allowed (test.perm), keeps what is planned
+# the app's bridge with the phone's own side of the notifications behind it, as each platform's plugin really treats a
+# planned time (localStorage 'test.platform': android unless told otherwise):
+#   Android: the bridge sends the call as JSON text; the plugin reads the time as text, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+#   iPhone:  the bridge hands the call over as it is; the plugin takes the time only as a real date (NSDate) that is
+#            still ahead. A time it cannot read is no time at all: the notification is shown at once
+# __phone: pending (id → { at, title }), shown (what came up at once), cleared (times the shown ones were taken away).
+# The permission answers "prompt" until allowed (test.perm).
 FAKE_CAP = r"""
 window.__capCalls = []; window.__capListeners = {};
-window.Capacitor = {
-  isNativePlatform: function () { return true; },
-  getPlatform: function () { return 'android'; },
-  isPluginAvailable: function (p) { return ['App', 'SplashScreen', 'StatusBar', 'Share', 'Browser', 'Haptics', 'LocalNotifications'].indexOf(p) >= 0; },
-  nativePromise: function (plugin, method, opts) {
-    window.__capCalls.push([plugin, method, JSON.parse(JSON.stringify(opts || {}))]);
-    if (plugin === 'LocalNotifications' && method === 'checkPermissions') return Promise.resolve({ display: localStorage.getItem('test.perm') || 'prompt' });
-    if (plugin === 'LocalNotifications' && method === 'requestPermissions') { localStorage.setItem('test.perm', 'granted'); return Promise.resolve({ display: 'granted' }); }
-    if (plugin === 'LocalNotifications' && method === 'schedule') return Promise.resolve({ notifications: (opts.notifications || []).map(function (n) { return { id: n.id }; }) });
-    return Promise.resolve({});
-  },
-  addListener: function (plugin, ev, cb) { var k = plugin + '.' + ev; (window.__capListeners[k] = window.__capListeners[k] || []).push(cb); return { remove: function () {} }; }
-};
+window.__phone = { pending: {}, shown: [], cleared: 0 };
+(function () {
+  // (asked each time: the test's own settings are put in after this script)
+  function plat() { return localStorage.getItem('test.platform') || 'android'; }
+  function planned(n) {
+    var at = n.schedule && n.schedule.at;
+    if (plat() === 'ios') return at instanceof Date && !isNaN(at.getTime()) && at.getTime() > Date.now() ? at.getTime() : null;
+    return typeof at === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(at) && Date.parse(at) > Date.now() ? Date.parse(at) : null;
+  }
+  window.Capacitor = {
+    isNativePlatform: function () { return true; },
+    getPlatform: function () { return plat(); },
+    isPluginAvailable: function (p) { return ['App', 'SplashScreen', 'StatusBar', 'Share', 'Browser', 'Haptics', 'LocalNotifications'].indexOf(p) >= 0; },
+    nativePromise: function (plugin, method, opts) {
+      var seen = plat() === 'ios' ? (opts || {}) : JSON.parse(JSON.stringify(opts || {}));
+      window.__capCalls.push([plugin, method, JSON.parse(JSON.stringify(opts || {}))]);
+      if (plugin === 'LocalNotifications' && method === 'checkPermissions') return Promise.resolve({ display: localStorage.getItem('test.perm') || 'prompt' });
+      if (plugin === 'LocalNotifications' && method === 'requestPermissions') { localStorage.setItem('test.perm', 'granted'); return Promise.resolve({ display: 'granted' }); }
+      if (plugin === 'LocalNotifications' && method === 'cancel') { (seen.notifications || []).forEach(function (n) { delete window.__phone.pending[n.id]; }); return Promise.resolve({}); }
+      if (plugin === 'LocalNotifications' && method === 'schedule') {
+        (seen.notifications || []).forEach(function (n) {
+          var when = planned(n);
+          if (when === null) window.__phone.shown.push({ id: n.id, title: n.title }); else window.__phone.pending[n.id] = { at: when, title: n.title };
+        });
+        return Promise.resolve({ notifications: (seen.notifications || []).map(function (n) { return { id: n.id }; }) });
+      }
+      if (plugin === 'LocalNotifications' && method === 'removeAllDeliveredNotifications') { window.__phone.cleared++; window.__phone.shown = []; return Promise.resolve({}); }
+      return Promise.resolve({});
+    },
+    addListener: function (plugin, ev, cb) { var k = plugin + '.' + ev; (window.__capListeners[k] = window.__capListeners[k] || []).push(cb); return { remove: function () {} }; }
+  };
+})();
 """
 
 async def main():
@@ -193,6 +218,8 @@ async def main():
             ok('app: reminders planned', await wait_for(C, '__capCalls.some(c => c[0] === "LocalNotifications" && c[1] === "schedule" && c[2].notifications.length > 0)', 4000))
             sched = await C.evaluate('__capCalls.filter(c => c[0] === "LocalNotifications" && c[1] === "schedule").pop()[2].notifications')
             ok('app: no exact alarms (Android never opens its "Alarms & reminders" screen)', sched and all(n.get('isExactNotification') is False for n in sched), sched[:1])
+            ph = await C.evaluate('JSON.parse(JSON.stringify(__phone))')
+            ok('app: Android reads every time: nothing comes up at once, the plan waits in the phone', ph['shown'] == [] and len(ph['pending']) >= 5, ph)
             await one_game(C); await C.wait_for_timeout(2500)
             ok('app: one ask is enough for a while (nothing after the next game)', not await C.evaluate('__gc.dialogOpen'), await C.evaluate('__gc.dialogKind'))
             await ctx.close()
@@ -204,6 +231,34 @@ async def main():
                and not await D.evaluate('__capCalls.some(c => c[0] === "LocalNotifications" && c[1] === "requestPermissions")'))
             await one_game(D); await D.wait_for_timeout(2500)
             ok('app, notifications allowed: no reminders ask after a game either', await D.evaluate('__gc.dialogKind') != 'remind')
+            await ctx.close()
+
+            # ================= 5. the iPhone app: its plugin takes a planned time only as a real date. A time it cannot
+            # read makes it show the notification at once: all of them, every time the app goes to the background
+            ctx = await br.new_context(**phone)
+            E = await open_page(ctx, 'E', native=True, store={'test.platform': 'ios'})
+            ok('iPhone: the page knows it is in the iPhone app', await E.evaluate('window.Capacitor.getPlatform()') == 'ios')
+            await one_game(E)
+            got = await wait_for(E, '__gc.dialogKind === "remind"', 5000)
+            if got: await E.click('#btn-remind-on')
+            ok('iPhone: reminders on after the ask', got and await wait_for(E, '__gc.settings.reminders === true', 4000))
+            await wait_for(E, 'Object.keys(__phone.pending).length > 0 || __phone.shown.length > 0', 4000)
+            ph = await E.evaluate('JSON.parse(JSON.stringify(__phone))')
+            ok('iPhone: nothing comes up at once: every reminder waits for its own time', ph['shown'] == [], ph['shown'])
+            times = sorted(v['at'] for v in ph['pending'].values()); now_ms = await E.evaluate('Date.now()')
+            days = [time.strftime('%Y-%m-%d', time.localtime(t / 1000)) for t in times]
+            ok('iPhone: the plan is in the phone: several reminders, all ahead, the first not before tomorrow', len(times) >= 5 and all(t > now_ms for t in times) and times[0] - now_ms > 3 * 3600e3, [len(times), days[:3]])
+            ok('iPhone: one a day at most', len(set(days)) == len(days), days)
+            # the app goes to the background and comes back, twice: the plan is made again each time
+            for _ in range(2):
+                await E.evaluate('(function () { Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true }); Object.defineProperty(document, "hidden", { value: true, configurable: true }); document.dispatchEvent(new Event("visibilitychange")); })()')
+                await E.wait_for_timeout(400)
+                await E.evaluate('(function () { Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true }); Object.defineProperty(document, "hidden", { value: false, configurable: true }); document.dispatchEvent(new Event("visibilitychange")); })()')
+                await E.wait_for_timeout(300)
+            ph2 = await E.evaluate('JSON.parse(JSON.stringify(__phone))')
+            n_sched = await E.evaluate('__capCalls.filter(c => c[0] === "LocalNotifications" && c[1] === "schedule").length')
+            ok('iPhone: planned again when the app is left, and still nothing comes up at once', n_sched >= 3 and ph2['shown'] == [] and len(ph2['pending']) == len(ph['pending']), [n_sched, ph2['shown'], len(ph2['pending'])])
+            ok('iPhone: back in the app, reminders already shown are taken off the phone\'s list', ph2['cleared'] >= 2, ph2['cleared'])
             await ctx.close()
             await br.close()
     finally:

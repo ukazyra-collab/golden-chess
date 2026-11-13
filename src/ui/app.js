@@ -2707,6 +2707,11 @@
       mode: mode, next: nx && window.GCBots ? { name: GCBots.castName(nx.who, lang), elo: nx.elo } : null, bonus: prog.xp > 0, season: season };
   }
   function remindPlan() { return settings.reminders ? Habits.plan(remindInputs()) : []; }
+  // the player is here: a reminder still lying in the phone's list has done its work (or was never needed)
+  function clearShownReminders() {
+    if (!NATIVE.on || !NATIVE.has('LocalNotifications')) return;
+    NATIVE.call('LocalNotifications', 'removeAllDeliveredNotifications').catch(function () { /* nothing shown */ });
+  }
   var remindChannel = false;
   function planReminders() {
     if (!NATIVE.on || !NATIVE.has('LocalNotifications')) return;
@@ -2715,8 +2720,11 @@
     ch.then(function () { return NATIVE.call('LocalNotifications', 'cancel', { notifications: REMIND_IDS }); }).catch(function () { /* nothing pending */ }).then(function () {
       if (!items.length) return null;
       return NATIVE.call('LocalNotifications', 'schedule', { notifications: items.map(function (x) {
-        // a reminder may come a few minutes late: no exact alarm, so Android never asks for the "Alarms & reminders" access
-        var n = { id: x.id, title: x.title, body: x.body, schedule: { at: x.at.toISOString(), allowWhileIdle: true }, isExactNotification: false, extra: { go: x.go, kind: x.kind }, smallIcon: 'ic_stat_joker', iconColor: '#F0B941' };
+        // a reminder may come a few minutes late: no exact alarm, so Android never asks for the "Alarms & reminders" access.
+        // The time goes as a Date itself, never as text: the iPhone's plugin takes only a real date (the bridge hands
+        // it over as one), and a time it cannot read is no time at all: it shows the notification at once, all of
+        // them. Android's bridge writes the same Date out as the text its plugin reads.
+        var n = { id: x.id, title: x.title, body: x.body, schedule: { at: new Date(x.at.getTime()), allowWhileIdle: true }, isExactNotification: false, extra: { go: x.go, kind: x.kind }, smallIcon: 'ic_stat_joker', iconColor: '#F0B941' };
         if (NATIVE.platform === 'android' && remindChannel) n.channelId = 'reminders';
         return n;
       }) });
@@ -5946,7 +5954,7 @@
     });
   }
   function onVisibility() {
-    if (hiddenNow()) { Sound.revive(); planReminders(); } else noteVisit(); // the first touch after coming back makes a fresh audio context
+    if (hiddenNow()) { Sound.revive(); planReminders(); } else { noteVisit(); clearShownReminders(); } // the first touch after coming back makes a fresh audio context
     var o = online;
     if (!o) return;
     var hidden = hiddenNow();
@@ -7194,6 +7202,7 @@
     loop();
     bootOnline();
     noteVisit();
+    clearShownReminders();
     setTimeout(planReminders, 1500);
     // notifications already allowed on this phone (Android 12 and older allow them unless turned off): the reminders
     // are on without an ask; Settings turns them off
