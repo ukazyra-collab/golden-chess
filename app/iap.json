@@ -1,0 +1,33 @@
+{
+  "statusUrl": "https://wduoqpoqbtpkrgbcsegg.supabase.co/functions/v1/pay",
+  "reviewNote": "Where it is in the app: Profile tab, the Joker Pro card, then choose a plan and tap the yellow button. No account is needed: a guest can buy, and Restore purchases is on the same sheet and in Profile, Settings, Subscription. The game itself stays free; Joker Pro adds analysis of the Joker Move in every game, a puzzle pack, the whole career at once, more XP and streak freezes, a gold name.",
+  "group": {
+    "referenceName": "Joker Pro",
+    "localizations": { "en-US": { "name": "Joker Pro" }, "ru": { "name": "Joker Pro" } }
+  },
+  "subscriptions": [
+    {
+      "productId": "jokerpro_year", "referenceName": "Joker Pro, yearly", "period": "ONE_YEAR", "groupLevel": 1, "usd": "29.99",
+      "trial": "ONE_WEEK", "screenshot": "store/iap/year.png",
+      "localizations": {
+        "en-US": { "name": "Joker Pro: Yearly", "description": "Every Pro feature. Billed once a year." },
+        "ru": { "name": "Joker Pro: на год", "description": "Все возможности Pro. Оплата раз в год." }
+      }
+    },
+    {
+      "productId": "jokerpro_month", "referenceName": "Joker Pro, monthly", "period": "ONE_MONTH", "groupLevel": 2, "usd": "3.99",
+      "trial": null, "screenshot": "store/iap/month.png",
+      "localizations": {
+        "en-US": { "name": "Joker Pro: Monthly", "description": "Every Pro feature. Billed monthly." },
+        "ru": { "name": "Joker Pro: на месяц", "description": "Все возможности Pro. Оплата раз в месяц." }
+      }
+    }
+  ],
+  "founder": {
+    "productId": "jokerpro_founder", "referenceName": "Joker Pro Founder, for life", "usd": "79.99", "screenshot": "store/iap/founder.png",
+    "localizations": {
+      "en-US": { "name": "Joker Pro Founder", "description": "Pro for life with one payment. Founder mark." },
+      "ru": { "name": "Joker Pro: Основатель", "description": "Pro навсегда одним платежом. Знак основателя." }
+    }
+  }
+}

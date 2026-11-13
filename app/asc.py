@@ -14,6 +14,10 @@ altool looks too) or from ASC_KEY_PATH.
   python3 asc.py submit                      sends version 1.1 to App Review
   python3 asc.py cancel                      takes the version back from the review queue (then metadata / screenshots / submit again)
   python3 asc.py status                      where the version stands
+  python3 asc.py products                    Joker Pro for sale in the app (iap.json): the subscription group, the yearly plan (with its free week) and
+                                             the monthly one, the Founder purchase, their prices in every country, texts, review screenshots, and where
+                                             Apple sends its notifications. Only adds what is missing: run it again after a hiccup. Nothing is deleted.
+  python3 asc.py products --check            the same look without changing anything
 
 The app record itself (My Apps → + → New App) cannot be made through the API: Apple keeps that in the website. Everything after it can."""
 import base64, hashlib, json, os, subprocess, sys, tempfile, time, urllib.request, urllib.error, urllib.parse
@@ -243,6 +247,178 @@ def cmd_status():
         b = api('GET', f"/v1/appStoreVersions/{v['id']}/build").get('data'); print('build attached:', b['attributes']['version'] if b else 'none')
     for s in api('GET', f"/v1/reviewSubmissions?filter[app]={a['id']}&limit=3").get('data') or []: print('submission', s['attributes']['state'], s['attributes'].get('submittedDate'))
 
+# ---- Joker Pro for sale in the app: App Store Connect's side (the products themselves; iap.json says what they are)
+def soft(method, path, body=None):
+    """api() that answers (ok, data | Apple's words) instead of stopping; waits and tries again when Apple is busy"""
+    for attempt in range(6):
+        try: return True, api(method, path, body)
+        except SystemExit as e:
+            msg = str(e)
+            if ('→ 429' in msg or '→ 500' in msg or '→ 502' in msg or '→ 503' in msg or '→ 504' in msg) and attempt < 5: time.sleep(20 * (attempt + 1)); continue
+            return False, msg
+def money(x):
+    try: return round(float(x), 2)
+    except Exception: return None
+def terr_of(x): return (((x.get('relationships') or {}).get('territory') or {}).get('data') or {}).get('id')
+def upload_asset(res, path_data):
+    """the bytes of a file Apple has made room for (res: the created screenshot resource), then the word that they are in"""
+    for op in res['attributes']['uploadOperations']:
+        chunk = path_data[op['offset']:op['offset'] + op['length']]
+        req = urllib.request.Request(op['url'], method=op['method'], data=chunk, headers={h['name']: h['value'] for h in op['requestHeaders']})
+        with urllib.request.urlopen(req, timeout=300) as r: r.read()
+
+def cmd_products(check=False):
+    P = json.load(open(os.path.join(HERE, 'iap.json'), encoding='utf-8'))
+    a = app(); aid = a['id']; todo = []
+    def do(what): print(('would: ' if check else '') + what, flush=True); todo.append(what)
+    terrs = [t['id'] for t in get_all('/v1/territories?limit=200')]; print(len(terrs), 'countries and regions in the App Store')
+    # 1. the group, and its name in each language
+    groups = get_all(f"/v1/apps/{aid}/subscriptionGroups?limit=50")
+    g = next((x for x in groups if x['attributes']['referenceName'] == P['group']['referenceName']), None)
+    if not g:
+        do('subscription group ' + P['group']['referenceName'])
+        if not check: g = api('POST', '/v1/subscriptionGroups', {'data': {'type': 'subscriptionGroups', 'attributes': {'referenceName': P['group']['referenceName']}, 'relationships': {'app': rel('apps', aid)}}})['data']
+    if g:
+        have = {l['attributes']['locale'] for l in get_all(f"/v1/subscriptionGroups/{g['id']}/subscriptionGroupLocalizations?limit=50")}
+        for loc, t in P['group']['localizations'].items():
+            if loc in have: continue
+            do(f'group name ({loc})')
+            if not check:
+                ok, r = soft('POST', '/v1/subscriptionGroupLocalizations', {'data': {'type': 'subscriptionGroupLocalizations', 'attributes': {'name': t['name'], 'locale': loc}, 'relationships': {'subscriptionGroup': rel('subscriptionGroups', g['id'])}}})
+                if not ok: print('  refused:', r[:400])
+    # 2. the subscriptions
+    subs = {s['attributes']['productId']: s for s in (get_all(f"/v1/subscriptionGroups/{g['id']}/subscriptions?limit=50") if g else [])}
+    for sp in P['subscriptions']:
+        pid = sp['productId']; s = subs.get(pid)
+        if not s:
+            do(f"subscription {pid} ({sp['period']}, level {sp['groupLevel']})")
+            if check: continue
+            s = api('POST', '/v1/subscriptions', {'data': {'type': 'subscriptions', 'attributes': {'name': sp['referenceName'], 'productId': pid, 'familySharable': False, 'subscriptionPeriod': sp['period'], 'groupLevel': sp['groupLevel'], 'reviewNote': P['reviewNote']},
+                'relationships': {'group': rel('subscriptionGroups', g['id'])}}})['data']
+        sid = s['id']
+        have = {l['attributes']['locale'] for l in get_all(f"/v1/subscriptions/{sid}/subscriptionLocalizations?limit=50")}
+        for loc, t in sp['localizations'].items():
+            if loc in have: continue
+            do(f'{pid}: name and description ({loc})')
+            if not check:
+                ok, r = soft('POST', '/v1/subscriptionLocalizations', {'data': {'type': 'subscriptionLocalizations', 'attributes': {'name': t['name'], 'description': t['description'], 'locale': loc}, 'relationships': {'subscription': rel('subscriptions', sid)}}})
+                if not ok: print('  refused:', r[:400])
+        # where it is sold: everywhere, and in the countries Apple adds later
+        ok, av = soft('GET', f"/v1/subscriptions/{sid}/subscriptionAvailability")
+        if not (ok and av.get('data')):
+            do(f'{pid}: on sale in all {len(terrs)} countries')
+            if not check:
+                ok, r = soft('POST', '/v1/subscriptionAvailabilities', {'data': {'type': 'subscriptionAvailabilities', 'attributes': {'availableInNewTerritories': True},
+                    'relationships': {'subscription': rel('subscriptions', sid), 'availableTerritories': {'data': [{'type': 'territories', 'id': t} for t in terrs]}}}})
+                if not ok: print('  refused:', r[:400])
+        # the price: the dollar one, and Apple's own match for it in every other country
+        priced = {terr_of(x) for x in get_all(f"/v1/subscriptions/{sid}/prices?include=territory&limit=200")}
+        missing = [t for t in terrs if t not in priced]
+        if missing:
+            do(f"{pid}: the price, ${sp['usd']} and its match in {len(missing)} countries")
+            if not check:
+                pts = get_all(f"/v1/subscriptions/{sid}/pricePoints?filter[territory]=USA&limit=200")
+                base = next((x for x in pts if money(x['attributes'].get('customerPrice')) == money(sp['usd'])), None) or sys.exit(f"no ${sp['usd']} price point for {pid} in the USA")
+                eq = {terr_of(x): x['id'] for x in get_all(f"/v1/subscriptionPricePoints/{base['id']}/equalizations?include=territory&limit=200")}; eq['USA'] = base['id']
+                done = bad = 0
+                for t in ['USA'] + [x for x in missing if x != 'USA']:
+                    if t not in missing: continue
+                    if t not in eq: print('  no matching price for', t); bad += 1; continue
+                    ok, r = soft('POST', '/v1/subscriptionPrices', {'data': {'type': 'subscriptionPrices', 'relationships': {'subscription': rel('subscriptions', sid), 'territory': rel('territories', t), 'subscriptionPricePoint': rel('subscriptionPricePoints', eq[t])}}})
+                    if ok: done += 1
+                    else: bad += 1; print('  price refused for', t, r[:300])
+                    if done % 25 == 0 and ok: print('  ', done, 'prices set', flush=True)
+                print(f'  {pid}: {done} prices set, {bad} not')
+        # the free week for those who have not had one (Apple checks who may have it)
+        if sp.get('trial'):
+            offered = {terr_of(x) for x in get_all(f"/v1/subscriptions/{sid}/introductoryOffers?include=territory&limit=200")}
+            missing = [t for t in terrs if t not in offered]
+            if missing:
+                do(f"{pid}: the free trial ({sp['trial']}) in {len(missing)} countries")
+                if not check:
+                    done = bad = 0
+                    for t in missing:
+                        ok, r = soft('POST', '/v1/subscriptionIntroductoryOffers', {'data': {'type': 'subscriptionIntroductoryOffers', 'attributes': {'duration': sp['trial'], 'offerMode': 'FREE_TRIAL', 'numberOfPeriods': 1},
+                            'relationships': {'subscription': rel('subscriptions', sid), 'territory': rel('territories', t)}}})
+                        if ok: done += 1
+                        else:
+                            bad += 1; print('  trial refused for', t, r[:300])
+                            if bad >= 5 and not done: print('  (stopping: Apple refuses them all)'); break
+                        if done % 25 == 0 and ok: print('  ', done, 'trials set', flush=True)
+                    print(f'  {pid}: the trial set in {done} countries, {bad} not')
+        # the picture for App Review
+        ok, sh = soft('GET', f"/v1/subscriptions/{sid}/appStoreReviewScreenshot")
+        if not (ok and sh.get('data')):
+            do(f"{pid}: the review screenshot ({sp['screenshot']})")
+            if not check:
+                data = open(os.path.join(HERE, sp['screenshot']), 'rb').read()
+                ok, r = soft('POST', '/v1/subscriptionAppStoreReviewScreenshots', {'data': {'type': 'subscriptionAppStoreReviewScreenshots', 'attributes': {'fileName': pid + '.png', 'fileSize': len(data)}, 'relationships': {'subscription': rel('subscriptions', sid)}}})
+                if ok:
+                    upload_asset(r['data'], data)
+                    api('PATCH', f"/v1/subscriptionAppStoreReviewScreenshots/{r['data']['id']}", {'data': {'type': 'subscriptionAppStoreReviewScreenshots', 'id': r['data']['id'], 'attributes': {'uploaded': True, 'sourceFileChecksum': hashlib.md5(data).hexdigest()}}})
+                else: print('  refused:', r[:400])
+    # 3. Founder: bought once, kept for good
+    F = P['founder']; iaps = {x['attributes']['productId']: x for x in get_all(f"/v1/apps/{aid}/inAppPurchasesV2?limit=50")}; f = iaps.get(F['productId'])
+    if not f:
+        do(f"in-app purchase {F['productId']} (non-consumable)")
+        if not check:
+            f = api('POST', '/v2/inAppPurchases', {'data': {'type': 'inAppPurchases', 'attributes': {'name': F['referenceName'], 'productId': F['productId'], 'inAppPurchaseType': 'NON_CONSUMABLE', 'familySharable': False, 'reviewNote': P['reviewNote']},
+                'relationships': {'app': rel('apps', aid)}}})['data']
+    if f:
+        fid = f['id']; pid = F['productId']
+        have = {l['attributes']['locale'] for l in get_all(f"/v2/inAppPurchases/{fid}/inAppPurchaseLocalizations?limit=50")}
+        for loc, t in F['localizations'].items():
+            if loc in have: continue
+            do(f'{pid}: name and description ({loc})')
+            if not check:
+                ok, r = soft('POST', '/v1/inAppPurchaseLocalizations', {'data': {'type': 'inAppPurchaseLocalizations', 'attributes': {'name': t['name'], 'description': t['description'], 'locale': loc}, 'relationships': {'inAppPurchaseV2': rel('inAppPurchases', fid)}}})
+                if not ok: print('  refused:', r[:400])
+        ok, av = soft('GET', f"/v2/inAppPurchases/{fid}/inAppPurchaseAvailability")
+        if not (ok and av.get('data')):
+            do(f'{pid}: on sale in all {len(terrs)} countries')
+            if not check:
+                ok, r = soft('POST', '/v1/inAppPurchaseAvailabilities', {'data': {'type': 'inAppPurchaseAvailabilities', 'attributes': {'availableInNewTerritories': True},
+                    'relationships': {'inAppPurchase': rel('inAppPurchases', fid), 'availableTerritories': {'data': [{'type': 'territories', 'id': t} for t in terrs]}}}})
+                if not ok: print('  refused:', r[:400])
+        ok, ps = soft('GET', f"/v2/inAppPurchases/{fid}/iapPriceSchedule?include=manualPrices")
+        if not (ok and (((ps.get('data') or {}).get('relationships') or {}).get('manualPrices') or {}).get('data')):
+            do(f"{pid}: the price, ${F['usd']} (Apple matches it in the other countries)")
+            if not check:
+                pts = get_all(f"/v2/inAppPurchases/{fid}/pricePoints?filter[territory]=USA&limit=200")
+                base = next((x for x in pts if money(x['attributes'].get('customerPrice')) == money(F['usd'])), None) or sys.exit(f"no ${F['usd']} price point for {pid} in the USA")
+                ok, r = soft('POST', '/v1/inAppPurchasePriceSchedules', {'data': {'type': 'inAppPurchasePriceSchedules', 'relationships': {'inAppPurchase': rel('inAppPurchases', fid), 'baseTerritory': rel('territories', 'USA'),
+                    'manualPrices': {'data': [{'type': 'inAppPurchasePrices', 'id': '${p1}'}]}}},
+                    'included': [{'type': 'inAppPurchasePrices', 'id': '${p1}', 'attributes': {'startDate': None}, 'relationships': {'inAppPurchaseV2': rel('inAppPurchases', fid), 'inAppPurchasePricePoint': rel('inAppPurchasePricePoints', base['id'])}}]})
+                if not ok: print('  refused:', r[:600])
+        ok, sh = soft('GET', f"/v2/inAppPurchases/{fid}/appStoreReviewScreenshot")
+        if not (ok and sh.get('data')):
+            do(f"{pid}: the review screenshot ({F['screenshot']})")
+            if not check:
+                data = open(os.path.join(HERE, F['screenshot']), 'rb').read()
+                ok, r = soft('POST', '/v1/inAppPurchaseAppStoreReviewScreenshots', {'data': {'type': 'inAppPurchaseAppStoreReviewScreenshots', 'attributes': {'fileName': pid + '.png', 'fileSize': len(data)}, 'relationships': {'inAppPurchaseV2': rel('inAppPurchases', fid)}}})
+                if ok:
+                    upload_asset(r['data'], data)
+                    api('PATCH', f"/v1/inAppPurchaseAppStoreReviewScreenshots/{r['data']['id']}", {'data': {'type': 'inAppPurchaseAppStoreReviewScreenshots', 'id': r['data']['id'], 'attributes': {'uploaded': True, 'sourceFileChecksum': hashlib.md5(data).hexdigest()}}})
+                else: print('  refused:', r[:400])
+    # 4. where Apple sends its news of renewals, cancellations and refunds (App Store Server Notifications, version 2)
+    at = api('GET', f"/v1/apps/{aid}?fields[apps]=subscriptionStatusUrl,subscriptionStatusUrlVersion,subscriptionStatusUrlForSandbox,subscriptionStatusUrlVersionForSandbox")['data']['attributes']
+    want = {'subscriptionStatusUrl': P['statusUrl'], 'subscriptionStatusUrlVersion': 'V2', 'subscriptionStatusUrlForSandbox': P['statusUrl'], 'subscriptionStatusUrlVersionForSandbox': 'V2'}
+    if any(at.get(k) != v for k, v in want.items()):
+        do('server notifications (production and sandbox) → ' + P['statusUrl'])
+        if not check:
+            ok, r = soft('PATCH', f"/v1/apps/{aid}", {'data': {'type': 'apps', 'id': aid, 'attributes': want}})
+            if not ok: print('  refused:', r[:400])
+    # 5. where it all stands
+    print('--- now')
+    if g:
+        for s in get_all(f"/v1/subscriptionGroups/{g['id']}/subscriptions?limit=50"):
+            sid = s['id']; n = len(get_all(f"/v1/subscriptions/{sid}/prices?limit=200")); o = len(get_all(f"/v1/subscriptions/{sid}/introductoryOffers?limit=200"))
+            print('subscription', s['attributes']['productId'], '·', s['attributes']['state'], '· level', s['attributes'].get('groupLevel'), '· prices in', n, 'countries · trial in', o)
+    for x in get_all(f"/v1/apps/{aid}/inAppPurchasesV2?limit=50"): print('in-app purchase', x['attributes']['productId'], '·', x['attributes']['state'])
+    at = api('GET', f"/v1/apps/{aid}?fields[apps]=subscriptionStatusUrl,subscriptionStatusUrlVersion,subscriptionStatusUrlForSandbox,subscriptionStatusUrlVersionForSandbox")['data']['attributes']
+    print('notifications:', at.get('subscriptionStatusUrlVersion'), at.get('subscriptionStatusUrl'), '· sandbox:', at.get('subscriptionStatusUrlVersionForSandbox'), at.get('subscriptionStatusUrlForSandbox'))
+    print(('nothing to do' if not todo else str(len(todo)) + ' steps ' + ('to do' if check else 'done')) + '. The first purchases go to review together with an app version: App Store Connect → the version → In-App Purchases and Subscriptions → select them.')
+
 if __name__ == '__main__':
     c = sys.argv[1] if len(sys.argv) > 1 else 'help'
     if c == 'whoami': cmd_whoami()
@@ -255,4 +431,5 @@ if __name__ == '__main__':
     elif c == 'submit': cmd_submit()
     elif c == 'cancel': cmd_cancel()
     elif c == 'status': cmd_status()
+    elif c == 'products': cmd_products(check='--check' in sys.argv)
     else: print(__doc__)
