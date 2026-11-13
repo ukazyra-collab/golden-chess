@@ -351,10 +351,18 @@ try {
 
   // ---- the seats run out
   await q("insert into auth.users (id) select ('eeeeeeee-0000-4000-8000-' || lpad(i::text, 12, '0'))::uuid from generate_series(1, 1000) i");
-  await q("insert into public.profiles (id, username, is_guest, pro_founder) select ('eeeeeeee-0000-4000-8000-' || lpad(i::text, 12, '0'))::uuid, 'F' || i, false, true from generate_series(1, 1000) i");
+  await q("insert into public.profiles (id, username, is_guest, pro_founder, pro_plan) select ('eeeeeeee-0000-4000-8000-' || lpad(i::text, 12, '0'))::uuid, 'F' || i, false, true, 'founder' from generate_series(1, 1000) i");
+  // (a place is a founder's payment: on the website, or in an app; a tester's purchase, a refunded one and one still waiting for its money take none)
+  await q("insert into public.billing (user_id, founder_at, founder_payment, livemode) select ('eeeeeeee-0000-4000-8000-' || lpad(i::text, 12, '0'))::uuid, now(), 'pi_seat_' || i, true from generate_series(1, 600) i");
+  await q("insert into public.store_purchases (id, store, user_id, kind, plan, product, status) select 'apple:seat' || i, 'apple', ('eeeeeeee-0000-4000-8000-' || lpad(i::text, 12, '0'))::uuid, 'founder', 'founder', 'jokerpro_founder', 'active' from generate_series(601, 999) i");
+  await q("insert into public.store_purchases (id, store, kind, plan, product, status, sandbox, revoked_at) values ('apple:tester', 'apple', 'founder', 'founder', 'jokerpro_founder', 'active', true, null), ('google:back', 'google', 'founder', 'founder', 'jokerpro_founder', 'revoked', false, now()), ('google:waits', 'google', 'founder', 'founder', 'jokerpro_founder', 'pending', false, null)");
+  r = await call(token(OWNER), { action: 'checkout', plan: 'founder' });
+  check('999 founders, on the website and in the apps: one seat left, and it sells', /^https:/.test(r.body.url || '') && (await call(token(OWNER), { action: 'state' })).body.foundersLeft === 1, r.body);
+  await q("insert into public.store_purchases (id, store, user_id, kind, plan, product, status) values ('google:seat1000', 'google', 'eeeeeeee-0000-4000-8000-000000001000'::uuid, 'founder', 'founder', 'jokerpro_founder', 'active')");
   r = await call(token(OWNER), { action: 'checkout', plan: 'founder' });
   check('a thousand founders: no more seats', r.body.error === 'sold_out' && (await call(token(OWNER), { action: 'state' })).body.foundersLeft === 0, r.body);
   await q("delete from auth.users where id::text like 'eeeeeeee-0000-4000-8000-%'");
+  await q("delete from public.store_purchases where id like 'apple:seat%' or id in ('apple:tester', 'google:back', 'google:waits', 'google:seat1000')");
 
   // ---- an event we don't read; an unknown account
   h = await sendHook(T, 'invoice.paid', { id: 'in_1', object: 'invoice' });
@@ -484,6 +492,36 @@ try {
   await q('select public.gc_merge_accounts($1::uuid, $2::uuid)', [CAT, BOB]);
   bl = await bill(BOB); p = await prof(BOB);
   check('a founder\'s seat moves to the kept account, which keeps its own subscription', p.pro_founder === true && p.pro_plan === 'founder' && bl.founder_payment === 'pi_cat' && bl.subscription === subL.id && bl.status === 'active' && bl.customer === annBill.customer, [bl, p]);
+
+  // ---- with something bought in an app on the same account: Stripe's news never takes that away
+  {
+    const HAL = '99999999-3333-4000-8000-000000000009', priceL = (k) => L.prices.find((x) => x.lookup_key === 'joker_pro_' + k);
+    await q("insert into auth.users (id, email) values ($1, 'hal@example.com')", [HAL]);
+    await q("insert into public.profiles (id, username, is_guest) values ($1, 'Hal', false)", [HAL]);
+    await setMode('on');
+    L.customers.set('cus_live_hal', { id: 'cus_live_hal', email: 'hal@example.com', metadata: { user_id: HAL } });
+    const subH = mkSub(L, { customer: 'cus_live_hal', price: priceL('month').id, metadata: { user_id: HAL } });
+    h = await sendHook(L, 'customer.subscription.created', subH);
+    bl = await bill(HAL);
+    check('Stripe\'s side keeps when its own Pro ends', h.body.note === 'active month' && bl.until !== null && Math.abs(new Date(bl.until).getTime() - subH.current_period_end * 1000) < 1500 && (await isOn(HAL)), bl);
+    await q("insert into public.store_purchases (id, store, user_id, kind, plan, product, tx, status, expires_at, auto_renew) values ('apple:hal', 'apple', $1, 'sub', 'year', 'jokerpro_year', '9001', 'active', now() + interval '200 days', true)", [HAL]);
+    await q('select public.gc_pro_refresh($1::uuid)', [HAL]);
+    r = await call(token(HAL), { action: 'state' });
+    p = await prof(HAL);
+    check('a longer subscription from the App Store beside it: that one counts', r.body.pro.via === 'apple' && r.body.pro.plan === 'year' && r.body.pro.sub === true && new Date(p.pro_until).getTime() > Date.now() + 199 * 86400e3, [r.body.pro, p]);
+    Object.assign(subH, { status: 'canceled', ended_at: now() });
+    h = await sendHook(L, 'customer.subscription.deleted', subH);
+    p = await prof(HAL);
+    check('the Stripe one cancelled: Pro stays, from the store', h.body.note === 'canceled month' && (await isOn(HAL)) && p.pro_plan === 'year' && new Date(p.pro_until).getTime() > Date.now() + 199 * 86400e3, [h.body, p]);
+    r = await call(token(HAL), { action: 'checkout', plan: 'year' });
+    check('while the App Store subscription runs, the website does not sell a second one', r.body.error === 'store_sub' && r.body.store === 'apple', r.body);
+    r = await call(token(HAL), { action: 'checkout', plan: 'founder' });
+    check('a founder\'s place can still be bought on top of it', /cs_live_/.test(r.body.url || ''), r.body);
+    await q("update public.store_purchases set expires_at = now() - interval '1 minute', status = 'expired' where id = 'apple:hal'"); await q('select public.gc_pro_refresh($1::uuid)', [HAL]);
+    r = await call(token(HAL), { action: 'checkout', plan: 'year' });
+    check('once it is over the website sells again', /cs_live_/.test(r.body.url || '') && !(await isOn(HAL)), r.body);
+    await setMode('test');
+  }
 
   // ---- the live side asked whether it is ready: the account, each plan's payment page (closed again), the webhook, the portal
   {

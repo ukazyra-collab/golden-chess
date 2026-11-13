@@ -7,8 +7,12 @@
 //   confirm   { sid } → their state: the payment page sent them back, and the account is brought up to date at once
 //             (the webhook says the same a moment later, or earlier)
 //   portal    { back? } → { url }: Stripe's page for the card, the plan, the invoices, cancelling
+//   store     { store: 'apple', jws: [...] } | { store: 'google', items: [{ token, type: 'subs' | 'inapp' }] } → their
+//             state: what the app bought (or found again) in its store is checked and put on this account
 // Stripe's webhook (POST with a Stripe-Signature header): every event once (billing_events); the account follows the
 // subscription as Stripe has it at that moment, whatever order the events come in.
+// Apple's notifications (POST { signedPayload }: App Store Server Notifications V2, signed by Apple): renewals, ends,
+// refunds of what was bought in the iPhone app. Google is asked instead (sweep, hourly, with the cron's key).
 // The owner's requests (POST with the one-time key kept in billing_config): setup (the product, the prices, the page
 // that manages a subscription, the webhook: made at Stripe once for each of its two modes), selftest (test mode only:
 // the pages a player would be sent to, then a subscription made and cancelled through Stripe's API to see the webhook
@@ -22,7 +26,9 @@
 // accounts, on the test side (no money moves); 'on' everyone, with real money. A test key never sells to players.
 // Deployed without JWT checks (config.toml): Stripe has no token, players' tokens are checked here.
 import postgres from 'npm:postgres@3.4.9';
-import { PLANS, PRODUCT, LIVE, EVENTS, form, keyMode, access, verify, entitlement, replaces, publicState, backUrl } from './billing.js';
+import { PLANS, PRODUCT, LIVE, EVENTS, form, keyMode, access, verify, entitlement, replaces, publicState, backUrl, storeMerge, withStore } from './billing.js';
+import { verifyJws, appleEntitlement, appleNotice } from './apple.js';
+import { GOOGLE_SUB, GOOGLE_FOUNDER, googleSub, googleFounder, serviceAccount, serviceJwt } from './google.js';
 
 const SUPABASE_URL = (Deno.env.get('SUPABASE_URL') || '').replace(/\/+$/, '');
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -42,6 +48,14 @@ const API = (Deno.env.get('STRIPE_API_URL') || 'https://api.stripe.com').replace
 const SITE = Deno.env.get('PAY_SITE') || 'https://joker-chess.com/';
 const LOCAL = !!Deno.env.get('STRIPE_API_URL'); // under the tests the player comes back to a local page
 const HOOK_URL = SUPABASE_URL + '/functions/v1/pay';
+// the stores (Joker Pro bought in the apps). Apple's data is checked by its signature alone; Google is asked through
+// the Android Publisher API as the service account whose key file is in GOOGLE_PLAY_KEY.
+const APPLE_BUNDLE = Deno.env.get('APPLE_BUNDLE') || 'com.kozyramedia.goldenchess';
+const APPLE_ROOT = Deno.env.get('APPLE_ROOT') || undefined; // (the tests sign with a root of their own)
+const PLAY_PACKAGE = Deno.env.get('PLAY_PACKAGE') || 'com.kozyramedia.goldenchess';
+const PLAY_API = (Deno.env.get('GOOGLE_API_URL') || 'https://androidpublisher.googleapis.com').replace(/\/+$/, '');
+const GOOGLE = serviceAccount(Deno.env.get('GOOGLE_PLAY_KEY') || '');
+const GOOGLE_TOKEN_URL = Deno.env.get('GOOGLE_TOKEN_URL') || (GOOGLE ? GOOGLE.tokenUrl : '');
 
 const sql = postgres(DB_URL, { max: +(Deno.env.get('PG_POOL_MAX') || 2), prepare: false, idle_timeout: 60, onnotice: () => {} });
 
@@ -81,6 +95,13 @@ const rowOf = async (uid: string) => one(await sql`select * from public.billing 
 const isAdmin = async (uid: string) => (await sql`select 1 from public.admins where user_id = ${uid}`).length > 0;
 const emailOf = async (uid: string) => { const r = one(await sql`select email from auth.users where id = ${uid}`); return (r && r.email) || ''; };
 const modeNow = async () => String((await config('mode')) || 'off');
+// the founders' places taken: paid for on the website or in an app (a tester's purchase takes none)
+const foundersNow = async () => Number((await sql`select ((select count(*) from public.billing where founder_at is not null)
+  + (select count(*) from public.store_purchases where kind = 'founder' and status = 'active' and revoked_at is null and not sandbox))::int as n`)[0].n);
+// the store purchase that counts for an account now: a founder's, else the subscription that lasts longest
+const storeOf = async (uid: string) => one(await sql`select store, kind, plan, status, expires_at, auto_renew, trial, sandbox from public.store_purchases
+  where user_id = ${uid} and revoked_at is null and ((kind = 'founder' and status = 'active') or (kind = 'sub' and expires_at is not null))
+  order by (kind = 'founder') desc, expires_at desc nulls last limit 1`);
 
 // the prices by plan, found at Stripe by their lookup keys (kept while the worker lives)
 const pricesP: Record<string, Promise<Record<string, string>> | null> = { test: null, live: null };
@@ -111,8 +132,11 @@ async function customerFor(S: Side, uid: string, prof: any, row: any): Promise<s
   await sql.begin(async (tx) => {
     await tx`insert into public.billing (user_id, customer, livemode) values (${uid}, ${c.id}, ${S.live})
       on conflict (user_id) do update set customer = excluded.customer, livemode = excluded.livemode, subscription = null, status = null, plan = null,
-        period_end = null, cancel_at_period_end = false, trial_used = false, founder_at = null, founder_payment = null, updated_at = now()`;
-    if (row && row.livemode !== S.live) await tx`update public.profiles set pro_until = null, pro_plan = null, pro_founder = false where id = ${uid}`;
+        period_end = null, until = null, cancel_at_period_end = false, trial_used = false, founder_at = null, founder_payment = null, updated_at = now()`;
+    if (row && row.livemode !== S.live) {
+      await tx`update public.profiles set pro_until = null, pro_plan = null, pro_founder = false where id = ${uid}`;
+      await tx`select public.gc_pro_refresh(${uid}::uuid)`; // (what a store sold stays)
+    }
   });
   return c.id;
 }
@@ -135,12 +159,13 @@ async function applySub(sub: any, hint?: string): Promise<string> {
   if (!replaces(row, ent)) return 'older_subscription';
   const until = ent.until ? new Date(ent.until) : null, end = ent.periodEnd ? new Date(ent.periodEnd) : null;
   await sql.begin(async (tx) => {
-    await tx`insert into public.billing (user_id, customer, subscription, status, plan, period_end, cancel_at_period_end, trial_used, livemode)
-      values (${uid}, ${ent.customer}, ${ent.id}, ${ent.status}, ${ent.plan}, ${end}, ${ent.cancel}, ${ent.trial}, ${ent.livemode})
+    await tx`insert into public.billing (user_id, customer, subscription, status, plan, period_end, until, cancel_at_period_end, trial_used, livemode)
+      values (${uid}, ${ent.customer}, ${ent.id}, ${ent.status}, ${ent.plan}, ${end}, ${until}, ${ent.cancel}, ${ent.trial}, ${ent.livemode})
       on conflict (user_id) do update set customer = coalesce(excluded.customer, billing.customer), subscription = excluded.subscription, status = excluded.status,
-        plan = coalesce(excluded.plan, billing.plan), period_end = excluded.period_end, cancel_at_period_end = excluded.cancel_at_period_end,
+        plan = coalesce(excluded.plan, billing.plan), period_end = excluded.period_end, until = excluded.until, cancel_at_period_end = excluded.cancel_at_period_end,
         trial_used = billing.trial_used or excluded.trial_used, livemode = excluded.livemode, updated_at = now()`;
     await tx`update public.profiles set pro_until = ${until}, pro_plan = case when pro_founder then 'founder' else coalesce(${ent.plan}, pro_plan) end where id = ${uid}`;
+    await tx`select public.gc_pro_refresh(${uid}::uuid)`; // (what a store sold this account counts too)
   });
   return ent.status + (ent.plan ? ' ' + ent.plan : '');
 }
@@ -157,6 +182,7 @@ async function applyFounder(S: Side | null, uid: string, s: any): Promise<string
       on conflict (user_id) do update set customer = coalesce(billing.customer, excluded.customer), founder_at = coalesce(billing.founder_at, now()),
         founder_payment = coalesce(excluded.founder_payment, billing.founder_payment), updated_at = now()`;
     await tx`update public.profiles set pro_founder = true, pro_plan = 'founder' where id = ${uid}`;
+    await tx`select public.gc_pro_refresh(${uid}::uuid)`;
   });
   // a founder pays nothing more: a subscription still running stops here
   if (row && row.subscription && LIVE.includes(row.status || '')) {
@@ -184,6 +210,7 @@ async function applyRefund(charge: any): Promise<string> {
   await sql.begin(async (tx) => {
     await tx`update public.billing set founder_at = null, updated_at = now() where user_id = ${row.user_id}`;
     await tx`update public.profiles set pro_founder = false, pro_plan = ${LIVE.includes(row.status || '') ? row.plan : null} where id = ${row.user_id}`;
+    await tx`select public.gc_pro_refresh(${row.user_id}::uuid)`;
   });
   return 'founder_refunded';
 }
@@ -228,12 +255,11 @@ async function hook(raw: string, header: string): Promise<Response> {
 type Caller = { sub: string; guest: boolean | null };
 // deno-lint-ignore no-explicit-any
 async function stateOf(uid: string): Promise<any> {
-  const [prof, row, admin, mode, founders] = await Promise.all([profileOf(uid), rowOf(uid), isAdmin(uid), modeNow(),
-    sql`select count(*)::int as n from public.profiles where pro_founder`]);
+  const [prof, row, admin, mode, founders, store] = await Promise.all([profileOf(uid), rowOf(uid), isAdmin(uid), modeNow(), foundersNow(), storeOf(uid)]);
   if (!prof) throw new Fail('profile');
   const S = sideFor(mode), mine = row && S && row.livemode === S.live ? row : null;
-  return { pro: publicState(prof, mine, Date.now()), can: access(mode, S ? S.km : null, admin), test: (S && !S.live) || undefined,
-    foundersLeft: Math.max(0, PLANS.founder.seats - Number(founders[0].n)), now: Date.now() };
+  return { pro: withStore(publicState(prof, mine, Date.now()), row, store, Date.now()), can: access(mode, S ? S.km : null, admin), test: (S && !S.live) || undefined,
+    foundersLeft: Math.max(0, PLANS.founder.seats - founders), now: Date.now() };
 }
 // what Stripe's payment page is asked for: a subscription (the year with its trial, once an account) or the one payment
 function sessionParams(plan: string, price: string, customer: string, uid: string, back: string, lang: string, trial: boolean) {
@@ -262,10 +288,13 @@ async function checkout(uid: string, caller: Caller, b: any) {
   const back = backUrl(b.back, SITE, LOCAL);
   if (plan === 'founder') {
     if (prof.pro_founder) throw new Fail('already');
-    const n = Number((await sql`select count(*)::int as n from public.profiles where pro_founder`)[0].n);
-    if (n >= PLANS.founder.seats) throw new Fail('sold_out');
+    if ((await foundersNow()) >= PLANS.founder.seats) throw new Fail('sold_out');
   } else if (mine && LIVE.includes(mine.status || '')) {
     return { already: true, url: (await portalUrl(S, mine.customer, back, prof.lang)) };
+  } else {
+    // a subscription bought in an app runs: it is managed in that store, and a second one is not sold beside it
+    const st = await storeOf(uid);
+    if (st && st.kind === 'sub' && st.expires_at && new Date(st.expires_at).getTime() > Date.now()) throw new Fail('store_sub', { store: st.store });
   }
   const prices = await priceIds(S);
   if (!prices[plan]) throw new Fail('not_set_up');
@@ -295,6 +324,213 @@ async function confirm(uid: string, b: any) {
   if (s.client_reference_id !== uid) throw new Fail('not_yours');
   const note = s.status === 'complete' ? await applySession(S, s) : 'not_complete';
   return Object.assign(await stateOf(uid), { note });
+}
+
+// ---- Joker Pro bought in the apps
+// one purchase as a store describes it, ready to be put on file
+type StoreNews = { id: string; store: 'apple' | 'google'; kind: 'sub' | 'founder'; plan: string | null; product: string; tx: string | null; token: string | null;
+  status: string; expires: number | null; revoked: number | null; autoRenew: boolean | null; trial: boolean; sandbox: boolean; signed: number | null; account: string | null };
+// claim: the account that showed the purchase (it becomes its owner: the last account to buy or restore it holds it);
+// without one (a store's own news) the owner on file stays, or the account the app named when buying.
+async function applyStore(e: StoreNews, claim: string | null, notice = ''): Promise<{ note: string; uid: string | null }> {
+  const row = one(await sql`select * from public.store_purchases where id = ${e.id}`);
+  let uid: string | null = claim || (row && row.user_id) || null;
+  if (!uid && e.account && UUID.test(e.account) && (await profileOf(e.account))) uid = e.account;
+  const was: string | null = row ? row.user_id : null;
+  // deno-lint-ignore no-explicit-any
+  const m: any = storeMerge(row, e, notice, Date.now());
+  if (m.skip) {
+    // nothing new about the purchase itself; a restore on another account still moves it
+    if (row && uid && uid !== was) {
+      await sql.begin(async (tx) => {
+        await tx`update public.store_purchases set user_id = ${uid}, updated_at = now() where id = ${e.id}`;
+        await tx`select public.gc_pro_refresh(${uid}::uuid)`;
+        if (was) await tx`select public.gc_pro_refresh(${was}::uuid)`;
+      });
+    }
+    return { note: m.skip, uid };
+  }
+  const at = (v: number | null | undefined) => (v ? new Date(v) : null);
+  await sql.begin(async (tx) => {
+    await tx`insert into public.store_purchases (id, store, user_id, kind, plan, product, tx, token, status, expires_at, auto_renew, trial, sandbox, revoked_at, signed_at, checked_at)
+      values (${e.id}, ${e.store}, ${uid}, ${e.kind}, ${e.plan}, ${e.product}, ${m.tx ?? null}, ${e.token}, ${String(m.status)}, ${at(m.expires)}, ${m.autoRenew ?? null}, ${!!m.trial}, ${e.sandbox}, ${at(m.revokedAt)}, ${at(m.signed)},
+        ${e.store === 'google' ? new Date() : null})
+      on conflict (id) do update set user_id = excluded.user_id, plan = coalesce(excluded.plan, store_purchases.plan), product = excluded.product, tx = excluded.tx,
+        token = coalesce(excluded.token, store_purchases.token), status = excluded.status, expires_at = excluded.expires_at, auto_renew = excluded.auto_renew, trial = excluded.trial,
+        sandbox = excluded.sandbox, revoked_at = excluded.revoked_at, signed_at = excluded.signed_at, checked_at = coalesce(excluded.checked_at, store_purchases.checked_at), updated_at = now()`;
+    if (uid) await tx`select public.gc_pro_refresh(${uid}::uuid)`;
+    if (was && was !== uid) await tx`select public.gc_pro_refresh(${was}::uuid)`;
+  });
+  return { note: m.status + (e.plan ? ' ' + e.plan : '') + (e.sandbox ? ' (sandbox)' : ''), uid };
+}
+
+// ---- Apple: a transaction's JWS (from the app) or a notification's (from Apple) → the purchase on file
+// deno-lint-ignore no-explicit-any
+function appleNews(ent: any): StoreNews {
+  return { id: 'apple:' + ent.id, store: 'apple', kind: ent.kind, plan: ent.plan, product: ent.product, tx: ent.tx, token: null, status: '', expires: ent.expires, revoked: ent.revoked,
+    autoRenew: ent.autoRenew, trial: ent.trial, sandbox: ent.sandbox, signed: ent.signed || null, account: ent.token };
+}
+async function appleClaim(uid: string, list: unknown[]): Promise<string[]> {
+  const notes: string[] = [];
+  for (const j of list.slice(0, 25)) {
+    // deno-lint-ignore no-explicit-any
+    let tx: any = null;
+    try { tx = await verifyJws(j, { root: APPLE_ROOT }); } catch (e) { notes.push('refused:' + String((e as { code?: string }).code || 'error')); continue; }
+    const ent = appleEntitlement(tx, null, APPLE_BUNDLE);
+    if (!ent) { notes.push('not_ours'); continue; }
+    if (ent.upgraded) { notes.push('upgraded'); continue; } // (a plan left for a bigger one: the bigger one's own transaction counts)
+    notes.push((await applyStore(appleNews(ent), uid)).note);
+  }
+  return notes;
+}
+// App Store Server Notifications V2: every notification once; the purchase follows what its transaction says
+// deno-lint-ignore no-explicit-any
+async function appleHook(b: any): Promise<Response> {
+  // deno-lint-ignore no-explicit-any
+  let n: any = null;
+  try { n = await verifyJws(b.signedPayload, { root: APPLE_ROOT }); } catch (e) { console.error('apple notification refused', String((e as { code?: string }).code || e)); return json({ error: 'signature' }, 400); }
+  if (!n || typeof n.notificationUUID !== 'string' || typeof n.notificationType !== 'string') return json({ error: 'bad_event' }, 400);
+  const data = n.data || {}, id = 'apple:' + n.notificationUUID, type = 'apple.' + n.notificationType + (n.subtype ? '.' + n.subtype : '');
+  const fresh = await sql`insert into public.billing_events (id, type, livemode) values (${id}, ${type.slice(0, 80)}, ${data.environment === 'Production'}) on conflict (id) do nothing returning id`;
+  if (!fresh.length) return json({ ok: true, seen: true });
+  let note = 'ignored', who: string | null = null;
+  try {
+    if (n.notificationType === 'TEST') note = 'test';
+    else if (data.bundleId !== APPLE_BUNDLE) note = 'other_app';
+    else if (typeof data.signedTransactionInfo === 'string') {
+      const tx = await verifyJws(data.signedTransactionInfo, { root: APPLE_ROOT });
+      const renewal = typeof data.signedRenewalInfo === 'string' ? await verifyJws(data.signedRenewalInfo, { root: APPLE_ROOT }) : null;
+      const ent = appleEntitlement(tx, renewal, APPLE_BUNDLE);
+      if (!ent) note = 'not_ours';
+      else if (ent.upgraded && !appleNotice(n.notificationType)) note = 'upgraded';
+      else { const r = await applyStore(appleNews(ent), null, appleNotice(n.notificationType)); note = r.note; who = r.uid; }
+    }
+  } catch (e) {
+    await sql`delete from public.billing_events where id = ${id}`; // (not handled: Apple's next delivery is taken up again)
+    console.error('apple notification failed', type, String(e));
+    return json({ error: 'failed' }, 500);
+  }
+  await sql`update public.billing_events set note = ${note}, user_id = ${who} where id = ${id}`;
+  return json({ ok: true, note });
+}
+
+// ---- Google: the service account signs in, the Android Publisher API says what a purchase token is worth
+let gTok: { token: string; until: number } | null = null;
+async function googleToken(): Promise<string> {
+  if (!GOOGLE) throw new Fail('google_not_set_up');
+  const now = Math.floor(Date.now() / 1000);
+  if (gTok && gTok.until > now + 60) return gTok.token;
+  const jwt = await serviceJwt(GOOGLE, now, GOOGLE_TOKEN_URL);
+  const r = await fetch(GOOGLE_TOKEN_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'grant_type=' + encodeURIComponent('urn:ietf:params:oauth:grant-type:jwt-bearer') + '&assertion=' + jwt });
+  const j = await r.json().catch(() => null);
+  if (!r.ok || !j || typeof j.access_token !== 'string') { console.error('google sign-in', r.status, (j && j.error) || ''); throw new Fail('google', { status: r.status }); }
+  gTok = { token: j.access_token, until: now + Math.min(3600, Number(j.expires_in) || 3600) };
+  return gTok.token;
+}
+// deno-lint-ignore no-explicit-any
+async function play(method: string, path: string, body?: unknown): Promise<any> {
+  const headers: Record<string, string> = { Authorization: 'Bearer ' + (await googleToken()) };
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const r = await fetch(PLAY_API + '/androidpublisher/v3/applications/' + encodeURIComponent(PLAY_PACKAGE) + '/' + path, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
+  const j = r.status === 204 ? {} : await r.json().catch(() => null);
+  if (!r.ok) {
+    console.error('google play', method, path.split('/tokens/')[0], r.status, (j && j.error && j.error.status) || ''); // (never the token itself)
+    throw new Fail('google', { status: r.status });
+  }
+  return j || {};
+}
+const TOKEN = /^[A-Za-z0-9._~-]{20,2000}$/; // a purchase token
+// one purchase token asked about and put on file. type: 'subs' | 'inapp'
+async function googleApply(token: string, type: string, claim: string | null): Promise<string> {
+  if (!TOKEN.test(token)) return 'bad_token';
+  const t = encodeURIComponent(token);
+  // deno-lint-ignore no-explicit-any
+  let e: any = null;
+  try {
+    e = type === 'inapp' ? googleFounder(await play('GET', 'purchases/products/' + GOOGLE_FOUNDER + '/tokens/' + t), token) : googleSub(await play('GET', 'purchases/subscriptionsv2/tokens/' + t), token, Date.now());
+  } catch (err) {
+    // Google does not know the token (or knows it no more): a purchase on file ends, a stranger's token is nothing
+    const st = err instanceof Fail && err.extra ? Number(err.extra.status) : 0;
+    if (st !== 404 && st !== 410 && st !== 400) throw err;
+    const row = one(await sql`select user_id from public.store_purchases where id = ${'google:' + token}`);
+    if (!row) return 'unknown_token';
+    await sql.begin(async (tx) => {
+      await tx`update public.store_purchases set status = 'expired', expires_at = least(expires_at, now()), revoked_at = case when kind = 'founder' then coalesce(revoked_at, now()) else revoked_at end,
+        checked_at = now(), updated_at = now() where id = ${'google:' + token}`;
+      if (row.user_id) await tx`select public.gc_pro_refresh(${row.user_id}::uuid)`;
+    });
+    return 'gone';
+  }
+  if (!e) return 'not_ours';
+  const news: StoreNews = { id: e.id, store: 'google', kind: e.kind, plan: e.plan, product: e.product, tx: e.tx, token, status: e.status, expires: e.expires, revoked: null,
+    autoRenew: e.autoRenew, trial: e.trial, sandbox: e.sandbox, signed: null, account: e.account };
+  const r = await applyStore(news, claim);
+  // the purchase this one replaced (a change of plan, a new start) is over
+  if (e.linked && TOKEN.test(e.linked)) {
+    const old = one(await sql`select user_id from public.store_purchases where id = ${'google:' + e.linked} and (expires_at is null or expires_at > now())`);
+    if (old) await sql.begin(async (tx) => {
+      await tx`update public.store_purchases set status = 'expired', expires_at = now(), updated_at = now() where id = ${'google:' + e.linked}`;
+      if (old.user_id) await tx`select public.gc_pro_refresh(${old.user_id}::uuid)`;
+    });
+  }
+  // Google gives the money back after three days unless it is told the purchase was delivered
+  if (e.ack) {
+    try { await play('POST', (e.kind === 'founder' ? 'purchases/products/' + GOOGLE_FOUNDER : 'purchases/subscriptions/' + GOOGLE_SUB) + '/tokens/' + t + ':acknowledge', {}); } catch (err) { console.error('google acknowledge failed', String(err)); }
+  }
+  return r.note;
+}
+// what the app bought, or found again in its store, goes on the caller's account
+// deno-lint-ignore no-explicit-any
+async function storeClaim(uid: string, b: any) {
+  if (!(await profileOf(uid))) throw new Fail('profile');
+  let notes: string[] = [];
+  if (b.store === 'apple') notes = await appleClaim(uid, Array.isArray(b.jws) ? b.jws : [b.jws]);
+  else if (b.store === 'google') {
+    // deno-lint-ignore no-explicit-any
+    for (const it of (Array.isArray(b.items) ? b.items : []).slice(0, 25) as any[]) {
+      if (!it || typeof it.token !== 'string') { notes.push('bad_token'); continue; }
+      notes.push(await googleApply(it.token, it.type === 'inapp' ? 'inapp' : 'subs', uid));
+    }
+  } else throw new Fail('bad_store');
+  return Object.assign(await stateOf(uid), { notes });
+}
+// the hourly look: Google's subscriptions that are about to end (renewed? cancelled? on hold?) and, once a day, what
+// Google has given the money back for
+async function sweep() {
+  if (!GOOGLE) return { ok: true, google: 'not_set_up' };
+  const due = await sql`select token, kind from public.store_purchases where store = 'google' and token is not null and status in ('active', 'grace', 'paused', 'pending')
+    and ((kind = 'sub' and (expires_at is null or expires_at < now() + interval '9 hours')) or checked_at is null or checked_at < now() - interval '3 days')
+    order by checked_at nulls first limit 40`;
+  let checked = 0, failed = 0;
+  for (const r of due) { try { await googleApply(r.token, r.kind === 'founder' ? 'inapp' : 'subs', null); checked++; } catch (_e) { failed++; } }
+  let voided = 0;
+  const last = (await config('google_voided')) || {};
+  if (!last.at || Date.now() - Date.parse(last.at) > 20 * 3600e3) {
+    try {
+      const v = await play('GET', 'purchases/voidedpurchases?type=1&startTime=' + (Date.now() - 3 * 864e5));
+      // deno-lint-ignore no-explicit-any
+      for (const x of ((v && v.voidedPurchases) || []) as any[]) {
+        if (!x || typeof x.purchaseToken !== 'string') continue;
+        const row = one(await sql`select user_id, kind from public.store_purchases where id = ${'google:' + x.purchaseToken} and revoked_at is null`);
+        if (!row) continue;
+        await sql.begin(async (tx) => {
+          await tx`update public.store_purchases set status = 'revoked', revoked_at = now(), expires_at = case when kind = 'sub' then least(expires_at, now()) else expires_at end, checked_at = now(), updated_at = now()
+            where id = ${'google:' + x.purchaseToken}`;
+          if (row.user_id) await tx`select public.gc_pro_refresh(${row.user_id}::uuid)`;
+        });
+        voided++;
+      }
+      await setConfig('google_voided', { at: new Date().toISOString() });
+    } catch (e) { console.error('google voided purchases', String(e)); failed++; }
+  }
+  return { ok: failed === 0, checked, failed, voided };
+}
+// the cron's key: made in the database once (the store_purchases migration), sent by the hourly job
+async function cronKey(key: unknown): Promise<boolean> {
+  if (typeof key !== 'string' || key.length < 32) return false;
+  const k = await config('cron_key');
+  return typeof k === 'string' && k.length === key.length && k === key;
 }
 
 // ---- the owner's requests
@@ -399,7 +635,7 @@ async function selftest(b: any) {
   await sql.begin(async (tx) => {
     const mine = before
       ? await tx`update public.billing set customer = ${before.customer}, subscription = ${before.subscription}, status = ${before.status}, plan = ${before.plan}, period_end = ${before.period_end},
-          cancel_at_period_end = ${before.cancel_at_period_end}, trial_used = ${before.trial_used}, updated_at = now() where user_id = ${uid} and subscription = ${sub.id} returning user_id`
+          until = ${before.until}, cancel_at_period_end = ${before.cancel_at_period_end}, trial_used = ${before.trial_used}, updated_at = now() where user_id = ${uid} and subscription = ${sub.id} returning user_id`
       : await tx`delete from public.billing where user_id = ${uid} and subscription = ${sub.id} returning user_id`;
     if (mine.length) { await tx`update public.profiles set pro_until = ${prof.pro_until}, pro_plan = ${prof.pro_plan} where id = ${uid}`; restored = true; }
   });
@@ -450,8 +686,11 @@ async function adminState() {
   for (const k of ['test', 'live'] as const) { try { prices[k] = SIDES[k] ? Object.keys(await priceIds(SIDES[k], true)).sort() : 'no_key'; } catch { prices[k] = 'unreachable'; } }
   const ev = await sql`select type, note, livemode, created_at from public.billing_events order by created_at desc limit 8`;
   const S = sideFor(mode);
+  const st = await sql`select store, count(*) filter (where kind = 'sub' and expires_at > now() and not sandbox)::int as subs, count(*) filter (where kind = 'founder' and status = 'active' and revoked_at is null and not sandbox)::int as founders,
+    count(*) filter (where sandbox)::int as sandbox, count(*)::int as rows from public.store_purchases group by store order by store`;
   return { keys: { test: !!SIDES.test, live: !!SIDES.live }, mode, serving: S ? S.km : null, hook: { test: !!(hookT && hookT.secret), live: !!(hookL && hookL.secret) },
-    portal: { test: !!portT, live: !!portL }, prices, billing: n[0], events: ev };
+    portal: { test: !!portT, live: !!portL }, prices, billing: n[0], events: ev,
+    stores: { config: (await config('stores')) || null, google_key: !!GOOGLE, purchases: st } };
 }
 
 // ---- auth: Supabase access tokens, checked the way the play function checks them (its comments say why)
@@ -532,6 +771,11 @@ Deno.serve(async (req) => {
     try { b = JSON.parse(raw || '{}'); } catch { b = {}; }
     if (!b || typeof b !== 'object') b = {};
     const action = String(b.action || '');
+    if (!action && typeof b.signedPayload === 'string') return await appleHook(b); // (Apple's notification: its signature is its pass)
+    if (action === 'sweep') {
+      if (!(await cronKey(b.key)) && !(await ownerKey(b.key))) return json({ error: 'auth' }, 401);
+      return json(await sweep());
+    }
     if (['setup', 'selftest', 'livecheck', 'admin_state'].includes(action)) {
       if (!(await ownerKey(b.key))) return json({ error: 'auth' }, 401);
       return json(action === 'setup' ? await setup(b) : action === 'selftest' ? await selftest(b) : action === 'livecheck' ? await livecheck() : await adminState());
@@ -542,9 +786,11 @@ Deno.serve(async (req) => {
     if (action === 'checkout') return json(await checkout(caller.sub, caller, b));
     if (action === 'confirm') return json(await confirm(caller.sub, b));
     if (action === 'portal') return json(await portal(caller.sub, b));
+    if (action === 'store') return json(await storeClaim(caller.sub, b));
     return json({ error: 'bad_action' });
   } catch (e) {
-    if (e instanceof Fail) return json(Object.assign({ error: e.code }, e.code === 'stripe' && e.extra ? { stripe: { type: e.extra.type, code: e.extra.code } } : {}), e.code === 'auth' ? 401 : 200);
+    if (e instanceof Fail) return json(Object.assign({ error: e.code }, e.code === 'stripe' && e.extra ? { stripe: { type: e.extra.type, code: e.extra.code } } : {},
+      e.code === 'store_sub' && e.extra ? { store: e.extra.store } : {}), e.code === 'auth' ? 401 : 200);
     console.error(e);
     return json({ error: 'server' }, 500);
   }

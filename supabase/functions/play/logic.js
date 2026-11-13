@@ -247,13 +247,17 @@ export function createLogic(opts) {
     if (!prof) throw new Fail('profile');
     // a guest who has since saved the account with an email (or Google) login
     if (guest !== null && prof.is_guest !== guest) prof = (await repo.setGuest(uid, guest)) || Object.assign(prof, { is_guest: guest });
-    const [ratings, live, admin, proMode] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid), repo.isAdmin ? repo.isAdmin(uid) : false, repo.proMode ? repo.proMode() : null,
+    const [ratings, live, admin, proMode, stores] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid), repo.isAdmin ? repo.isAdmin(uid) : false, repo.proMode ? repo.proMode() : null, repo.proStores ? repo.proStores() : null,
       repo.touchSeen ? repo.touchSeen(uid) : null, repo.noteActivity ? repo.noteActivity(uid, platformOf(b), 'open').catch(() => null) : null]);
     // pro: Joker Pro, the paid tier, is shown to this player ('test': to the owner's accounts only, before it opens);
     // proc: the profiles carry who has Pro (pro_until, pro_founder), for the gold name others see
     const pro = proMode === 'on' ? 'on' : proMode === 'test' && admin ? 'test' : undefined;
+    // iap: the app this player is in may sell Pro through its store (the App Store, Google Play): 'on' for everyone,
+    // 'test' for the owner's accounts while a build is being tried
+    const plat = platformOf(b), sm = stores && (plat === 'ios' || plat === 'android') ? stores[plat] : null;
+    const iap = sm === 'on' || (sm === 'test' && admin) ? true : undefined;
     return { profile: prof, ratings: ratings || [], live: live || null, now: now(), admin: !!admin || undefined, fair: FAIR || undefined, mail: MAIL || undefined, prog: PROG || undefined,
-      pro, proc: proMode != null || undefined };
+      pro, proc: proMode != null || undefined, iap };
   };
 
   // the day's activity of a player (the owner's retention numbers): what they did today, on which platform. The app sends

@@ -199,6 +199,10 @@ export function createPgRepo(sql) {
     async proMode() {
       try { const r = await sql`select value from public.billing_config where key = 'mode'`; return r.length ? String(r[0].value) : 'off'; } catch (e) { return null; }
     },
+    // which apps sell Pro through their stores: { ios: 'off' | 'test' | 'on', android: ... }; null before the migration
+    async proStores() {
+      try { const r = await sql`select value from public.billing_config where key = 'stores'`; return r.length && r[0].value && typeof r[0].value === 'object' ? r[0].value : null; } catch (e) { return null; }
+    },
     async rowOf(uid, pool) {
       if (!UUID.test(String(uid))) return null;
       return first(await sql`select to_jsonb(q) as j from (select r.user_id as uid, p.username as name, p.avatar_v, (to_jsonb(p)->>'xp')::int as xp, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses,

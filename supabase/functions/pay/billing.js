@@ -123,6 +123,56 @@ export function publicState(profile, row, nowMs) {
   };
 }
 
+// ---- Joker Pro bought in the apps (the App Store, Google Play): what a store's news does to the purchase on file.
+// row: the purchase as kept (store_purchases), or null. e: the news ({ store, kind: 'sub' | 'founder', tx, expires (ms),
+// revoked (ms: Apple's refund date), status (Google's), autoRenew, trial, signed (ms) }). notice: what an Apple
+// notification adds ('refund': the money went back; 'expired'; ''). → { skip: why } when nothing is to change, or
+// { status, expires (ms | null), revokedAt (ms | null), autoRenew, trial, tx, signed (ms | null) }.
+// Google is asked at that very moment, so what it says is how things are. Apple's data is signed and may come late,
+// twice, or out of order: an end date only moves forward, only the refund of what runs now ends Pro, and a refunded
+// transaction shown again changes nothing.
+export function storeMerge(row, e, notice, nowMs) {
+  const t = (v) => (v ? (typeof v === 'number' ? v : Date.parse(v)) : null);
+  const had = row ? t(row.expires_at) : null, hadRevoked = row ? t(row.revoked_at) : null;
+  const auto = e.autoRenew !== null && e.autoRenew !== undefined ? e.autoRenew : row ? row.auto_renew : null;
+  if (e.store === 'google') {
+    const revoked = e.status === 'revoked';
+    return { status: e.status, expires: e.expires, revokedAt: revoked ? hadRevoked || nowMs : null, autoRenew: auto, trial: !!e.trial, tx: e.tx || (row && row.tx) || null, signed: null };
+  }
+  const signed = Math.max(e.signed || 0, (row && t(row.signed_at)) || 0) || null;
+  const refund = (e.revoked !== null && e.revoked !== undefined) || notice === 'refund';
+  if (e.kind === 'founder') {
+    if (refund) return { status: 'revoked', expires: null, revokedAt: Math.min(e.revoked || nowMs, nowMs), autoRenew: null, trial: false, tx: e.tx, signed };
+    if (hadRevoked !== null && row.tx === e.tx) return { skip: 'refunded' };
+    return { status: 'active', expires: null, revokedAt: null, autoRenew: null, trial: false, tx: e.tx, signed };
+  }
+  if (e.expires === null || e.expires === undefined) return { skip: 'no_end' };
+  if (refund) {
+    if (had !== null && e.expires < had && row.tx !== e.tx) return { skip: 'old_refund' };
+    const at = Math.min(e.revoked || nowMs, nowMs);
+    return { status: 'revoked', expires: at, revokedAt: at, autoRenew: false, trial: false, tx: e.tx, signed };
+  }
+  if (hadRevoked !== null && row.tx === e.tx) return { skip: 'refunded' };
+  const newer = had === null || e.expires > had;
+  const expires = newer ? e.expires : had;
+  const revokedAt = hadRevoked !== null && !newer ? hadRevoked : null;
+  return { status: expires > nowMs ? 'active' : revokedAt !== null ? 'revoked' : 'expired', expires, revokedAt, autoRenew: auto,
+    trial: newer ? !!e.trial : !!(row && row.trial), tx: newer ? e.tx : row.tx, signed };
+}
+// what the client is told when Pro comes from a store: where it was bought (so that it is managed there), and the
+// subscription's state in the client's own words. st: publicState's answer; row: Stripe's side; s: the store purchase
+// that counts now (a founder's, else the subscription that lasts longest), or null.
+export function withStore(st, row, s, nowMs) {
+  const out = Object.assign({}, st, { via: null });
+  const stripeUntil = row && row.until ? Date.parse(row.until) : null, storeUntil = s && s.kind === 'sub' && s.expires_at ? Date.parse(s.expires_at) : null;
+  if (st.founder) out.via = row && row.founder_at ? 'stripe' : s && s.kind === 'founder' ? s.store : null;
+  else if (st.on) out.via = storeUntil !== null && storeUntil > nowMs && (stripeUntil === null || storeUntil >= stripeUntil) ? s.store : 'stripe';
+  if (out.via && out.via !== 'stripe' && s && s.kind === 'sub') {
+    out.status = s.status; out.cancel = s.auto_renew === false; out.trial = !!s.trial && storeUntil > nowMs; out.sub = storeUntil > nowMs; out.sandbox = !!s.sandbox || undefined;
+  }
+  return out;
+}
+
 // where Stripe sends the player back: only to our own pages
 const HOSTS = /^https:\/\/(joker-chess\.com|www\.joker-chess\.com|golden-chess\.com|www\.golden-chess\.com)\//;
 export function backUrl(back, site, local) {

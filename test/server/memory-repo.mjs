@@ -125,6 +125,7 @@ export function createMemoryRepo(now) {
     async isAdmin(uid) { return db.admins.has(uid); },
     // Joker Pro: the mode who sees it (the tests set db.proMode), null before the migration
     async proMode() { return db.proMode === undefined ? 'off' : db.proMode; },
+    async proStores() { return db.proStores || { ios: 'off', android: 'off' }; },
     async waitingByCode(code) { for (const g of db.games.values()) if (g.status === 'waiting' && g.code === code) return clone(g); return null; },
     async abortWaiting(uid) { for (const g of db.games.values()) if (g.host_id === uid && g.status === 'waiting') Object.assign(g, { status: 'aborted', result: '*', reason: 'abort' }); },
     // as gc_merge_accounts (the sign-in side lives in the test server's stand-in for Auth)

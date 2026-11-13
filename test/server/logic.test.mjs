@@ -760,6 +760,16 @@ if (FAIR) { // (GC_FAIR=off: the release config, fair play off and its migration
     check('pro: on is for everyone', (await ok(B, { action: 'hello' })).pro === 'on' && (await ok(A, { action: 'hello' })).pro === 'on');
     await setMode('off');
     check('pro: off again', (await ok(B, { action: 'hello' })).pro === undefined);
+    // the apps: whether this player's app may sell Pro through its store
+    const setStores = async (v) => { if (PG) await pg.query("update public.billing_config set value = $1::jsonb where key = 'stores'", [JSON.stringify(v)]); else repo.proStores = async () => v; };
+    check('iap: no store sells at first, whatever the app', (await ok(B, { action: 'hello', platform: 'ios' })).iap === undefined && (await ok(B, { action: 'hello', platform: 'android' })).iap === undefined && (await ok(B, { action: 'hello' })).iap === undefined);
+    await setStores({ ios: 'test', android: 'off' });
+    check('iap: a store being tried is for the owner\'s accounts, in that app only', (await ok(A, { action: 'hello', platform: 'ios' })).iap === true && (await ok(B, { action: 'hello', platform: 'ios' })).iap === undefined &&
+      (await ok(A, { action: 'hello', platform: 'android' })).iap === undefined && (await ok(A, { action: 'hello', platform: 'web' })).iap === undefined);
+    await setStores({ ios: 'on', android: 'on' });
+    check('iap: on is for every player in the apps, never for the website', (await ok(B, { action: 'hello', platform: 'ios' })).iap === true && (await ok(B, { action: 'hello', platform: 'android' })).iap === true &&
+      (await ok(B, { action: 'hello', platform: 'web' })).iap === undefined && (await ok(B, { action: 'hello' })).iap === undefined && (await ok(B, { action: 'hello', platform: 'steam' })).iap === undefined);
+    await setStores({ ios: 'off', android: 'off' });
     // the gold name others see: the leaderboard rows say who has Pro
     const day = 864e5, iso = (ms) => new Date(ms).toISOString();
     const setPro = async (uid, until, founder) => {
