@@ -177,7 +177,8 @@ export function createPgRepo(sql) {
     // (xp: the rank badge next to the name; fair: a closed account is out of the leaderboard. Both read through to_jsonb,
     // so the queries run on a database without those columns too: fair play's migration is not applied yet)
     async top(pool, n) {
-      return plain(await sql`select r.user_id as uid, p.username as name, p.avatar_v, (to_jsonb(p)->>'xp')::int as xp, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses
+      return plain(await sql`select r.user_id as uid, p.username as name, p.avatar_v, (to_jsonb(p)->>'xp')::int as xp, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses,
+          (coalesce((to_jsonb(p)->>'pro_until')::timestamptz > now(), false) or coalesce((to_jsonb(p)->>'pro_founder')::boolean, false)) as pro, coalesce((to_jsonb(p)->>'pro_founder')::boolean, false) as founder
         from public.ratings r join public.profiles p on p.id = r.user_id where r.pool = ${pool} and r.games > 0 and coalesce(to_jsonb(p)->>'fair', 'ok') <> 'closed' order by r.rating desc limit ${n}`);
     },
     // the player's place in the pool and the pool's size (rank null when unrated there)
@@ -193,9 +194,15 @@ export function createPgRepo(sql) {
       return Number(r[0].n);
     },
     // one player's leaderboard row (null when unrated in the pool)
+    // Joker Pro (the pro migration): who is shown the paid tier: 'off' | 'test' (the owner's accounts) | 'on'; null
+    // before the migration is applied (then the profiles have no pro columns to read either)
+    async proMode() {
+      try { const r = await sql`select value from public.billing_config where key = 'mode'`; return r.length ? String(r[0].value) : 'off'; } catch (e) { return null; }
+    },
     async rowOf(uid, pool) {
       if (!UUID.test(String(uid))) return null;
-      return first(await sql`select to_jsonb(q) as j from (select r.user_id as uid, p.username as name, p.avatar_v, (to_jsonb(p)->>'xp')::int as xp, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses
+      return first(await sql`select to_jsonb(q) as j from (select r.user_id as uid, p.username as name, p.avatar_v, (to_jsonb(p)->>'xp')::int as xp, round(r.rating)::int as rating, round(r.rd)::int as rd, r.games, r.wins, r.draws, r.losses,
+          (coalesce((to_jsonb(p)->>'pro_until')::timestamptz > now(), false) or coalesce((to_jsonb(p)->>'pro_founder')::boolean, false)) as pro, coalesce((to_jsonb(p)->>'pro_founder')::boolean, false) as founder
         from public.ratings r join public.profiles p on p.id = r.user_id where r.user_id = ${uid} and r.pool = ${pool} and r.games > 0 and coalesce(to_jsonb(p)->>'fair', 'ok') <> 'closed') q`);
     },
   };

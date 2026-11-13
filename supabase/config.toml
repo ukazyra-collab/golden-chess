@@ -8,3 +8,8 @@ verify_jwt = false
 [functions.mail]
 # the lifecycle emails: the one-click unsubscribe links and the hourly job (pg_cron) call it without a user token
 verify_jwt = false
+
+[functions.pay]
+# Joker Pro, the paying side: Stripe's webhook has no user token (its signature is checked instead), and the players'
+# tokens are verified by the function itself
+verify_jwt = false

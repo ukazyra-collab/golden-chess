@@ -10,6 +10,7 @@ export function createMemoryRepo(now) {
   const db = { games: new Map(), profiles: new Map(), ratings: new Map(), seeks: new Map(), house: new Map(), admins: new Set(), seen: new Map(), progress: new Map(),
     blurs: [], reports: [], fairScores: [], refunds: new Set() };
   const closed = (uid) => (db.profiles.get(uid) || {}).fair === 'closed'; // out of the leaderboard (fair play)
+  const isPro = (p) => !!(p && (p.pro_founder || (p.pro_until && Date.parse(p.pro_until) > Date.now()))); // Joker Pro (the pro migration)
   const GAME_DEFAULTS = { status: 'playing', white_id: null, black_id: null, white_name: null, black_name: null, white_rating: null, black_rating: null,
     host_id: null, host_color: null, rated: true, moves: [], sans: [], turn_started_at: null, result: null, reason: null, white_diff: null, black_diff: null,
     white_after: null, black_after: null, draw_offer: null, rematch_offer: null, rematch_game: null, version: 0, house: null, house_style: null, code: null };
@@ -122,6 +123,8 @@ export function createMemoryRepo(now) {
     async seenAt(gameId) { return [...db.seen.values()].filter((s) => s.game_id === gameId).map(clone); },
     async touch(gameId, uid, at) { db.seen.set(gameId + '|' + uid, { game_id: gameId, user_id: uid, at }); },
     async isAdmin(uid) { return db.admins.has(uid); },
+    // Joker Pro: the mode who sees it (the tests set db.proMode), null before the migration
+    async proMode() { return db.proMode === undefined ? 'off' : db.proMode; },
     async waitingByCode(code) { for (const g of db.games.values()) if (g.status === 'waiting' && g.code === code) return clone(g); return null; },
     async abortWaiting(uid) { for (const g of db.games.values()) if (g.host_id === uid && g.status === 'waiting') Object.assign(g, { status: 'aborted', result: '*', reason: 'abort' }); },
     // as gc_merge_accounts (the sign-in side lives in the test server's stand-in for Auth)
@@ -151,7 +154,7 @@ export function createMemoryRepo(now) {
     async deleteSeek(uid) { db.seeks.delete(uid); },
     async top(pool, n) {
       return [...db.ratings.values()].filter((r) => r.pool === pool && r.games > 0 && !closed(r.user_id)).sort((a, b) => b.rating - a.rating).slice(0, n)
-        .map((r) => ({ uid: r.user_id, name: db.profiles.get(r.user_id)?.username || '?', avatar_v: db.profiles.get(r.user_id)?.avatar_v || 0, xp: db.profiles.get(r.user_id)?.xp || 0, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses }));
+        .map((r) => ({ uid: r.user_id, name: db.profiles.get(r.user_id)?.username || '?', avatar_v: db.profiles.get(r.user_id)?.avatar_v || 0, xp: db.profiles.get(r.user_id)?.xp || 0, pro: isPro(db.profiles.get(r.user_id)), founder: !!db.profiles.get(r.user_id)?.pro_founder, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses }));
     },
     async rankOf(uid, pool) {
       const r = db.ratings.get(uid + '|' + pool);
@@ -162,7 +165,7 @@ export function createMemoryRepo(now) {
     async rowOf(uid, pool) {
       const r = db.ratings.get(uid + '|' + pool);
       if (!r || !r.games || closed(uid)) return null;
-      return { uid, name: db.profiles.get(uid)?.username || '?', avatar_v: db.profiles.get(uid)?.avatar_v || 0, xp: db.profiles.get(uid)?.xp || 0, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses };
+      return { uid, name: db.profiles.get(uid)?.username || '?', avatar_v: db.profiles.get(uid)?.avatar_v || 0, xp: db.profiles.get(uid)?.xp || 0, pro: isPro(db.profiles.get(uid)), founder: !!db.profiles.get(uid)?.pro_founder, rating: Math.round(r.rating), rd: Math.round(r.rd), games: r.games, wins: r.wins, draws: r.draws, losses: r.losses };
     },
     // ---- the game layer on the account (as supabase/migrations/*_progress.sql)
     async progress(uid, data, xp) {

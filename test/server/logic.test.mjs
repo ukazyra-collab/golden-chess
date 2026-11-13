@@ -740,6 +740,47 @@ if (FAIR) { // (GC_FAIR=off: the release config, fair play off and its migration
   check('progress: off until the migration is in (the app then keeps it on the device only)', r.body.error === 'unsupported' && (await off.handle(Promise.resolve(X2), { action: 'hello' })).body.prog === undefined, r.body);
 }
 
+// ---- Joker Pro, the paid tier (the pro migration): hello says who is shown it, the leaderboard who has it
+{
+  // a database without the migration (PG_SKIP has it): nobody is shown anything, and nothing breaks
+  const noPro = PG && (process.env.PG_SKIP || '').includes('_pro.sql');
+  const setMode = async (m) => { if (PG) await pg.query("update public.billing_config set value = to_jsonb($1::text) where key = 'mode'", [m]); else repo.proMode = async () => m; };
+  await inspect.makeAdmin(A); // A is one of the owner's accounts, B is not
+  let r = await ok(A, { action: 'hello' });
+  if (noPro) {
+    check('pro: before the migration nobody is shown Pro', r.pro === undefined && r.proc === undefined, [r.pro, r.proc]);
+    r = await ok(A, { action: 'top', pool: 'blitz' });
+    check('pro: the leaderboard works without the columns', Array.isArray(r.rows) && r.rows.every((x) => x.pro === false && x.founder === false), r.rows.slice(0, 2));
+  } else {
+    check('pro: off at first, the profiles carry the columns', r.pro === undefined && r.proc === true, [r.pro, r.proc]);
+    await setMode('test');
+    check('pro: in test mode the owner sees it', (await ok(A, { action: 'hello' })).pro === 'test');
+    check('pro: and a player does not', (await ok(B, { action: 'hello' })).pro === undefined);
+    await setMode('on');
+    check('pro: on is for everyone', (await ok(B, { action: 'hello' })).pro === 'on' && (await ok(A, { action: 'hello' })).pro === 'on');
+    await setMode('off');
+    check('pro: off again', (await ok(B, { action: 'hello' })).pro === undefined);
+    // the gold name others see: the leaderboard rows say who has Pro
+    const day = 864e5, iso = (ms) => new Date(ms).toISOString();
+    const setPro = async (uid, until, founder) => {
+      if (PG) await pg.query('update public.profiles set pro_until = $2, pro_founder = $3 where id = $1', [uid, until, !!founder]);
+      else { const p = (await inspect.profiles()).find((x) => x.id === uid); p.pro_until = until; p.pro_founder = !!founder; }
+    };
+    const top = async () => { const t = await ok(A, { action: 'top', pool: 'blitz' }); return (t.rows || []).concat(t.me ? [t.me] : []); };
+    const rows0 = await top();
+    check('pro: nobody has it at first', rows0.length > 0 && rows0.every((x) => x.pro === false && x.founder === false), rows0.slice(0, 3));
+    const who = rows0[0].uid, other = rows0.length > 1 ? rows0[1].uid : null;
+    await setPro(who, iso(Date.now() + day), false);
+    if (other) await setPro(other, iso(Date.now() - day), false);
+    let rows = await top();
+    check('pro: a paid period shows, one that ran out does not', rows.find((x) => x.uid === who).pro === true && rows.find((x) => x.uid === who).founder === false && (!other || rows.find((x) => x.uid === other).pro === false), rows.slice(0, 3));
+    await setPro(who, null, true);
+    rows = await top();
+    check('pro: a founder shows as both', rows.find((x) => x.uid === who).pro === true && rows.find((x) => x.uid === who).founder === true);
+    await setPro(who, null, false); if (other) await setPro(other, null, false);
+  }
+}
+
 // glicko sanity
 const gw = glicko2(1500, 350, 0.06, 1500, 350, 1);
 check('glicko new player win ~ +160..+200', gw.rating > 1650 && gw.rating < 1700 && gw.rd < 350, gw);

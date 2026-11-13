@@ -247,9 +247,13 @@ export function createLogic(opts) {
     if (!prof) throw new Fail('profile');
     // a guest who has since saved the account with an email (or Google) login
     if (guest !== null && prof.is_guest !== guest) prof = (await repo.setGuest(uid, guest)) || Object.assign(prof, { is_guest: guest });
-    const [ratings, live, admin] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid), repo.isAdmin ? repo.isAdmin(uid) : false, repo.touchSeen ? repo.touchSeen(uid) : null,
-      repo.noteActivity ? repo.noteActivity(uid, platformOf(b), 'open').catch(() => null) : null]);
-    return { profile: prof, ratings: ratings || [], live: live || null, now: now(), admin: !!admin || undefined, fair: FAIR || undefined, mail: MAIL || undefined, prog: PROG || undefined };
+    const [ratings, live, admin, proMode] = await Promise.all([repo.getRatings(uid), repo.liveGame(uid), repo.isAdmin ? repo.isAdmin(uid) : false, repo.proMode ? repo.proMode() : null,
+      repo.touchSeen ? repo.touchSeen(uid) : null, repo.noteActivity ? repo.noteActivity(uid, platformOf(b), 'open').catch(() => null) : null]);
+    // pro: Joker Pro, the paid tier, is shown to this player ('test': to the owner's accounts only, before it opens);
+    // proc: the profiles carry who has Pro (pro_until, pro_founder), for the gold name others see
+    const pro = proMode === 'on' ? 'on' : proMode === 'test' && admin ? 'test' : undefined;
+    return { profile: prof, ratings: ratings || [], live: live || null, now: now(), admin: !!admin || undefined, fair: FAIR || undefined, mail: MAIL || undefined, prog: PROG || undefined,
+      pro, proc: proMode != null || undefined };
   };
 
   // the day's activity of a player (the owner's retention numbers): what they did today, on which platform. The app sends
