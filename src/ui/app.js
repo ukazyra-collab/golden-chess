@@ -612,7 +612,7 @@
   };
   EngineClient.prototype.runSync = function (req, done) {
     setTimeout(function () {
-      var r = Engine.think({ fen: req.fen, moves: req.moves, timeMs: Math.min(req.timeMs || 300, 300), level: req.level, lv: req.lv, analysis: req.analysis });
+      var r = Engine.think({ fen: req.fen, moves: req.moves, timeMs: Math.min(req.timeMs || 300, 300), level: req.level, lv: req.lv, analysis: req.analysis, noGoldenRoot: !!req.noGoldenRoot });
       done(r);
     }, 30);
   };
@@ -932,6 +932,8 @@
   function retryCheck(E, rec) {
     var R = E.retry, best = review && review.scores[E.base];
     if (!best) return;
+    // (a blind review holds the move against the best normal move: so does the retry)
+    if (review.blind && best.alt && String(best.uci).indexOf('*') >= 0 && !game.records[E.base].golden) best = best.alt;
     R.tries++; R.san = rec.san; R.uci = rec.uci; R.story = null; R.drop = 0;
     if (rec.uci === best.uci) { R.state = 'right'; return; }
     R.state = 'checking';
@@ -943,12 +945,13 @@
       if (explore !== E || R.req !== id || !res) return;
       var drop = Math.max(0, winPct(cpOf(best)) - winPct(-cpOf({ score: res.score, mate: res.mate || 0 })));
       R.drop = drop; R.state = drop < 2 ? 'excellent' : drop < 5 ? 'good' : 'wrong'; R.score = { score: res.score, mate: res.mate || 0 };
-      R.story = GCReview.story(E.fens[1], res.pv && res.pv.length ? res.pv : (res.uci ? [res.uci] : []), rec.color, 8);
+      R.story = GCReview.story(E.fens[1], res.pv && res.pv.length ? res.pv : (res.uci ? [res.uci] : []), rec.color, 8, review && review.blind ? { blind: true } : null);
       renderReview();
     });
   }
   function coachAct(act) {
     if (act === 'hide') { exitExplore(true); return; }
+    if (act === 'jk') { jkTap(); return; } // the Joker analysis, asked for from the move it would speak of
     var ply = explore ? (explore.line ? explore.line.ply : explore.retry ? explore.retry.ply : -1) : view - 1;
     if (ply < 0 || !review || !review.moves || !review.moves[ply]) return;
     if (act === 'follow' || act === 'best') showLine(act, ply);
@@ -1184,7 +1187,8 @@
     refreshArrows(); renderAna();
     var p = viewPos();
     if (!p.hasLegalMove()) { analysis.info = { final: true, score: p.inCheck() ? -30000 : 0, mate: 0, none: true }; renderAna(); return; }
-    var req = { id: id, fen: game.startFen, moves: viewMovesUci(), timeMs: 3000, level: 8, analysis: true };
+    // (while the review is blind the engine's line is too: the best normal move, never a Joker Move nobody played)
+    var req = { id: id, fen: game.startFen, moves: viewMovesUci(), timeMs: 3000, level: 8, analysis: true, noGoldenRoot: !!(review && review.blind) };
     anaClient.think(req, function (res) { if (analysis.id === id) { res.final = true; analysis.info = res; renderAna(); } },
       function (inf) { if (analysis.id === id) { analysis.info = inf; renderAna(); } });
   }
@@ -1279,7 +1283,9 @@
     while (c.order.length > REVIEW_KEEP) delete c.items[c.order.shift()];
     save('reviewCache', c);
     var sums = load('reviewSums', {});
-    sums[rv.key] = { acc: rv.sum.map(function (x) { return x ? Math.round(x.accuracy * 10) / 10 : null; }), miss: rv.sum.map(function (x) { return x ? x.missed.length : 0; }) };
+    var fs = rv.fullSum || rv.sum, r1 = function (x) { return x ? Math.round(x.accuracy * 10) / 10 : null; };
+    sums[rv.key] = { acc: fs.map(r1), miss: fs.map(function (x) { return x ? x.missed.length : 0; }) };
+    if (rv.blindSum) sums[rv.key].accB = rv.blindSum.map(r1); // (the accuracy without the Joker analysis: what a game not opened shows)
     var keys = Object.keys(sums);
     if (keys.length > 600) keys.slice(0, keys.length - 600).forEach(function (k) { delete sums[k]; });
     save('reviewSums', sums);
@@ -1295,6 +1301,8 @@
       card.classList.add('report');
       card.addEventListener('click', function (e) {
         if (e.target.closest('[data-close]')) { closeDialog(); return; }
+        if (e.target.closest('[data-jk]')) { jkTap(showReport); return; }
+        if (e.target.closest('[data-pro]')) { Track.event('pro_gate', { why: 'check' }); proSheet('check', null, showReport); return; }
         var t = e.target.closest('[data-goto],[data-start]');
         if (!t) return;
         closeDialog();
@@ -1306,7 +1314,7 @@
   function coachLine(s) {
     if (!s) return T('coShort');
     if (s.missed.length) return s.missed.length === 1 ? T('coMissed1') : T('coMissedN', { n: s.missed.length });
-    if (s.golden && GOOD_CLS[s.golden.cls]) return T('coGolden');
+    if (s.golden && s.golden.cls && GOOD_CLS[s.golden.cls]) return T('coGolden');
     if (s.n < 8) return T('coShort');
     return s.accuracy >= 90 ? T('coGreat') : s.accuracy >= 80 ? T('coGood') : T('coOk');
   }
@@ -1348,26 +1356,57 @@
     });
     t += row(esc(T('rpGolden')), [0, 1].map(function (c) {
       var g = sum[c] && sum[c].golden;
-      return '<span class="rp-v rp-gm">' + (g ? clsIcon(g.cls) + '<b class="gold">' + esc(g.san) + '</b>' : '<em>' + esc(T('rpGoldenNone')) + '</em>') + '</span>';
+      return '<span class="rp-v rp-gm">' + (g ? (g.hide ? '' : clsIcon(g.cls)) + '<b class="gold">' + esc(g.san) + '</b>' : '<em>' + esc(T('rpGoldenNone')) + '</em>') + '</span>';
     }));
     t += '</div>';
-    // the Joker Moves that were there: yours first; a tap shows the moment on the board
-    var missed = (review.missed || []).slice().sort(function (a, b) { return (a.color === me ? 0 : 1) - (b.color === me ? 0 : 1) || a.ply - b.ply; });
-    var g = '<div class="rp-gold" id="rp-missed"><div class="rp-gold-h">' + STAR_SVG + '<b>' + esc(T('rpMissed')) + '</b></div>';
-    if (!missed.length) g += '<p class="rp-none">' + esc(T('rpNoMissed')) + '</p>';
-    missed.forEach(function (x) {
-      g += '<button type="button" class="rp-miss" data-goto="' + (x.ply + 1) + '"><i class="pc-ic ' + BoardView.cls((x.color << 3) | 6) + '"></i><span class="rp-miss-t"><b>' +
-        esc(T('rpMissedItem', { n: moveNoText(x.ply) })) + ' <span class="gold">' + esc(x.san) + '</span></b><span>' + esc(T('rpMissedGain', { g: Math.round(x.gain) })) + '</span></span>' + CHEV_RIGHT + '</button>';
-    });
-    g += '</div>';
+    var g = jokerBlock(me, you);
     // the list scrolls, the main action stays at the bottom
     card.innerHTML = '<div class="rp-body">' + html + g + t + '</div><div class="rp-foot"><button type="button" class="primary rp-start" data-start="1" id="btn-start-review">' + esc(T('rpStart')) + '</button></div>';
     card.querySelector('.rp-body').scrollTop = keepScroll;
   }
   function stopReview() { if (review && review.running) revPool.forEach(function (c) { c.cancel(); }); if (review) review.running = false; }
+  // (the Joker analysis not open yet: the review is blind, see src/review.js; the saved sums are the full review's)
   function computeReview() {
-    var a = GCReview.analyze({ fens: game.fens, records: game.records, scores: review.scores });
-    review.moves = a.moves; review.sum = a.sum; review.missed = a.missed;
+    var input = { fens: game.fens, records: game.records, scores: review.scores }, full = GCReview.analyze(input);
+    var bl = PRO ? GCReview.analyze(input, { blind: true }) : null;
+    review.blind = !!bl && !jkOpen();
+    var a = review.blind ? bl : full;
+    review.moves = a.moves; review.sum = a.sum; review.missed = a.missed; review.fullSum = full.sum; review.blindSum = bl ? bl.sum : null;
+  }
+  // ---- the report's Joker analysis. Open (Pro, or the free one used on this game, or nothing is sold here): each
+  // side's Joker Move with its verdict, the ones that were missed (yours first; a tap shows the moment on the board),
+  // or that there was none. Not open: one card that asks for it, the same whatever the game held.
+  function jokerBlock(me, you) {
+    var head = '<div class="rp-gold-h">' + STAR_SVG + '<b>' + esc(PRO ? PX('jkT') : T('rpMissed')) + '</b>';
+    if (review.blind) {
+      var left = PRO.checksLeft(proJk) > 0;
+      return '<div class="rp-gold jk-ask" id="rp-missed">' + head + '</div><p class="jk-q">' + esc(PX('jkAsk')) + '</p>' +
+        '<div class="jk-row"><button type="button" class="jk-btn' + (left ? '' : ' pro') + '" id="btn-jk" ' + (left ? 'data-jk="1"' : 'data-pro="1"') + '>' + (left ? '' : '<span class="pro-mark">' + esc(PX('mark')) + '</span>') + esc(PX(left ? 'jkShow' : 'jkPro')) + '</button>' +
+        '<span class="jk-note" id="jk-note">' + esc(PX(left ? 'jkFree' : 'jkUsed')) + '</span></div></div>';
+    }
+    var sum = review.sum, missed = (review.missed || []).slice().sort(function (a, b) { return (a.color === me ? 0 : 1) - (b.color === me ? 0 : 1) || a.ply - b.ply; });
+    var g = '<div class="rp-gold" id="rp-missed">' + head + '</div>', any = false;
+    // the Joker Move each side played, and what it was worth
+    (me ? [1, 0] : [0, 1]).forEach(function (c) {
+      var x = sum[c] && sum[c].golden;
+      if (!x) return;
+      any = true;
+      var better = x.best ? x.best.replace(/\*/g, '\u2605') : '';
+      var verdict = x.cls === 'great' ? T('r_goldenGreat') : x.cls === 'good' && better ? T('r_goldenOk', { best: better }) : GOOD_CLS[x.cls] ? T('r_goldenGood') : better ? T('r_goldenWasted', { best: better }) : T('c_' + x.cls);
+      g += '<button type="button" class="rp-miss played" data-goto="' + (x.ply + 1) + '"><i class="pc-ic ' + BoardView.cls((c << 3) | 6) + '"></i><span class="rp-miss-t"><b>' +
+        esc(T('rpMissedItem', { n: moveNoText(x.ply) })) + ' <span class="gold">' + esc(x.san) + '</span> ' + clsIcon(x.cls) + '</b><span>' + esc(verdict) + '</span></span>' + CHEV_RIGHT + '</button>';
+    });
+    missed.forEach(function (x) {
+      g += '<button type="button" class="rp-miss" data-goto="' + (x.ply + 1) + '"><i class="pc-ic ' + BoardView.cls((x.color << 3) | 6) + '"></i><span class="rp-miss-t"><b>' +
+        esc(T('rpMissedItem', { n: moveNoText(x.ply) })) + ' <span class="gold">' + esc(x.san) + '</span></b><span>' + esc(PRO ? PX('jkMissedBy') + ': ' : '') + esc(T('rpMissedGain', { g: Math.round(x.gain) })) + '</span></span>' + CHEV_RIGHT + '</button>';
+    });
+    var mine = missed.filter(function (x) { return x.color === me; }).length;
+    if (!missed.length && !any) g += '<p class="rp-none">' + esc(PRO ? PX(you ? 'jkNoneYou' : 'jkNone') : T('rpNoMissed')) + '</p>';
+    else if (PRO && you && !mine && !(sum[me] && sum[me].golden)) g += '<p class="rp-none">' + esc(PX('jkNoneYou')) + '</p>';
+    else if (PRO && you && !mine && sum[me] && sum[me].golden && GOOD_CLS[sum[me].golden.cls]) g += '<p class="rp-none">' + esc(PX('jkNoBetter')) + '</p>';
+    // a free player's one analysis, used here: where the rest are
+    if (jkLimited()) g += '<button type="button" class="jk-more" id="jk-more" data-pro="1"><span class="pro-mark">' + esc(PX('mark')) + '</span><span>' + esc(PX('jkUpsell')) + '</span></button>';
+    return g + '</div>';
   }
   // move classes as players know them from chess.com: a glyph in a coloured circle; sym: shown in the move list,
   // badge: shown on the board
@@ -1476,18 +1515,27 @@
   }
   var B_FOLLOW = function () { return cbtn('follow', LINE_ICON, T('showFollow'), '', T('showShort')); };
   // the best move's name is on its button, so the row reads as a sentence: "Best: Nf3 · What follows · Find it yourself"
-  var B_BEST = function (mv) { var san = mv && mv.bestSan ? mv.bestSan.replace(/\*/g, '\u2605') : ''; return cbtn('best', STAR_ICON, T('bestBtn', { san: san }), 'gold', T('bestShort', { san: san })); };
+  var B_BEST = function (mv) {
+    var san = mv && mv.bestSan ? mv.bestSan.replace(/\*/g, '\u2605') : ''; return cbtn('best', STAR_ICON, T('bestBtn', { san: san }), 'gold', T('bestShort', { san: san }));
+  };
   var B_RETRY = function () { return cbtn('retry', RETRY_ICON, T('retryBtn'), '', T('retryShort')); };
   var B_HIDE = function () { return cbtn('hide', BACK_ICON, T('hideLine'), 'on'); };
   // "find a better move yourself" is for your own moves; on one device (two players) or watching, for either side
   function canRetry(rec) { return !oppGame() || spectating() || rec.color === game.cfg.human; }
   // the coach on a move of the game: what it was, why, and the ways to see it on the board
   function coachHtml(i, mv) {
-    var rec = game.records[i], why = coachReason(i, mv), acts = '', bad = !GOOD_CLS[mv.cls];
+    var rec = game.records[i], acts = '';
+    if (mv.cls === 'joker') {
+      // (the review is blind) the Joker Move that was played gets no verdict here: the Joker analysis has it
+      if (mv.follow && mv.follow.ucis.length) acts += B_FOLLOW();
+      acts += cbtn('jk', STAR_ICON, PX('jkT'), 'gold', PX('jkT'));
+      return coachBox('c-joker', '<span class="ci ci-joker" aria-hidden="true">' + JOKER_SYM + '</span>', PX('jkMoveT', { san: moveNoText(i) + ' ' + rec.san }), evalAfter(i), '<p>' + esc(PX('jkMoveHidden')) + '</p>', acts);
+    }
+    var why = coachReason(i, mv), bad = !GOOD_CLS[mv.cls];
     if (mv.follow && mv.follow.ucis.length) acts += B_FOLLOW();
     if (mv.best && mv.best !== rec.uci) acts += B_BEST(mv);
     if ((bad || mv.cls === 'good') && canRetry(rec)) acts += B_RETRY();
-    return coachBox('c-' + mv.cls, clsIcon(mv.cls), T('v_' + mv.cls, { san: moveNoText(i) + ' ' + rec.san }), evalAfter(i), why ? '<p>' + esc(why) + '</p>' : '', acts);
+    return coachBox('c-' + mv.cls, clsIcon(mv.cls), T('v_' + mv.cls, { san: moveNoText(i) + ' ' + rec.san }), evalAfter(i), (why ? '<p>' + esc(why) + '</p>' : ''), acts);
   }
   // a line on the board (the follow-up after a move, or the best move and its line): its moves, the one on the board
   // marked, and what it comes to
@@ -1603,7 +1651,7 @@
     cancelLobby(); leaveOnline();
     cancelBot(); bot.cancel(); bot.clear();
     premoves = []; selected = -1; pendingPromo = false; board.closePromotion(); lowWarned = false; plyBoards = {};
-    explore = null; posCache = {}; stopReview(); review = null;
+    explore = null; posCache = {}; stopReview(); review = null; hint = null;
     if (analysis.on) setAnalysis(false);
     var human = setup.color === 'r' ? (Math.random() < 0.5 ? 0 : 1) : setup.color === 'b' ? 1 : 0;
     if (opts.human != null) human = opts.human;
@@ -1727,6 +1775,7 @@
         if (tm) list.push({ from: tm & 127, to: (tm >> 7) & 127, gold: !!(tm & F_GOLDEN), threat: true });
       }
     } else if (analysis.on && analysisArrow && !(explore && (explore.line || explore.retry))) list.push(analysisArrow);
+    if (hint && hint.game === game && live() && hint.ply === game.records.length && game.status === 'playing') list.push({ from: hint.from, to: hint.to, gold: hint.gold });
     board.setArrows(list);
   }
 
@@ -1879,6 +1928,7 @@
     var acts = $('side-actions'); acts.innerHTML = '';
     function add(label, fn, cls, disabled) { var b = document.createElement('button'); b.className = 'sbtn' + (cls ? ' ' + cls : ''); b.textContent = label; b.disabled = !!disabled; b.addEventListener('click', fn); acts.appendChild(b); }
     if (game.status === 'playing') {
+      if (botGame() && proAvail()) add(hintLabel(), gameHint, 'hint', !hintReady());
       if (botGame()) add(T('takeback'), takeback, '', !game.records.some(function (r) { return r.color === game.cfg.human; }));
       if (onlineGame() && !spectating()) {
         var dOff = online && online.s ? online.s.draw_offer : null, mine = game.cfg.human === 0 ? 'w' : 'b';
@@ -2107,7 +2157,7 @@
       // a career stage: on to the next one once it is open, otherwise the same stage again
       // a career stage: lost, the same one again; won, on to the next opponent not beaten yet (none: back to the list)
       var cr = botGame() && game.cfg.career, crWon = cr && !!((prog.career[cr.ch] || 0) & 1) && humanOutcome() === 1;
-      var nst = crWon ? Progress.nextStage(prog.career) : null, nxs = nst && !((prog.career[nst.ch] || 0) & 1) ? nst.ch : 0;
+      var nst = crWon ? Progress.nextStage(prog.career, isPro()) : null, nxs = nst && !((prog.career[nst.ch] || 0) & 1) ? nst.ch : 0;
       var again = h('button', { class: 'start-btn primary', type: 'button', id: 'btn-again' }, esc(cr ? (nxs ? T('nextStage', { name: GCBots.castName(Progress.stage(nxs).who, lang) }) : crWon ? T('toCareer') : T('tryAgain')) : T('againBot')));
       again.addEventListener('click', function () {
         closeDialog();
@@ -2198,6 +2248,7 @@
         list.appendChild(b);
       }
       if (game.status === 'playing') {
+        if (botGame() && proAvail()) item(PERK_ICON.coach, hintLabel(), gameHint, 'hint', !hintReady());
         if (botGame()) item(ICON.back, T('takeback'), takeback, '', !game.records.some(function (r) { return r.color === game.cfg.human; }));
         if (onlineGame() && !spectating()) {
           var dOff = online && online.s ? online.s.draw_offer : null, mine = game.cfg.human === 0 ? 'w' : 'b';
@@ -2562,7 +2613,8 @@
   var FLAME_SVG = '<svg class="flame" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.6 2.2c.6 3.1-1.6 4.6-1.6 7 0 1.3.9 2.3 2.1 2.3 1.5 0 2.3-1.2 2.1-2.9 2.1 1.5 3.4 3.9 3.4 6.3A6.6 6.6 0 0 1 12 21.6a6.6 6.6 0 0 1-6.6-6.7c0-4.6 4.1-7.6 7.2-12.7z" fill="currentColor"/><path d="M12.2 13.3c.3 1.3-.7 1.9-.7 2.9 0 .7.5 1.2 1.1 1.2.8 0 1.2-.6 1.1-1.5 1 .7 1.6 1.7 1.6 2.7a3.2 3.2 0 0 1-6.4 0c0-2 1.6-3.3 3.3-5.3z" fill="rgba(42,28,3,.35)"/></svg>';
   var DAILY_LIST = typeof JOKER_DAILY !== 'undefined' && JOKER_DAILY.length ? JOKER_DAILY : typeof JOKER_PUZZLES !== 'undefined' ? JOKER_PUZZLES : [];
   function todayStr() { return Habits.dayOf(new Date()); }
-  function streakNow() { return Habits.streak(habitDays, todayStr()); }
+  // (prototype, Joker Pro) the days a freeze covered carry the streak across a break (proFz: src/pro.js)
+  function streakNow() { return Habits.streak(habitDays, todayStr(), proAvail() && proFz && proFz.days ? proFz.days : null); }
   function dailyToday() { var d = Habits.dailyFor(todayStr(), DAILY_LIST); if (d) d.solved = dailyDone[d.day] === d.p.id; return d; }
   function returningPlayer() { return Habits.returning(habitDays, todayStr()); }
   function streakText(n) { return lang === 'ru' ? T('streakRu', { n: n, d: ruForm(n, ['день подряд', 'дня подряд', 'дней подряд']) }) : T('streakN', { n: n }); }
@@ -2614,12 +2666,21 @@
       card.appendChild(h('div', { class: 'dlg-title' }, esc(st.count ? streakText(st.count) : T('streakStart'))));
       card.appendChild(h('div', { class: 'dlg-sub' }, esc(st.state === 'done' ? T('streakDone') : st.state === 'paused' ? T('streakPaused') : st.lost ? T('streakLost', { n: st.lost }) : T('streakDue'))));
       var wk = h('div', { class: 'streak-week', id: 'streak-week' }), names = T('wdShort');
-      st.week.forEach(function (x, i) { wk.appendChild(h('div', { class: 'wd' + (x.on ? ' on' : '') + (x.today ? ' today' : '') + (x.future ? ' future' : '') }, '<i>' + (x.on ? FLAME_SVG : '') + '</i><span>' + esc(names[i]) + '</span>')); });
+      st.week.forEach(function (x, i) { wk.appendChild(h('div', { class: 'wd' + (x.on ? ' on' : '') + (x.frozen ? ' frozen' : '') + (x.today ? ' today' : '') + (x.future ? ' future' : '') }, '<i>' + (x.on ? FLAME_SVG : x.frozen ? PERK_ICON.streak : '') + '</i><span>' + esc(names[i]) + '</span>')); });
       card.appendChild(wk);
+      // (prototype, Joker Pro) a freeze carried this streak across a break in the last week
+      var iced = proAvail() && st.count && proFz && (proFz.days || []).some(function (d) { var k = Habits.diffDays(d, todayStr()); return k >= 1 && k <= PRO.FREEZE_SPAN; });
+      if (iced) card.appendChild(h('div', { class: 'streak-frozen', id: 'streak-frozen' }, proMark() + '<span>' + esc(PX('frozenNote', { n: PRO.freezesLeft(proFz, todayStr().slice(0, 7)) })) + '</span>'));
       card.appendChild(h('div', { class: 'dlg-note' }, esc(T('streakHow')) + (st.best > 1 ? ' ' + esc(T('streakBest', { n: st.best })) : '')));
       if (st.state !== 'done') {
         if (d && !d.solved) card.appendChild(bigBtn('start-btn', T('dailyH'), 'btn-streak-daily', function () { closeDialog(); openDaily(); }));
         else card.appendChild(bigBtn('start-btn', T('playMain'), 'btn-streak-play', function () { closeDialog(); go('play'); }));
+      }
+      if (PRO && proSells() && !isPro() && proMoments().indexOf('streak') >= 0) {
+        var lostN = streakBefore().lost;
+        var fz = h('button', { type: 'button', class: 'op-pro', id: 'btn-streak-pro' }, '<span class="pro-mark">' + esc(PX('mark')) + '</span><span>' + esc(PX('why_streak', { n: lostN })) + '</span>');
+        fz.addEventListener('click', function () { Track.event('pro_gate', { why: 'streak' }); proSheet('streak', { n: lostN }, streakSheet); });
+        card.appendChild(fz);
       }
       if (NETCFG && !signedIn() && st.count >= 2) {
         var sv = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-save-streak' }, esc(T('saveStreak')));
@@ -2637,7 +2698,7 @@
   // it), the career's next opponent by name, whether they play for the level, a season a few stars away
   function remindInputs() {
     var last = load('lastKind', ''), mode = last === 'online' ? 'online' : last === 'bot' ? 'career' : last === 'puzzle' || last === 'daily' ? 'puzzles' : '';
-    var nx = Progress.nextStage(prog.career), stars = Progress.careerStars(prog.career), season = null;
+    var nx = Progress.nextStage(prog.career, isPro()), stars = Progress.careerStars(prog.career), season = null;
     for (var i = 0; i < Progress.SEASONS.length; i++) {
       var left = Progress.SEASONS[i].need - stars;
       if (left > 0) { if (left <= 3) season = { name: PT('s_' + Progress.SEASONS[i].key), n: left }; break; }
@@ -2702,6 +2763,7 @@
     var t = todayStr();
     habitDays = rel.map(function (k) { return Habits.addDays(t, k); }); save('days', habitDays);
     dailyDone = {};
+    if (proAvail()) { proFz = null; save('proFz', null); } // the made-up days start without freezes used
     if (solved) { var d = Habits.dailyFor(t, DAILY_LIST); dailyDone[t] = d.p.id; }
     save('dailyDone', dailyDone);
     closeDialog(); go('play'); refreshView();
@@ -2715,7 +2777,46 @@
       save('dailyAuto', todayStr());
       learnKit = null; closeDialog(); go('play'); go('learn');
     }
-    var rows = [
+    var later = function (fn) { closeDialog(); setTimeout(fn, 250); };
+    // Joker Pro (src/pro.js): the paid tier's screens, each from the place a player meets it
+    var proRows = !proAvail() ? [] : [
+      [ru ? 'Экран оплаты' : 'The paywall', function () { later(function () { proSheet(); }); }],
+      [isPro() ? (ru ? 'Выключить Pro (сейчас включён)' : 'Turn Pro off (it is on now)') : (ru ? 'Включить Pro без экрана оплаты' : 'Turn Pro on without the paywall'), function () {
+        if (isPro()) proOff(); else { proState = PRO.start('year', Date.now()); save('pro', proState); proRefresh(); }
+        closeDialog(); go('profile'); refreshView();
+      }],
+      [ru ? 'Партия с ботом: имя и подсказка в меню' : 'A bot game: the name, the hint in the menu', function () { protoProg(); closeDialog(); startGame({ mode: 'bot', level: 2, bot: 'mila', color: 'w', tc: 'none' }); }],
+      [ru ? 'Итог партии и опыт' : 'A result card and its XP', function () { protoProg(); later(protoStageWin); }],
+      [ru ? 'Разбор партии: карточка «Разбор джокера»' : 'A game review: the Joker analysis card', function () { closeDialog(); protoMissed(); }],
+      [ru ? 'Дорога и закрытые сезоны' : 'The Road and its locked seasons', function () { protoProg(); closeDialog(); botsUi.tab = 'career'; go('bots'); refreshView(); }],
+      [ru ? 'Все боты, Джокер под замком' : 'All bots, the Joker locked', function () { protoProg(); closeDialog(); botsUi.tab = 'free'; botsUi.keep = true; botsUi.sel = Progress.BOTS.length - 1; go('bots'); refreshView(); }],
+      [ru ? 'Задания дня и задание Pro' : 'The day’s quests and the Pro quest', function () { protoProg(); closeDialog(); go('play'); refreshView(); setTimeout(progressSheet, 300); }],
+      [ru ? 'Коллекция и оформление Pro' : 'The collection and the Pro looks', function () { protoProg(); later(collectionSheet); }],
+      [ru ? 'Статистика «Мои джокеры»' : 'The “My Jokers” statistics', function () { protoProg(); later(proInsights); }],
+      [ru ? 'Вернулся через пять дней: серия цела (с Pro)' : 'Back after five days: the streak is safe (with Pro)', function () {
+        var t = todayStr(); habitDays = [-9, -8, -7, -6].map(function (k) { return Habits.addDays(t, k); }); save('days', habitDays);
+        proFz = null; save('proFz', null); proFreezeCheck();
+        closeDialog(); go('play'); refreshView(); setTimeout(streakSheet, 300);
+      }],
+      [ru ? 'Профиль и карточка Joker Pro' : 'The Profile tab and its Joker Pro line', function () { protoProg(); closeDialog(); go('profile'); refreshView(); }],
+      [ru ? 'Статус Joker Pro (нужен включённый Pro)' : 'The Joker Pro status (with Pro on)', function () { protoProg(); if (!isPro()) { proState = PRO.start('year', Date.now()); save('pro', proState); proRefresh(); } later(proStatus); }],
+      [ru ? 'Обучение: пак задач и марафон' : 'Learn: the puzzle pack and the marathon', function () {
+        var d = load('puzzles', {}); d.i1 = d.i1 || 1; d.i2 = d.i2 || 1; d.i3 = d.i3 || 1; save('puzzles', d); save('dailyAuto', todayStr());
+        learnKit = null; closeDialog(); go('play'); go('learn');
+      }],
+      [ru ? 'Строка о Pro на главной (без Pro)' : 'The line about Pro on the Play tab (without Pro)', function () {
+        if (isPro()) proOff();
+        proOf = { first: Habits.addDays(todayStr(), -9), banner: { id: 'plain', day: todayStr() } }; save('proOffer', proOf);
+        closeDialog(); go('play'); refreshView();
+      }],
+      [ru ? 'Предложение после партии: сгоревшая серия' : 'The offer after a game: a streak that ran out', function () {
+        if (isPro()) proOff();
+        var t = todayStr(); habitDays = [-9, -8, -7, -6].map(function (k) { return Habits.addDays(t, k); }); save('days', habitDays); proFz = null; save('proFz', null);
+        proOf = { first: Habits.addDays(t, -9) }; later(function () { proOfferSheet('streak'); });
+      }],
+      [ru ? 'Предложение после партии: новый ранг' : 'The offer after a game: a new rank', function () { if (isPro()) proOff(); protoProg(); proOf = proOf || { first: Habits.addDays(todayStr(), -9) }; later(function () { proOfferSheet('rank'); }); }]
+    ];
+    var rows = proRows.concat([
       [ru ? 'Новое: тренер Оскар, первый урок (Обучение)' : 'New: Oskar the coach, the first lesson (Learn)', function () { protoSet([]); learnAt('i1', true); }],
       [ru ? 'Новое: задача из настоящей партии' : 'New: a puzzle from a real game', function () { learnAt((typeof JOKER_REAL !== 'undefined' && JOKER_REAL[8] || { id: 'i1' }).id, false); }],
       [ru ? 'Новое: Путь к Джокеру, 16 соперников' : 'New: Road to Joker, 16 opponents', function () { protoProg(); closeDialog(); botsUi.tab = 'career'; go('bots'); }],
@@ -2741,14 +2842,24 @@
       [ru ? 'Честная игра: жалоба на соперника' : 'Fair play: reporting an opponent', function () { closeDialog(); setTimeout(function () { reportSheet('proto', 'NightOwlGM', null); }, 250); }],
       [ru ? 'Честная игра: список владельца' : 'Fair play: the owner\'s list', function () { closeDialog(); setTimeout(fairListSheet, 250); }],
       [ru ? 'Честная игра: закрытый аккаунт' : 'Fair play: a closed account', function () { closeDialog(); setTimeout(closedSheet, 250); }]
-    ];
+    ]);
     openDialog(function (card) {
       currentDialog.dataset.kind = 'proto';
-      card.appendChild(h('div', { class: 'dlg-title' }, esc(ru ? 'Прототип: удержание' : 'Prototype: retention')));
-      card.appendChild(h('div', { class: 'dlg-sub' }, esc(ru ? 'Дни выдуманы и живут только на этом устройстве. Ничего из этого не выкачено.' : 'Made-up days, on this device only. None of this is live.')));
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(proRows.length ? (ru ? 'Прототип: Joker Pro' : 'Prototype: Joker Pro') : (ru ? 'Прототип: удержание' : 'Prototype: retention'))));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(proRows.length ? (ru ? 'Оплата не списывается. Pro и выдуманные дни живут только на этом устройстве. Ничего из этого не выкачено.' : 'No payment is taken. Pro and the made-up days live on this device only. None of this is live.')
+        : (ru ? 'Дни выдуманы и живут только на этом устройстве. Ничего из этого не выкачено.' : 'Made-up days, on this device only. None of this is live.'))));
       var list = h('div', { class: 'proto-list' });
-      rows.forEach(function (r, i) { var b = h('button', { type: 'button', class: 'second-btn proto-row', id: 'proto-' + i }, esc(r[0])); b.addEventListener('click', r[1]); list.appendChild(b); });
+      rows.forEach(function (r, i) {
+        var pro = i < proRows.length, b = h('button', { type: 'button', class: 'second-btn proto-row' + (pro ? ' pro' : ''), id: pro ? 'proto-pro-' + i : 'proto-' + (i - proRows.length) }, esc(r[0]));
+        if (!pro && proRows.length) b.hidden = true; // the earlier prototypes' screens: one tap away, under the Pro ones
+        b.addEventListener('click', r[1]); list.appendChild(b);
+      });
       card.appendChild(list);
+      if (proRows.length) {
+        var more = h('button', { type: 'button', class: 'linkbtn center', id: 'proto-more' }, esc(ru ? 'Остальные экраны: удержание, письма, честная игра' : 'The other screens: retention, emails, fair play'));
+        more.addEventListener('click', function () { list.querySelectorAll('[hidden]').forEach(function (x) { x.hidden = false; }); more.remove(); });
+        card.appendChild(more);
+      }
     });
   }
   // the owner's look at the plan: when each reminder would go out and what it says
@@ -2810,7 +2921,7 @@
   function progStars() { return Progress.careerStars(prog.career); }
   function PT(key, vars) { return Progress.t(lang, key, vars); }
   function progEvent(ev) {
-    var fin = Progress.applyQuests(prog, todayStr(), ev), xp = 0;
+    var fin = Progress.applyQuests(prog, todayStr(), ev, isPro()), xp = 0;
     fin.forEach(function (id) { xp += Progress.QUESTS[id][1]; });
     return { quests: fin, xp: xp };
   }
@@ -2821,12 +2932,21 @@
     var lv = progLevel().level, stars = progStars(), seen = prog.seen || { lv: 1, stars: 0 }, up = null;
     if (lv > seen.lv || Progress.newRewards(seen.lv, lv, seen.stars, stars).length) {
       up = { from: prog.up ? prog.up.from : { lv: seen.lv, stars: seen.stars }, to: { lv: lv, stars: stars } };
+      if (Progress.rankOf(lv).key !== Progress.rankOf(seen.lv).key) { proRankDay = todayStr(); save('proRank', proRankDay); }
       prog.up = up; prog.seen = { lv: lv, stars: stars }; saveProg();
     }
     refreshLevelChip();
     return up;
   }
   function refreshLevelChip() { var c = $('lvl-chip'); if (c && c.parentNode) c.parentNode.replaceChild(levelChip(), c); }
+  // Pro's share of an XP gain: added for a Pro player (the answer), only counted for the others where Pro is sold
+  function proXp(total) {
+    if (!PRO || !total) return 0;
+    var b = PRO.bonusXp(total);
+    if (isPro()) { proCount('bonus', b); return b; }
+    if (proSells()) proCount('would', b);
+    return 0;
+  }
   // the celebration of a level-up: from the header's dot, or from the result card (back: to the result card again)
   function openLevelUp(u, back) {
     if (!u) return;
@@ -2836,6 +2956,7 @@
   // a puzzle, the daily puzzle, a review: a little XP and the quests
   function progSmall(kind, n) {
     var q = progEvent({ type: kind }), total = (n || 0) + q.xp;
+    if (total) total += proXp(total);
     if (!total) { saveProg(); return; }
     prog.xp += total; saveProg();
     var up = progAfter();
@@ -2848,6 +2969,7 @@
   function puzzleDone(p, r) {
     var before = coachLevelInfo(), base = r.first ? Progress.puzzleXp(p, r) : 0;
     var q = r.shown ? { quests: [], xp: 0 } : progEvent({ type: 'puzzle', real: !!p.g }), total = base + q.xp;
+    if (total) total += proXp(total);
     if (total) prog.xp += total;
     saveProg();
     if (total) progAfter();
@@ -2877,7 +2999,7 @@
     var gx = Progress.gameXp({ mode: mode, level: game.cfg.level, outcome: outcome, joker: joker, firstWin: firstWin });
     var total = gx.xp, lines = gx.lines.slice(), stage = null, cr = botGame() && game.cfg.career;
     if (cr) {
-      var rec = Progress.recordStage(prog.career, cr.ch, { outcome: outcome, joker: joker, moves: own });
+      var rec = Progress.recordStage(prog.career, cr.ch, { outcome: outcome, joker: joker, moves: own }, isPro());
       stage = { ch: cr.ch, bits: rec.bits, best: rec.best, newStars: rec.newStars, opened: rec.opened };
       if (rec.newStars) { total += rec.newStars * Progress.XP.star; lines.push({ k: 'star', n: rec.newStars * Progress.XP.star }); }
       Track.event('career_end', { ch: cr.ch, stars: Progress.starsOf(rec.bits) });
@@ -2887,9 +3009,11 @@
     fresh.forEach(function (id) { var x = Progress.CARD_XP[Progress.rarityOf(id)]; total += x; lines.push({ k: 'card', n: x }); });
     var q = progEvent({ type: 'game', mode: mode, outcome: outcome, joker: joker, queenKept: queenKept, stars: stage ? stage.newStars : 0 });
     if (q.xp) { total += q.xp; lines.push({ k: 'quest', n: q.xp }); }
+    var bonus = 0, would = 0;
+    if (proAvail()) { if (isPro()) { bonus = proXp(total); if (bonus) { total += bonus; lines.push({ k: 'pro', n: bonus }); } } else { would = PRO.bonusXp(total); proXp(total); } }
     var before = progLevel();
     prog.xp += total; saveProg();
-    game.prog = { xp: total, lines: lines, stage: stage, cards: fresh, quests: q.quests, before: before, after: progLevel() };
+    game.prog = { xp: total, lines: lines, stage: stage, cards: fresh, quests: q.quests, before: before, after: progLevel(), proBonus: bonus, proWould: would };
     Track.event('xp', { n: total, mode: mode });
     game.prog.up = progAfter();
   }
@@ -2918,6 +3042,12 @@
     }
     box.appendChild(h('div', { class: 'op-xp' }, '<span class="op-gain">' + esc(PT('xpGain', { n: gp.xp })) + '</span><span class="op-lv">' + esc(PT('level', { n: L.level })) + '</span>' +
       '<span class="xp-bar mini"><i style="width:' + Math.round(L.into / L.need * 100) + '%"></i></span>'));
+    if (gp.proBonus && proAvail()) box.appendChild(h('div', { class: 'op-pro on', id: 'op-pro' }, proMark() + '<span>' + esc(PX('proBonus', { n: gp.proBonus })) + '</span>'));
+    else if (gp.proWould && proAvail() && !isPro()) {
+      var pw = h('button', { type: 'button', class: 'op-pro', id: 'op-pro' }, '<span class="pro-mark">' + esc(PX('mark')) + '</span><span>' + esc(PX('withPro', { n: gp.proWould })) + '</span>');
+      pw.addEventListener('click', function () { var g0 = game; proSheet('xp', { n: gp.proWould }, function () { if (game === g0 && game.status === 'over') showOver(); else closeDialog(); }); });
+      box.appendChild(pw);
+    }
     if (gp.cards.length) box.appendChild(h('div', { class: 'op-cards' }, gp.cards.map(function (id) { return '<span class="jc-chip r' + Progress.rarityOf(id) + '">' + esc(T('newCard', { name: PT('c_' + id) })) + '</span>'; }).join('')));
     return box;
   }
@@ -2938,6 +3068,9 @@
   function progressSheet() {
     var L = progLevel(), nx = Progress.nextReward(L.level), today = todayStr();
     var q = prog.q && prog.q.day === today ? prog.q : { ids: Progress.questsFor(today), p: {}, done: {} };
+    // (prototype, Joker Pro) the day's Pro quest: the fourth line for a Pro player, a locked one for everybody else
+    var pq = proAvail() ? Progress.proQuestFor(today) : '', qids = q.ids.filter(function (id) { return Progress.QUESTS[id] && (id !== pq || isPro()); });
+    if (pq && isPro() && qids.indexOf(pq) < 0) qids.push(pq);
     openDialog(function (card) {
       currentDialog.dataset.kind = 'progress';
       card.classList.add('prog-card');
@@ -2948,11 +3081,17 @@
       if (nx) card.appendChild(h('div', { class: 'prog-next' }, esc(T('nextRewardAt', { n: nx.lv, what: PT('r_' + nx.kind) + ' «' + Progress.rewardName(lang, nx) + '»' }))));
       card.appendChild(h('div', { class: 'prog-h' }, esc(T('questsToday'))));
       var ql = h('div', { class: 'quest-list', id: 'quest-list' });
-      q.ids.forEach(function (id) {
+      qids.forEach(function (id) {
         var n = Progress.QUESTS[id][0], have = Math.min(n, q.p[id] || 0), done = !!q.done[id];
-        ql.appendChild(h('div', { class: 'quest' + (done ? ' done' : '') }, '<span class="q-check">' + (done ? '✓' : '') + '</span><span class="q-t"><span>' + esc(Progress.questText(lang, id)) + '</span><i><b style="width:' +
+        ql.appendChild(h('div', { class: 'quest' + (done ? ' done' : '') + (id === pq ? ' pro' : '') }, '<span class="q-check">' + (done ? '✓' : '') + '</span><span class="q-t"><span>' + (id === pq ? proMark() + ' ' : '') + esc(Progress.questText(lang, id)) + '</span><i><b style="width:' +
           Math.round(have / n * 100) + '%"></b></i></span><span class="q-n">' + (done ? '' : have + '/' + n + ' · ') + '+' + Progress.QUESTS[id][1] + '</span>'));
       });
+      if (pq && !isPro()) {
+        var lq = h('button', { type: 'button', class: 'quest pro locked', id: 'quest-pro' }, '<span class="q-check">' + LOCK_SVG + '</span><span class="q-t"><span><span class="pro-mark">' + esc(PX('mark')) + '</span> ' + esc(Progress.questText(lang, pq)) +
+          '</span><em>' + esc(PX('proQuestLocked')) + '</em></span><span class="q-n">+' + Progress.QUESTS[pq][1] + '</span>');
+        lq.addEventListener('click', function () { proSheet(); });
+        ql.appendChild(lq);
+      }
       card.appendChild(ql);
       card.appendChild(bigBtn('start-btn', T('careerTab'), 'btn-career', function () { closeDialog(); botsUi.tab = 'career'; go('bots'); }));
       var cl = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-collection' }, esc(T('collection')));
@@ -3016,9 +3155,29 @@
       card.appendChild(grid);
       card.appendChild(h('div', { class: 'prog-h' }, esc(T('rewardsH'))));
       var list = h('div', { class: 'reward-list', id: 'reward-list' });
-      var draw = function () { list.innerHTML = ''; var own = Progress.owned(L.level, stars); Progress.REWARDS.forEach(function (r) { list.appendChild(rewardRow(r, own.indexOf(r) >= 0, draw)); }); };
+      var draw = function () {
+        list.innerHTML = '';
+        var own = isPro() ? Progress.REWARDS : Progress.owned(L.level, stars);
+        Progress.REWARDS.forEach(function (r) { list.appendChild(rewardRow(r, own.indexOf(r) >= 0, draw)); });
+        if (plist) { plist.innerHTML = ''; PRO.LOOKS.forEach(function (r) { plist.appendChild(proLookRow(r, draw)); }); }
+      };
+      // (prototype, Joker Pro) the looks only Pro has, first: a title, a frame, a trail for the Joker Move, two boards
+      var plist = null;
+      if (proAvail()) {
+        card.insertBefore(h('div', { class: 'prog-h pro-h' }, '<span class="pro-mark">' + esc(PX('mark')) + '</span> ' + esc(PX('looksH'))), list.previousSibling);
+        plist = h('div', { class: 'reward-list pro-looks', id: 'pro-looks' });
+        card.insertBefore(plist, list.previousSibling);
+      }
       draw(); card.appendChild(list);
     });
+  }
+  function proLookRow(r, redraw) {
+    var own = isPro();
+    var row = h('div', { class: 'reward-row pro-look' + (own ? '' : ' locked') }, rewardSwatch(r) + '<span class="rw-t"><b>' + esc(Progress.rewardName(lang, r)) + '</b><span>' + esc(PT('r_' + r.kind)) + (own ? '' : ' · ' + esc(PX('lookNeed'))) + '</span></span>');
+    var b = h('button', { type: 'button', class: 'second-btn rw-use' + (own && isEquipped(r) ? ' on' : '') }, own ? esc(isEquipped(r) ? T('equipped') : T('equip')) : '<span class="pro-mark">' + esc(PX('mark')) + '</span>');
+    b.addEventListener('click', function () { if (isPro()) { equipReward(r); if (redraw) redraw(); } else proSheet('look'); });
+    row.appendChild(b);
+    return row;
   }
   // ---- the career: chapters of the Bots tab, a stage sheet, the game
   function starsHtml(bits) { var s = ''; for (var k = 0; k < 3; k++) s += '<i class="' + ((bits >> k) & 1 ? 'on' : '') + '">★</i>'; return s; }
@@ -3039,7 +3198,7 @@
   // card (who they are, the three goals, Play). The main button under the road plays the next one not beaten yet.
   var LOCK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0 1 10 0v2h1.2c.7 0 1.3.6 1.3 1.3v8.4c0 .7-.6 1.3-1.3 1.3H5.800c-.7 0-1.3-.6-1.3-1.3v-8.400c0-.7.6-1.3 1.3-1.3zm2.200 0h5.600V8a2.800 2.800 0 0 0-5.600 0z" fill="currentColor"/></svg>';
   function renderCareer(inn) {
-    var nx = Progress.nextStage(prog.career), L = progLevel(), have = Progress.careerStars(prog.career);
+    var nx = Progress.nextStage(prog.career, isPro()), L = progLevel(), have = Progress.careerStars(prog.career), allOpen = isPro();
     var top = h('button', { type: 'button', class: 'career-top', id: 'career-top' }, rankBadge(L.level) + '<span class="ct-t"><b>' + esc(PT('level', { n: L.level }) + ' · ' + Progress.rankName(lang, L.level)) +
       '</b><span>' + esc(T('starsOf', { a: have, b: Progress.CHAPTERS * 3 })) + '</span></span><span class="xp-bar mini"><i style="width:' + Math.round(L.into / L.need * 100) + '%"></i></span>');
     top.addEventListener('click', progressSheet);
@@ -3066,18 +3225,25 @@
       return d;
     };
     var map = h('div', { class: 'cmap', id: 'road', style: 'height:' + H + 'px' });
-    zones.forEach(function (z) { map.appendChild(h('div', { class: 'cm-zone z' + z.i + (Progress.seasonOpen(prog.career, z.i) ? '' : ' locked'), style: 'top:' + z.y + 'px;height:' + z.h + 'px' })); });
+    zones.forEach(function (z) { map.appendChild(h('div', { class: 'cm-zone z' + z.i + (Progress.seasonOpen(prog.career, z.i, allOpen) ? '' : ' locked'), style: 'top:' + z.y + 'px;height:' + z.h + 'px' })); });
     map.appendChild(h('div', { class: 'cm-svg' }, '<svg class="cm-path" viewBox="0 0 100 ' + H + '" preserveAspectRatio="none" aria-hidden="true"><path class="p-all" d="' + line(pts.length) + '"/>' +
       (done > 1 ? '<path class="p-done" d="' + line(done) + '"/>' : '') + '</svg>'));
     bans.forEach(function (b) {
-      var sn = Progress.SEASONS[b.i], open = Progress.seasonOpen(prog.career, b.i);
-      map.appendChild(h('div', { class: 'cm-banner' + (open ? '' : ' locked'), id: 'season-' + (b.i + 1), style: 'top:' + b.y + 'px' },
+      var sn = Progress.SEASONS[b.i], open = Progress.seasonOpen(prog.career, b.i, allOpen);
+      var ban = h('div', { class: 'cm-banner' + (open ? '' : ' locked'), id: 'season-' + (b.i + 1), style: 'top:' + b.y + 'px' },
         '<span class="sn-t"><span>' + esc(T('seasonN', { n: b.i + 1 })) + '</span><b>' + esc(PT('s_' + sn.key)) + '</b></span>' +
         (open ? '<span class="sn-stars">' + Progress.seasonStars(prog.career, b.i) + '/' + (Progress.PER_SEASON * 3) + ' ★</span>'
-          : '<span class="sn-need">' + LOCK_SVG + '<span>' + esc(T('seasonNeed', { n: sn.need, have: have })) + '</span></span>')));
+          : '<span class="sn-need">' + LOCK_SVG + '<span>' + esc(T('seasonNeed', { n: sn.need, have: have })) + '</span></span>'));
+      // (prototype, Joker Pro) a locked season: stars open it, or Pro at once
+      if (!open && proAvail()) {
+        var sp = h('button', { type: 'button', class: 'sn-pro', id: 'season-pro-' + (b.i + 1) }, '<span class="pro-mark">' + esc(PX('mark')) + '</span><span>' + esc(PX('seasonPro')) + '</span>');
+        sp.addEventListener('click', function () { proSheet('road'); });
+        ban.appendChild(sp); ban.classList.add('has-pro');
+      }
+      map.appendChild(ban);
     });
     pts.forEach(function (p) {
-      var sg = Progress.stage(p.ch), bits = prog.career[p.ch] || 0, open = Progress.isOpen(prog.career, p.ch), cur = !!nx && nx.ch === p.ch;
+      var sg = Progress.stage(p.ch), bits = prog.career[p.ch] || 0, open = Progress.isOpen(prog.career, p.ch, allOpen), cur = !!nx && nx.ch === p.ch;
       var nb = h('button', { type: 'button', class: 'cm-node' + (open ? '' : ' locked') + (bits & 1 ? ' done' : '') + (cur ? ' cur' : '') + (Progress.starsOf(bits) === 3 ? ' full' : ''), id: 'stage-' + p.ch,
         style: 'left:' + p.x.toFixed(1) + '%;top:' + p.y + 'px', 'aria-label': GCBots.castName(sg.who, lang, true) + ', ' + sg.elo + ', ' + T('starsOf', { a: Progress.starsOf(bits), b: 3 }) },
         '<span class="st-stars">' + starsHtml(bits) + '</span><span class="cm-face">' + GCBots.castAvatar(sg.who, lang) + (open ? '' : '<i class="cm-lock">' + LOCK_SVG + '</i>') + '</span>' +
@@ -3113,8 +3279,11 @@
         '</div><div class="dlg-sub">' + esc(PT('s_' + Progress.SEASONS[sg.season].key) + ' · ' + stageSub(sg)) + '</div></div>'));
       card.appendChild(h('p', { class: 'bs-bio' }, esc(GCBots.castBio(sg.who, lang))));
       card.appendChild(h('div', { class: 'goal-list' }, goalsHtml(sg, bits)));
-      if (Progress.isOpen(prog.career, ch)) card.appendChild(bigBtn('start-btn', T('roadPlay', { name: GCBots.castName(sg.who, lang) }), 'btn-stage-go', function () { closeDialog(); startCareer(ch); }));
-      else card.appendChild(h('div', { class: 'dlg-note', id: 'stage-locked' }, esc(T('lockedStage', { n: sg.season + 1 }) + '. ' + T('seasonNeed', { n: Progress.SEASONS[sg.season].need, have: Progress.careerStars(prog.career) }) + '.')));
+      if (Progress.isOpen(prog.career, ch, isPro())) card.appendChild(bigBtn('start-btn', T('roadPlay', { name: GCBots.castName(sg.who, lang) }), 'btn-stage-go', function () { closeDialog(); startCareer(ch); }));
+      else {
+        card.appendChild(h('div', { class: 'dlg-note', id: 'stage-locked' }, esc(T('lockedStage', { n: sg.season + 1 }) + '. ' + T('seasonNeed', { n: Progress.SEASONS[sg.season].need, have: Progress.careerStars(prog.career) }) + '.')));
+        if (proAvail()) card.appendChild(bigBtn('start-btn', PX('seasonPro'), 'btn-stage-pro', function () { proSheet('road'); }));
+      }
     });
   }
   function startCareer(ch) {
@@ -3132,10 +3301,525 @@
     g.end('1-0', 'resign', now); gameOver();
   }
   function protoProg() {
+    var looks = isPro() && prog && prog.equip ? prog.equip : null; // a Pro player keeps the looks they picked from one tour screen to the next
     prog = { xp: Progress.xpAt(7) + 210, career: { 1: 3, 2: 1 }, cards: { knight: 3, queen: 2, early: 2, escape: 1, fork: 1, rook: 1 },
-      q: { day: todayStr(), ids: Progress.questsFor(todayStr()), p: {}, done: {} }, firstWin: '', equip: { title: 'teleporter' }, seen: { lv: 7, stars: 3 }, reviewed: [] };
+      q: { day: todayStr(), ids: Progress.questsFor(todayStr()), p: {}, done: {} }, firstWin: '', equip: Object.assign({ title: 'teleporter' }, looks), seen: { lv: 7, stars: 3 }, reviewed: [] };
     prog.q.p[prog.q.ids[0]] = 1; prog.q.done[prog.q.ids[0]] = true; prog.q.p[prog.q.ids[1]] = 1;
+    if (isPro()) {
+      var pq = Progress.proQuestFor(todayStr()), twin = { p_win3: 'win2', p_joker3: 'joker2', p_puzzles5: 'puzzles3' }[pq];
+      prog.q.ids = Progress.questsFor(todayStr(), true);
+      prog.q.p[pq] = prog.q.done[twin] ? Progress.QUESTS[twin][0] : prog.q.p[twin] || 1;
+    }
     saveProg(); applySettings();
+  }
+
+  // ---- Joker Pro (src/pro.js): the paid tier. The game itself stays free; Pro adds the Joker analysis of every game,
+  // hints against the bots, the puzzle pack and its marathon, more XP, the whole Road at once, streak freezes, a gold
+  // name and looks of its own.
+  //   Who has it: the server's word (profiles.pro_until / pro_founder, written by the pay function as Stripe reports).
+  //     hello brings it; the device keeps it between visits (proSrv) so that nothing flickers before hello answers.
+  //   Where it is sold: on the website only, on Stripe's own payment page, once the server says so (hello: pro; without
+  //     a session, the database's pro_public()). The apps sell nothing and show no way to buy: they honour what was
+  //     bought on the website (proSells() is false there, isPro() is not).
+  //   The prototype page (GC_PROTO) has a switch of its own on this device and charges nothing.
+  var PRO = typeof Pro !== 'undefined' ? Pro : null;
+  var PROTO_PRO = !!(PRO && window.GC_PROTO);
+  var proState = load('pro', null), proHints = load('proHints', null), proFz = load('proFz', null), proJk = load('proJk', null);
+  var proSrv = load('proSrv', null);          // the account's Pro as the server said it last: { uid, until, founder, plan }
+  var proPub = load('proPub', null);          // asked without a session: { on, left, at }
+  var proInfo = null;                         // the pay function's fuller answer about the account (this visit only)
+  var proTally = load('proTally', null) || {}; // what Pro has given, or would have: { bonus, would, checks, hints }
+  var proOf = load('proOffer', null);         // the offers made so far (Pro.offerDue)
+  var bootUid = (function () {
+    try {
+      if (NETCFG && NETCFG.mock != null) return localStorage.getItem('goldenchess.mockuid' + profileSuffix);
+      var s = JSON.parse(localStorage.getItem('goldenchess.auth' + profileSuffix) || 'null');
+      return (s && s.user && s.user.id) || null;
+    } catch (e) { return null; }
+  })();
+  function proMine() {
+    var s = me && me.profile ? PRO.ofProfile(me.profile) : null;
+    if (s) return s;
+    return proSrv && proSrv.uid && proSrv.uid === (me ? me.uid : bootUid) ? proSrv : null;
+  }
+  function isPro() { return !!PRO && (PROTO_PRO ? PRO.active(proState, Date.now()) : PRO.entitled(proMine(), Date.now())); }
+  // Pro can be bought here
+  function proSells() { return !!PRO && (PROTO_PRO || (!NATIVE.on && !!NETCFG && (me ? !!me.pro : !!(proPub && proPub.on)))); }
+  // Pro exists for this player, to buy or to use
+  function proAvail() { return proSells() || isPro(); }
+  function proFounder() { if (PROTO_PRO) return !!(proState && proState.founder); var s = proMine(); return !!(s && s.founder); }
+  function PX(key, vars) { return PRO.t(lang, key, vars); }
+  function proMark(founder) { return '<span class="pro-mark' + ((founder == null ? proFounder() : founder) ? ' founder' : '') + '" role="img" aria-label="' + esc(PX('name')) + '">' + esc(PX('mark')) + '</span>'; }
+  function fmtCount(n) { return n.toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US'); }
+  // a day in words: 20 November (the year only when it isn't this one)
+  function fmtDay(ms) {
+    var d = new Date(ms), o = { day: 'numeric', month: 'long' };
+    if (d.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
+    return d.toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-GB', o).replace(/\s*г\.$/, '');
+  }
+  function proCount(k, n) { if (!n) return; proTally[k] = (proTally[k] || 0) + n; save('proTally', proTally); }
+  var PERK_ICON = {
+    coach: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.700 10.700c.700.600 1.100 1.400 1.200 2.300h5c.100-.900.500-1.700 1.200-2.300A6 6 0 0 0 12 3z"/></svg>',
+    puzzles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.6"/><rect x="13" y="13" width="7" height="7" rx="1.6"/><path d="M13 7.500h7M16.500 4v7M4 16.500h7"/></svg>',
+    xp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L5 14h6l-1 7 9-12h-6z"/></svg>',
+    road: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.600-1.700"/></svg>',
+    status: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16l1-10-5 4-4-7-4 7-5-4z"/></svg>',
+    streak: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v18M4.200 7.500l15.600 9M19.800 7.500l-15.600 9"/></svg>'
+  };
+  // ---- what the server says. hello (or the pay function) has spoken: the device keeps it and the page follows a change
+  var proWas = PRO && !PROTO_PRO ? isPro() : null;
+  function proTake() {
+    if (!PRO || PROTO_PRO || !me) return;
+    var s = me.profile ? PRO.ofProfile(me.profile) : null;
+    if (s) { proSrv = { uid: me.uid, until: s.until, founder: s.founder, plan: s.plan }; save('proSrv', proSrv); }
+    var on = isPro();
+    if (s && !on) proLooksBack(); // (only once the server has said so: the looks a Pro player wears must not go while the device waits for hello)
+    if (proWas !== on) { proWas = on; proRefresh(); }
+    proOfferStart();
+  }
+  // the pay function's answer about the account: { pro: { on, founder, until, plan, status, cancel, trial, trialUsed, sub }, can, test, foundersLeft }
+  function proApply(r) {
+    if (!r || !r.pro || !me || !me.profile) return;
+    proInfo = r;
+    me.profile.pro_until = !r.pro.founder && r.pro.until ? new Date(r.pro.until).toISOString() : null;
+    me.profile.pro_founder = !!r.pro.founder; me.profile.pro_plan = r.pro.plan || null;
+    proTake();
+  }
+  function proAsk() {
+    if (PROTO_PRO || !net || !net.pay || !me) return Promise.resolve(null);
+    return net.pay('state', {}).then(function (r) { proApply(r); return r; }, function () { return null; });
+  }
+  // without a session nobody has said whether Pro is sold: the database answers anyone (kept for six hours)
+  function proPublicAsk() {
+    if (!PRO || PROTO_PRO || !NETCFG || NATIVE.on || me || hasNetSession()) return;
+    if (proPub && Date.now() - (proPub.at || 0) < 6 * 3600e3) return;
+    // a plain request, not the client: asking opens no session and leaves the address alone
+    (NETCFG.mock != null ? MockNet : SupaNet).proPublic(NETCFG).then(function (r) {
+      var was = proSells();
+      proPub = { on: !!(r && r.on), left: r && r.founders_left != null ? r.founders_left : null, at: Date.now() }; save('proPub', proPub);
+      proOfferStart();
+      if (proSells() !== was) proRefresh();
+    }, function () { /* asked again next time */ });
+  }
+  function proRefresh() {
+    applySettings(); refreshLevelChip();
+    if (game) { if (review && review.sum) computeReview(); renderAll(); }
+    if (curView && curView !== 'game' && !currentDialog) refreshView();
+  }
+  // the looks only Pro has go back in the box
+  function proLooksBack() { var any = false; PRO.LOOKS.forEach(function (r) { if (isEquipped(r)) { equipReward(r); any = true; } }); return any; }
+
+  // ---- the seal: the Joker on a gold-rimmed chip (the offers, the Profile, wherever Pro is named in a picture)
+  var sealN = 0;
+  function proSeal(cls) {
+    var id = 'psl' + (++sealN), inl = '';
+    for (var a = 0; a < 360; a += 45) inl += '<rect x="54.5" y="5" width="11" height="9.5" rx="2.5" transform="rotate(' + a + ' 60 60)"/>';
+    return '<span class="pro-seal' + (cls ? ' ' + cls : '') + '" aria-hidden="true"><svg viewBox="0 0 120 120">' +
+      '<defs><linearGradient id="' + id + 'g" x1=".1" y1="0" x2=".9" y2="1"><stop offset="0" stop-color="#ffe9b3"/><stop offset=".45" stop-color="#f0b941"/><stop offset="1" stop-color="#a47418"/></linearGradient>' +
+      '<radialGradient id="' + id + 'd" cx=".36" cy=".3" r=".95"><stop offset="0" stop-color="#5b8478"/><stop offset=".55" stop-color="#31493f"/><stop offset="1" stop-color="#1b2522"/></radialGradient>' +
+      '<clipPath id="' + id + 'c"><circle cx="60" cy="60" r="56"/></clipPath></defs>' +
+      '<circle cx="60" cy="60" r="56" fill="url(#' + id + 'g)"/><g fill="#22312c">' + inl + '</g>' +
+      '<circle cx="60" cy="60" r="43.5" fill="url(#' + id + 'd)"/><circle cx="60" cy="60" r="43.5" fill="none" stroke="#ffe9b3" stroke-opacity=".75" stroke-width="1.6"/>' +
+      jokerPiece().replace('<svg ', '<svg x="27" y="21" width="66" height="66" ') +
+      '<g clip-path="url(#' + id + 'c)"><rect class="ps-shine" x="-70" y="-10" width="30" height="140" fill="#fff" opacity=".3" transform="rotate(20 60 60)"/></g>' +
+      '</svg></span>';
+  }
+  // the Joker Pro card: the player's own name as Pro shows it
+  function proCardArt(name, founder, sub) {
+    return h('div', { class: 'pro-art' + (founder ? ' founder' : ''), id: 'pro-art' }, proSeal() +
+      '<span class="pa-t"><b class="pa-name" id="pro-title">' + esc(PX('name')) + '</b>' +
+      '<span class="pro-who"><span class="pro-nm">' + esc(name) + '</span>' + rankBadge(progLevel().level, 'mini') + proMark(!!founder) + '</span>' +
+      (sub ? '<span class="pa-sub">' + esc(sub) + '</span>' : '') + '</span>');
+  }
+
+  // ---- the Pro sheet: the card with the player's name, what Pro gives, the plans, one bright button.
+  // why: what brought the player here (check, hints, puzzles, road, joker, xp, look, streak, rank; none: opened by
+  // themselves); back: reopens the dialog they came from when they say "not now"; plan0: the plan picked before
+  var proRepaint = null;
+  function packCount() { return typeof JOKER_PACK !== 'undefined' ? JOKER_PACK.length : 0; }
+  function proSheet(why, vars, back, plan0) {
+    if (!proSells()) return;
+    if (isPro()) { proStatus(); return; }
+    var plan = plan0 && PRO.PLANS[plan0] ? plan0 : 'year';
+    Track.event('pro_view', { why: why || 'open' });
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'pro';
+      currentDialog.onClose = function () { proRepaint = null; };
+      card.classList.add('pro-card');
+      // what Pro is scrolls on a short phone; the button that starts it never leaves the screen
+      var body = h('div', { class: 'pro-body', id: 'pro-body' }), foot = h('div', { class: 'pro-foot' });
+      body.appendChild(proCardArt(me && me.profile ? me.profile.username : T('you'), false));
+      var v = Object.assign({ n: why === 'puzzles' ? packCount() : PRO.FREE_HINTS }, vars || {});
+      var line = why && PRO.TEXT.en['why_' + why] ? PX('why_' + why, v) : (proTally.would >= 60 ? PX('mineXp', { n: fmtCount(proTally.would) }) : PX('pitch'));
+      body.appendChild(h('div', { class: 'dlg-sub', id: 'pro-why' }, esc(line)));
+      var perks = h('div', { class: 'pro-perks', id: 'pro-perks' });
+      PRO.PERKS.forEach(function (k) {
+        if (k === 'puzzles' && !packCount()) return;
+        perks.appendChild(h('div', { class: 'pro-perk' }, '<span class="pp-ic">' + PERK_ICON[k] + '</span><span class="pp-t"><b>' + esc(PX('p_' + k)) + '</b><span>' + esc(PX('pd_' + k, { n: packCount() })) + '</span></span>'));
+      });
+      body.appendChild(perks);
+      var plans = h('div', { class: 'pro-plans', role: 'radiogroup', id: 'pro-plans', 'aria-label': PX('name') }), cta, fine, fb, busy = false;
+      function trialOn() { return !(proInfo && proInfo.pro && proInfo.pro.trialUsed); }
+      function seatsLeft() { var n = proInfo && proInfo.foundersLeft != null ? proInfo.foundersLeft : proPub && proPub.left != null ? proPub.left : null; return n == null ? null : n; }
+      function paint() {
+        card.querySelectorAll('[data-plan]').forEach(function (b) { b.setAttribute('aria-checked', String(b.dataset.plan === plan)); });
+        var P = PRO.PLANS[plan], key = plan === 'year' && !trialOn() ? 'year_paid' : plan;
+        cta.disabled = busy;
+        cta.textContent = busy ? PX('goPay') : PX('cta_' + key, { n: P.trialDays, p: PRO.price(P.usd) });
+        fine.textContent = PX('then_' + key, { p: PRO.price(P.usd) });
+        var left = seatsLeft(), fs = card.querySelector('.pf-sub');
+        if (fs) fs.textContent = left != null && left < PRO.PLANS.founder.seats ? PX('seatsLeft', { n: fmtCount(left) }) : PX('seats', { n: fmtCount(PRO.PLANS.founder.seats) });
+        if (fb) { fb.hidden = left === 0; if (left === 0 && plan === 'founder') { plan = 'year'; paint(); } }
+      }
+      var Y = PRO.PLANS.year, M = PRO.PLANS.month, F = PRO.PLANS.founder;
+      [['year', PX('plan_year'), PRO.price(Y.usd), PX('onlyMonth', { p: PRO.price(PRO.perMonth('year')) }), PX('save', { n: PRO.yearSaving() })],
+        ['month', PX('plan_month'), PRO.price(M.usd), PX('perMonth', { p: '' }).replace(/^\s+|\s+$/g, ''), '']].forEach(function (x) {
+        var b = h('button', { type: 'button', role: 'radio', class: 'pro-plan', 'data-plan': x[0], id: 'plan-' + x[0], 'aria-checked': 'false' },
+          (x[4] ? '<em class="pl-tag">' + esc(x[4]) + '</em>' : '') + '<span class="pl-name">' + esc(x[1]) + '</span><b class="pl-price">' + esc(x[2]) + '</b><span class="pl-sub">' + esc(x[3]) + '</span>');
+        b.addEventListener('click', function () { if (busy) return; plan = x[0]; paint(); });
+        plans.appendChild(b);
+      });
+      body.appendChild(plans);
+      fb = h('button', { type: 'button', role: 'radio', class: 'pro-founder', 'data-plan': 'founder', id: 'plan-founder', 'aria-checked': 'false' },
+        '<i class="pf-dot"></i><span><b>' + esc(PX('plan_founder')) + '</b> · ' + esc(PRO.price(F.usd)) + '</span><span class="pf-sub"></span>');
+      fb.addEventListener('click', function () { if (busy) return; plan = plan === 'founder' ? 'year' : 'founder'; paint(); });
+      body.appendChild(fb);
+      if (PROTO_PRO) body.appendChild(h('div', { class: 'pro-proto', id: 'pro-proto' }, esc(PX('protoNote'))));
+      else if (me && me.pro === 'test') body.appendChild(h('div', { class: 'pro-proto test', id: 'pro-test' }, esc(PX('testNote'))));
+      cta = bigBtn('start-btn', '', 'btn-pro-buy', function () {
+        if (busy) return;
+        proBuy(plan, why, back, function (on) { busy = on; if (card.isConnected) paint(); });
+      });
+      foot.appendChild(cta);
+      fine = h('div', { class: 'pro-fine', id: 'pro-fine' }); foot.appendChild(fine);
+      if (!PROTO_PRO) foot.appendChild(h('div', { class: 'pro-fine pay-by', id: 'pro-payby' }, esc(PX('payBy')) + ' <a href="' + esc(termsUrl()) + '" target="_blank" rel="noopener">' + esc(PX('terms')) + '</a>'));
+      var later = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-pro-later' }, esc(PX('notNow')));
+      later.addEventListener('click', function () { Track.event('pro_later', { why: why || 'open' }); if (back) back(); else closeDialog(); });
+      foot.appendChild(later);
+      card.appendChild(body); card.appendChild(foot);
+      paint();
+      proRepaint = function () { if (card.isConnected) paint(); };
+    });
+    // whether the trial is still to be had, how many Founder places are left: the answer repaints the sheet
+    if (!PROTO_PRO && me && signedIn()) proAsk().then(function () { if (isPro()) { if (currentDialog && currentDialog.dataset.kind === 'pro') { closeDialog(); setTimeout(proStatus, 230); } } else if (proRepaint) proRepaint(); });
+  }
+  function termsUrl() { return (window.GC_SITE || '') + 'terms.html'; }
+  // ---- buying. The prototype flips its switch. For real: a saved account first (Pro lives on it), then Stripe's own
+  // payment page; the way back is proReturn()
+  function proBuy(plan, why, back, setBusy) {
+    if (PROTO_PRO) {
+      proState = PRO.start(plan, Date.now()); save('pro', proState);
+      Track.event('pro_start', { plan: plan, why: why || 'open' });
+      proFreezeCheck();
+      closeDialog(); proRefresh();
+      Sound.play('win'); haptic('win');
+      setTimeout(proWelcome, 230);
+      return;
+    }
+    if (!NETCFG) return;
+    if (!signedIn()) {
+      // (a sign-in that reloads the page comes back here through the pending action)
+      Track.event('pro_save_first', { plan: plan });
+      setPending({ kind: 'pro', plan: plan, why: why || '' });
+      closeDialog();
+      setTimeout(function () {
+        showAccount(function () { save('pending', null); setTimeout(function () { proSheet(why, null, null, plan); }, 230); },
+          { title: PX('saveFirstT'), sub: PX('saveFirstSub'), onCancel: function () { save('pending', null); } });
+      }, 230);
+      return;
+    }
+    if (setBusy) setBusy(true);
+    Track.event('pro_checkout', { plan: plan, why: why || 'open' });
+    ensureNet().then(function () { return net.pay('checkout', { plan: plan, back: location.origin + location.pathname, lang: lang }); }).then(function (r) {
+      if (!r || !r.url) throw new Error('no_url');
+      save('proGo', { plan: plan, why: why || '', at: Date.now() });
+      location.href = r.url;
+    }).catch(function (e) {
+      if (setBusy) setBusy(false);
+      var code = e && e.data && e.data.error;
+      if (code === 'guest') { if (me) me.guest = true; proBuy(plan, why, back, setBusy); return; }
+      toast(PX(code === 'off' ? 'payOff' : code === 'sold_out' ? 'soldOut' : code === 'already' ? 'alreadyF' : 'payErr'));
+      if (code === 'sold_out' || code === 'already') proAsk().then(function () { if (proRepaint) proRepaint(); });
+    });
+  }
+  // back from Stripe's page: ?pro=ok&sid=… (paid, or a trial started) or ?pro=back (left it)
+  function proReturn() {
+    if (!PRO || PROTO_PRO || !NETCFG) return;
+    var q = urlQ.get('pro'), sid = urlQ.get('sid') || '';
+    if (!q) return;
+    try { var u = new URL(location.href); u.searchParams.delete('pro'); u.searchParams.delete('sid'); history.replaceState(null, '', u.pathname + (u.search ? u.search : '') + u.hash); } catch (e) { /* the address stays */ }
+    var went = load('proGo', null); save('proGo', null);
+    if (q !== 'ok' || !/^cs_[A-Za-z0-9_]+$/.test(sid)) { Track.event('pro_back', { plan: (went && went.plan) || '' }); return; }
+    toast(PX('payCheck'));
+    var tries = 0;
+    var done = function () {
+      Track.event('pro_start', { plan: (proInfo && proInfo.pro && proInfo.pro.plan) || (went && went.plan) || '', why: (went && went.why) || 'open' });
+      proFreezeCheck(); proRefresh();
+      Sound.play('win'); haptic('win');
+      askWhenCalm(proWelcome, 300);
+    };
+    var look = function (call) {
+      call().then(function (r) {
+        proApply(r);
+        if (isPro()) { done(); return; }
+        if (++tries < 6) setTimeout(function () { look(function () { return net.pay('state', {}); }); }, 2500);
+        else toast(PX('payWait'));
+      }, function () { if (++tries < 6) setTimeout(function () { look(call); }, 2500); else toast(PX('payWait')); });
+    };
+    ensureNet().then(function () { look(function () { return net.pay('confirm', { sid: sid }); }); }, function () { toast(PX('payWait')); });
+  }
+  function proOff() { // (the prototype's switch)
+    proState = null; save('pro', null);
+    proLooksBack();
+    proRefresh();
+  }
+  function proWelcome() {
+    var nm = me && me.profile ? me.profile.username : T('you');
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'pro-welcome';
+      currentDialog.classList.add('center');
+      card.classList.add('lvlup-card', 'pro-welcome');
+      card.appendChild(h('div', { class: 'lvlup-badge' + (motionOK() ? ' pop' : '') }, proSeal('big')));
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(PX('welcomeT'))));
+      card.appendChild(h('div', { class: 'pro-who big' }, '<span class="pro-nm">' + esc(nm) + '</span>' + proMark()));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(PX('welcomeSub'))));
+      card.appendChild(bigBtn('start-btn', PX('welcomeBtn'), 'btn-pro-ok', function () { closeDialog(); }));
+    });
+  }
+  // the plan in a line: the prototype's own switch, or what the server knows (proInfo, when it has answered)
+  function proPlanLine() {
+    if (PROTO_PRO) { var st = proState || {}; return PX(st.trial ? 'on_trial' : 'on_' + (st.plan || 'year')) + (st.until ? ', ' + PX('until', { d: fmtDay(st.until) }) : ''); }
+    var s = proMine() || {}, i = proInfo && proInfo.pro;
+    if (s.founder) return PX('st_founder');
+    var d = s.until ? fmtDay(s.until) : '';
+    if (i && i.status === 'past_due') return PX('st_due');
+    if (i && i.trial && !i.cancel) return PX('st_trial', { d: d, p: PRO.price(PRO.PLANS.year.usd) });
+    if (i && i.cancel) return PX('st_ends', { d: d });
+    if (i && i.sub) return PX('on_' + (i.plan || s.plan || 'year')) + '. ' + PX('st_renew', { d: d });
+    return PX('on_' + (s.plan || 'year')) + (d ? ', ' + PX('until', { d: d }) : '');
+  }
+  // the Profile's line about Pro: what it is and a way in; for a Pro player, their plan and their status
+  function proEntry() {
+    if (!proAvail()) return null;
+    var on = isPro();
+    var c = h('button', { type: 'button', class: 'pro-entry' + (on ? ' on' : ''), id: 'pro-entry' },
+      proSeal('sm') + '<span class="pe-t"><b>' + esc(PX('name')) + '</b><span>' + esc(on ? proPlanLine() : PX('cardSub')) + '</span></span>' +
+      '<span class="pe-go">' + esc(on ? PX('manage') : PX('cardBtn')) + '</span>');
+    c.addEventListener('click', function () { if (isPro()) proStatus(); else proSheet(); });
+    return c;
+  }
+  // "Joker status": a Pro player's own page — the card, the plan, what Pro has given so far, the subscription
+  function proStatus() {
+    if (!isPro()) { proSheet(); return; }
+    var month = todayStr().slice(0, 7), nm = me && me.profile ? me.profile.username : T('you');
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'pro-manage';
+      card.classList.add('pro-manage');
+      card.appendChild(proCardArt(nm, proFounder()));
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(PX('manageT'))));
+      var line = h('div', { class: 'dlg-sub', id: 'pro-plan-line' }, esc(proPlanLine()));
+      card.appendChild(line);
+      var pack = packCount(), solved = 0, done = load('puzzles', {});
+      if (pack) JOKER_PACK.forEach(function (p) { if (done[p.id]) solved++; });
+      var tiles = h('div', { class: 'st-tiles pro-tiles', id: 'pro-tiles' });
+      var tile = function (n, label) { return '<span class="st-tile"><b>' + esc(String(n)) + '</b><span>' + esc(label) + '</span></span>'; };
+      tiles.innerHTML = tile('+' + fmtCount(proTally.bonus || 0), PX('tile_bonus')) + tile(fmtCount(proTally.checks || 0), PX('tile_checks')) +
+        (pack ? tile(solved + '/' + pack, PX('tile_pack')) : '') + tile(PRO.freezesLeft(proFz, month), PX('tile_freeze'));
+      card.appendChild(tiles);
+      card.appendChild(bigBtn('start-btn', PX('insOpen'), 'btn-pro-ins', function () { closeDialog(); setTimeout(proInsights, 230); }));
+      if (PROTO_PRO) {
+        var off = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-pro-off' }, esc(PX('turnOff')));
+        off.addEventListener('click', function () { closeDialog(); proOff(); });
+        card.appendChild(off);
+      } else if (!NATIVE.on && NETCFG && signedIn()) {
+        // the card, the plan, the receipts, cancelling: Stripe's own page (a Founder has only receipts there)
+        var pb = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-pro-portal' }, esc(PX(proFounder() ? 'receipts' : 'portal')));
+        pb.addEventListener('click', function () {
+          pb.disabled = true;
+          ensureNet().then(function () { return net.pay('portal', { back: location.origin + location.pathname, lang: lang }); }).then(function (r) { if (!r || !r.url) throw new Error('no_url'); location.href = r.url; })
+            .catch(function () { pb.disabled = false; toast(PX('portalErr')); });
+        });
+        card.appendChild(pb);
+        proAsk().then(function () { if (line.isConnected) line.textContent = proPlanLine(); });
+      }
+    });
+  }
+  // "My Jokers": what the device knows about the player's Joker Moves (the cards count every one played) and the bots
+  function proInsights() {
+    if (!proAvail()) return;
+    if (!isPro()) { proSheet(); return; }
+    var PCS = ['knight', 'bishop', 'rook', 'queen'], total = 0, fav = null, max = 0;
+    PCS.forEach(function (k) { var n = prog.cards[k] || 0; total += n; if (n > max) { max = n; fav = k; } });
+    var kinds = Progress.CARDS.filter(function (c) { return PCS.indexOf(c[0]) < 0 && prog.cards[c[0]]; });
+    var w = 0, d = 0, l = 0, best = null;
+    Progress.BOTS.forEach(function (b) { var st = stats[botStatKey(b)]; if (!st) return; w += st.w || 0; d += st.d || 0; l += st.l || 0; if (st.w && (!best || b.elo > best.elo)) best = b; });
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'pro-insights';
+      card.classList.add('pro-ins');
+      card.appendChild(h('div', { class: 'dlg-title' }, esc(PX('insT')) + ' ' + proMark()));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(PX('insSub'))));
+      if (!total && !(w + d + l)) { card.appendChild(h('div', { class: 'dlg-note', id: 'ins-none' }, esc(PX('insNone')))); return; }
+      var tiles = h('div', { class: 'st-tiles ins-tiles' });
+      var tile = function (n, label) { return '<span class="st-tile"><b>' + esc(String(n)) + '</b><span>' + esc(label) + '</span></span>'; };
+      tiles.innerHTML = tile(total, PX('insPlayed')) + tile(fav ? PT('rank_' + fav) : '–', PX('insFav')) + tile(kinds.length + '/' + (Progress.CARDS.length - PCS.length), PX('insKinds'));
+      card.appendChild(tiles);
+      var bars = h('div', { class: 'ins-bars', id: 'ins-bars' });
+      PCS.forEach(function (k) {
+        var n = prog.cards[k] || 0;
+        bars.appendChild(h('div', { class: 'ins-bar' }, '<i class="pc-ic p-w' + RANK_PC[k] + '"></i><span class="ib-track"><b style="width:' + (max ? Math.round(n / max * 100) : 0) + '%"></b></span><span class="ib-n">' + n + '</span>'));
+      });
+      card.appendChild(bars);
+      if (kinds.length) card.appendChild(h('div', { class: 'op-cards ins-kinds' }, kinds.map(function (c) { return '<span class="jc-chip r' + c[1] + '">' + esc(PT('c_' + c[0])) + (prog.cards[c[0]] > 1 ? ' ×' + prog.cards[c[0]] : '') + '</span>'; }).join('')));
+      if (w + d + l) {
+        card.appendChild(h('div', { class: 'prog-h' }, esc(PX('insBots'))));
+        card.appendChild(h('div', { class: 'ins-line', id: 'ins-bots' }, '<b>' + esc(PX('insRate', { n: Math.round(w / (w + d + l) * 100) })) + '</b><span>' + esc(PX('insWdl', { w: w, d: d, l: l })) + '</span>'));
+        if (best) card.appendChild(h('div', { class: 'ins-line' }, '<b>' + esc(PX('insBest')) + '</b><span>' + esc(GCBots.castName(best.who, lang, true)) + ', ' + best.elo + '</span>'));
+      }
+    });
+  }
+  // ---- the streak freeze: a Pro player's streak that has just run out (three or more days away) is carried across
+  // the break, twice a month
+  // the streak as it stood before today (a freeze bridges a break whether or not the player has played today yet)
+  function streakBefore() { var t = todayStr(); return Habits.streak(habitDays.filter(function (d) { return d < t; }), t, proFz && proFz.days ? proFz.days : null); }
+  function proFreezeCheck() {
+    if (!isPro()) return false;
+    var t = todayStr(), st = streakBefore();
+    if (st.state !== 'none' || !st.lost || !st.last) return false;
+    var missed = [];
+    for (var d = Habits.addDays(st.last, 1); d < t && missed.length <= PRO.FREEZE_SPAN; d = Habits.addDays(d, 1)) missed.push(d);
+    var nx = PRO.useFreeze(proFz, t.slice(0, 7), missed);
+    if (!nx) return false;
+    proFz = nx; save('proFz', proFz);
+    Track.event('pro_freeze', { days: missed.length });
+    return true;
+  }
+
+  // ---- the Joker analysis of a game: where the Joker Move was, how good the one played was, the lines that turn on a
+  // Joker Move nobody played. Pro has it in every review. A free player has one (Pro.FREE_CHECKS), kept for the game
+  // it was used on; until it is opened the review is blind (GCReview.analyze's opt.blind) and one card in the report
+  // offers it, whatever the game held. Where nothing is sold (the apps, the server's switch off) nothing is limited.
+  function jkLimited() { return proSells() && !isPro(); }
+  function jkKey() { return (review && review.key) || (game ? gameKey() || game.fens[game.fens.length - 1] : '') || ''; }
+  function jkOpen() { return !jkLimited() || PRO.checkOpen(proJk, jkKey()); }
+  // the player asks for it: the free one is taken, or the Pro sheet comes (back: where "not now" returns to)
+  function jkTap(back) {
+    if (!game || !review) return false;
+    if (jkOpen()) return true;
+    var st = PRO.useCheck(proJk, jkKey());
+    if (!st) { Track.event('pro_gate', { why: 'check' }); proSheet('check', null, back); return false; }
+    proJk = st; save('proJk', proJk);
+    Track.event('joker_check', { left: PRO.checksLeft(proJk) });
+    computeReview(); renderAll(); renderReport();
+    return true;
+  }
+
+  // ---- hints in a game against a bot (never online): the engine's best move as an arrow, and its name. A free player
+  // has three a day (what was shown today stays shown), Pro has no limit
+  function hintsLeftNow() { return PRO.hintsLeft(proHints, todayStr(), isPro()); }
+  function takeHint(key, ply, back) {
+    var st = PRO.useHint(proHints, todayStr(), isPro(), key, ply);
+    if (!st) { Track.event('pro_gate', { why: 'hints' }); proSheet('hints', { n: PRO.FREE_HINTS }, back); return false; }
+    proHints = st; save('proHints', proHints);
+    proCount('hints', 1);
+    return true;
+  }
+  var hintClient = null, hint = null, hintBusy = false;
+  function hintLabel() { var left = hintsLeftNow(); return PX('hint') + (isPro() ? '' : ' · ' + left + '/' + PRO.FREE_HINTS); }
+  function hintReady() { return proAvail() && !!game && botGame() && game.status === 'playing' && live() && game.pos.side === game.cfg.human && !hintBusy; }
+  function showHint() {
+    refreshArrows();
+    toast(PX(hint.gold ? 'hintJoker' : 'hintMove', { san: hint.san.replace(/\*/g, '★') }), hint.gold ? 'gold' : '');
+  }
+  function gameHint() {
+    if (!hintReady()) return;
+    var g = game, ply = g.records.length;
+    if (hint && hint.game === g && hint.ply === ply) { showHint(); return; }
+    g.tipId = g.tipId || 'g' + Date.now();
+    if (!takeHint('hint:' + g.tipId, ply)) return;
+    hintBusy = true; toast(PX('hintThinking'));
+    if (!hintClient) hintClient = new EngineClient();
+    hintClient.think({ id: ++reqSeq, fen: g.startFen, moves: g.records.map(function (r) { return r.uci; }), timeMs: window.__gcFastBot ? 150 : 900, level: 8, analysis: true }, function (res) {
+      hintBusy = false;
+      if (game !== g || g.records.length !== ply || !res || !res.uci) return;
+      var m = g.pos.moveFromUci(res.uci);
+      if (!m) return;
+      hint = { game: g, ply: ply, from: m & 127, to: (m >> 7) & 127, gold: !!(m & F_GOLDEN), san: g.pos.san(m) };
+      Track.event('pro_tip', { where: 'game' });
+      showHint();
+      if (game) renderSide();
+    }, function () { /* the final answer is enough */ });
+  }
+  // the Joker in the list of all bots: a free player reaches him on the Road first (its last season open)
+  function jokerLocked() { return proSells() && !isPro() && !Progress.isOpen(prog.career, Progress.CHAPTERS); }
+
+  // ---- bringing Pro up by ourselves, where it is sold and not yet bought. Never over a game or a puzzle; how often is
+  // Pro.offerDue's business (nothing on the first day, one in three days at most, a rest after three closed in a row).
+  // Two places: a sheet after a finished game, once the player has left the board (the last in the line of asks:
+  // afterGameAsk), and a quiet line on the Play tab. What has just happened picks the words (a streak that ran out
+  // and that a freeze would bring back, a new rank).
+  var proRankDay = load('proRank', '');
+  function proOfferStart() { if (proSells() && !PROTO_PRO && !(proOf && proOf.first)) { proOf = PRO.offerFirst(proOf, todayStr()); save('proOffer', proOf); } }
+  function proMoments() {
+    var out = [], st = streakBefore(), t = todayStr();
+    if (st.lost >= 3 && st.last && Habits.diffDays(st.last, t) - 1 <= PRO.FREEZE_SPAN) out.push('streak');
+    if (proRankDay === t) out.push('rank');
+    return out;
+  }
+  function proOfferDue(plain) {
+    if (PROTO_PRO || !proSells() || isPro() || !proOf) return null;
+    return PRO.offerDue(proOf, { day: todayStr(), games: load('gamesDone', 0), moments: proMoments(), plain: !!plain });
+  }
+  function proOfferVars(id) { return id === 'streak' ? { n: streakBefore().lost } : id === 'rank' ? { rank: Progress.rankName(lang, progLevel().level) } : {}; }
+  function proOfferEnd(how) { proOf = PRO.offerEnded(proOf, how, todayStr()); save('proOffer', proOf); }
+  function proOfferSheet(id) {
+    var vars = proOfferVars(id), looked = false;
+    proOf = PRO.offerShown(proOf, id, todayStr()); save('proOffer', proOf);
+    askedNow(); Track.event('pro_offer', { id: id, place: 'sheet' });
+    openDialog(function (card) {
+      currentDialog.dataset.kind = 'pro-offer';
+      currentDialog.onClose = function () { if (!looked) { proOfferEnd('skip'); Track.event('pro_offer_skip', { id: id, place: 'sheet' }); } };
+      card.classList.add('remind-card', 'pro-offer');
+      card.appendChild(h('div', { class: 'pro-offer-art', 'aria-hidden': 'true' }, proSeal('big')));
+      card.appendChild(h('div', { class: 'dlg-title', id: 'pro-offer-t' }, esc(PX('offer_' + id + '_t', vars))));
+      card.appendChild(h('div', { class: 'dlg-sub' }, esc(PX('offer_' + id + '_s', vars))));
+      card.appendChild(bigBtn('start-btn', PX(id === 'streak' ? 'offerStreakCta' : 'offerCta'), 'btn-offer-go', function () {
+        looked = true; proOfferEnd('look'); Track.event('pro_offer_go', { id: id, place: 'sheet' });
+        closeDialog(); setTimeout(function () { proSheet(id === 'plain' ? null : id, vars); }, 230);
+      }));
+      var later = h('button', { type: 'button', class: 'linkbtn center', id: 'btn-offer-later' }, esc(PX('notNow')));
+      later.addEventListener('click', function () { closeDialog(); });
+      card.appendChild(later);
+    });
+  }
+  // the Play tab's line: picked once a day (it stays for that day unless hidden), by the same limits as the sheet
+  function proBanner() {
+    if ((window.__gcNoAsk && !PROTO_PRO) || !proSells() || isPro() || !proOf) return null;
+    var t = todayStr(), b = proOf.banner && proOf.banner.day === t ? proOf.banner : null;
+    if (!b) {
+      var id = proOfferDue(true);
+      if (!id) return null;
+      proOf = PRO.offerShown(proOf, id, t); proOf.banner = b = { id: id, day: t }; save('proOffer', proOf);
+      Track.event('pro_offer', { id: id, place: 'play' });
+    }
+    if (b.off) return null;
+    var vars = proOfferVars(b.id);
+    var el = h('div', { class: 'pro-banner', id: 'pro-banner' });
+    var go = h('button', { type: 'button', class: 'pb-go', id: 'pro-banner-go' }, proSeal('sm') + '<span class="pb-t"><b>' + esc(PX('offer_' + b.id + '_t', vars)) + '</b><span>' + esc(PX('line_' + b.id, vars)) + '</span></span>');
+    go.addEventListener('click', function () { proOf.banner.off = true; proOfferEnd('look'); Track.event('pro_offer_go', { id: b.id, place: 'play' }); proSheet(b.id === 'plain' ? null : b.id, vars); });
+    var x = h('button', { type: 'button', class: 'pb-x', id: 'pro-banner-x', 'aria-label': PX('bannerClose') }, ICON.x);
+    x.addEventListener('click', function () { proOf.banner.off = true; proOfferEnd('skip'); Track.event('pro_offer_skip', { id: b.id, place: 'play' }); el.remove(); });
+    el.appendChild(go); el.appendChild(x);
+    return el;
+  }
+  // the prototype tour: a short game in which White missed a Joker Move (a rook check that only a Joker Move blocks
+  // well), its review open
+  function protoMissed() {
+    startGame({ mode: 'local', color: 'w', tc: 'none' }, { fen: 'r7/p1p4p/5k2/2N5/5P2/6P1/PPP2R1P/R1K1r3 w - - 1 28 Gg' });
+    var g = game, now = performance.now();
+    ['c1d2', 'e1a1'].forEach(function (u) { var m = g.pos.moveFromUci(u); if (m) g.play(m, now); });
+    g.end('0-1', 'resign', now); gameOver();
+    closeDialog();
+    setTimeout(showReport, 250);
   }
 
   // ---- emails (prototype; the server says it keeps the yes / no in hello: me.mail)
@@ -3223,6 +3907,7 @@
       if (remindAskDue()) askReminders('game');
       else if (emailAskDue()) emailAskSheet();
       else if (saveAskDue()) saveAskSheet();
+      else { var po = proOfferDue(true); if (po) proOfferSheet(po); }
     }, 1500);
   }
   // the weekly email, one tap: a saved account that never answered (twice at most, three days apart; the card on the
@@ -3434,6 +4119,21 @@
         Object.assign({ action: action, token: tok }, body || {}));
     });
   };
+  // Joker Pro's paying side (supabase/functions/pay): state, checkout, confirm, portal
+  SupaNet.prototype.pay = function (action, body) {
+    var self = this;
+    return this.sb.auth.getSession().then(function (r) {
+      var tok = r.data && r.data.session ? r.data.session.access_token : self.token;
+      return postJson(self.cfg.url + '/functions/v1/pay?forceFunctionRegion=' + encodeURIComponent(self.cfg.region || 'eu-central-1'), Object.assign({ action: action, token: tok }, body || {}));
+    });
+  };
+  // is Pro sold? (anyone may ask: no session needed)
+  SupaNet.proPublic = function (cfg) {
+    try {
+      return fetch(cfg.url + '/rest/v1/rpc/pro_public', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: cfg.key, Authorization: 'Bearer ' + cfg.key }, body: '{}' })
+        .then(function (r) { if (!r.ok) throw new Error('http_' + r.status); return r.json(); }).then(function (j) { return j || {}; });
+    } catch (e) { return Promise.reject(e); }
+  };
   // ---- account (Supabase Auth): a guest links an email to the same account; on another device the email signs in
   // in the app, sign-in links and Google come back to the app itself
   function authRedirect() { return NATIVE.on ? NATIVE.redirect : location.origin + location.pathname + (profileSuffix ? '?p=' + profileSuffix : ''); }
@@ -3455,7 +4155,7 @@
   SupaNet.prototype.signOut = function () { return this.sb.auth.signOut({ scope: 'local' }).then(authFail); };
   // the player's own account goes (delete_my_account() in the database: not during a live game)
   SupaNet.prototype.deleteAccount = function () {
-    return this.sb.rpc('delete_my_account').then(function (r) { if (r.error) { var e = new Error(r.error.message || 'delete_failed'); e.data = { error: /live_game/.test(r.error.message || '') ? 'live_game' : 'delete_failed' }; throw e; } });
+    return this.sb.rpc('delete_my_account').then(function (r) { if (r.error) { var e = new Error(r.error.message || 'delete_failed'); e.data = { error: /live_game/.test(r.error.message || '') ? 'live_game' : /active_subscription/.test(r.error.message || '') ? 'active_subscription' : 'delete_failed' }; throw e; } });
   };
   // Google / Apple: the ID token the provider gave us (see providerIdToken) is linked to this guest, or signs in
   SupaNet.prototype.idToken = function (provider, token, nonce, link) {
@@ -3507,7 +4207,7 @@
   // a player's page: the profile and ratings are public
   // several players' names and pictures at once (the two sides of a game)
   SupaNet.prototype.profilesOf = function (uids) {
-    return this.sb.from('profiles').select('id, username, avatar_v' + (me && me.prog ? ', xp' : '')).in('id', uids).then(function (r) { if (r.error) throw r.error; return r.data || []; });
+    return this.sb.from('profiles').select('id, username, avatar_v' + (me && me.prog ? ', xp' : '') + (me && me.proc ? ', pro_until, pro_founder' : '')).in('id', uids).then(function (r) { if (r.error) throw r.error; return r.data || []; });
   };
   // the player's picture: a 256×256 JPEG in the public bucket `avatars` as <uid>.jpg (only the owner may write it)
   SupaNet.prototype.uploadAvatar = function (blob) {
@@ -3518,7 +4218,7 @@
   };
   SupaNet.prototype.player = function (uid) {
     var sb = this.sb;
-    return Promise.all([sb.from('profiles').select('id, username, created_at, house, avatar_v' + (me && me.prog ? ', xp' : '')).eq('id', uid).maybeSingle(),
+    return Promise.all([sb.from('profiles').select('id, username, created_at, house, avatar_v' + (me && me.prog ? ', xp' : '') + (me && me.proc ? ', pro_until, pro_founder' : '')).eq('id', uid).maybeSingle(),
       sb.from('ratings').select('pool, rating, rd, games, wins, draws, losses').eq('user_id', uid)]).then(function (r) {
       if (r[0].error) throw r[0].error;
       if (r[1].error) throw r[1].error;
@@ -3531,11 +4231,13 @@
   };
   // the leaderboard: public data, read with the public key (no account needed)
   SupaNet.prototype.top = function (pool) {
-    return this.sb.from('ratings').select('user_id, rating, rd, games, wins, draws, losses, profiles(username, avatar_v)').eq('pool', pool).gt('games', 0)
+    return this.sb.from('ratings').select('user_id, rating, rd, games, wins, draws, losses, profiles(username, avatar_v, pro_until, pro_founder)').eq('pool', pool).gt('games', 0)
       .order('rating', { ascending: false }).limit(50).then(function (r) {
         if (r.error) throw r.error;
         return (r.data || []).map(function (x) {
-          return { uid: x.user_id, name: (x.profiles && x.profiles.username) || '?', avatar_v: (x.profiles && x.profiles.avatar_v) || 0, rating: Math.round(x.rating), rd: Math.round(x.rd), games: x.games, wins: x.wins, draws: x.draws, losses: x.losses };
+          var pf = x.profiles || {}, fo = !!pf.pro_founder;
+          return { uid: x.user_id, name: pf.username || '?', avatar_v: pf.avatar_v || 0, rating: Math.round(x.rating), rd: Math.round(x.rd), games: x.games, wins: x.wins, draws: x.draws, losses: x.losses,
+            pro: fo || (!!pf.pro_until && Date.parse(pf.pro_until) > Date.now()), founder: fo };
         });
       });
   };
@@ -3579,6 +4281,8 @@
   MockNet.prototype.ready = function () { return Promise.resolve(); };
   MockNet.prototype.call = function (action, body) { return postJson(this.base + '/play', Object.assign({ action: action, token: this.uid }, body || {})); };
   MockNet.prototype.read = function (id) { return this.call('game', { game: id }).then(function (r) { return r.game; }); };
+  MockNet.prototype.pay = function (action, body) { return postJson(this.base + '/pay', Object.assign({ action: action, token: this.uid }, body || {})); };
+  MockNet.proPublic = function (cfg) { try { return postJson(cfg.mock + '/pay', { action: 'public' }); } catch (e) { return Promise.reject(e); } };
   // the same account API against the test server's stand-in for Supabase Auth (codes land in its outbox)
   MockNet.prototype.authCall = function (body) {
     return postJson(this.base + '/auth', Object.assign({ token: this.uid }, body)).catch(function (e) { e.code = e.data && e.data.error || e.code; throw e; });
@@ -3667,8 +4371,9 @@
     try { getClient(); } catch (e) { return Promise.reject(e); }
     netReady = net.ready().then(function () { return Promise.all([net.call('hello', { platform: NATIVE.platform }), net.account().catch(function () { return null; })]); }).then(function (rr) {
       var r = rr[0], a = rr[1];
-      me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest, gname: a && a.gname || '', admin: !!r.admin, fair: !!r.fair, mail: !!r.mail, prog: !!r.prog };
+      me = { uid: net.uid, profile: r.profile, ratings: {}, email: a && a.email || null, guest: !a || a.guest, gname: a && a.gname || '', admin: !!r.admin, fair: !!r.fair, mail: !!r.mail, prog: !!r.prog, pro: r.pro || null, proc: !!r.proc };
       noteAvatars([r.profile]);
+      proTake(); // Joker Pro: the account's own, and whether it is sold to this player
       progSync(); // the progress of this device and of the account, merged (prototype: only when the server keeps it)
       (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; });
       if (!userSub) userSub = net.sub('u:' + net.uid, { event: function (ev, p) { if (ev === 'paired' && p && p.game && lobby) onPaired(p.game); } });
@@ -3690,8 +4395,9 @@
     if (!net || !me) return Promise.resolve();
     return Promise.all([net.call('hello'), net.account().catch(function () { return null; })]).then(function (rr) {
       var r = rr[0], a = rr[1];
-      me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; }); me.admin = !!r.admin; me.fair = !!r.fair; me.mail = !!r.mail; me.prog = !!r.prog;
+      me.profile = r.profile; me.ratings = {}; (r.ratings || []).forEach(function (x) { me.ratings[x.pool] = x; }); me.admin = !!r.admin; me.fair = !!r.fair; me.mail = !!r.mail; me.prog = !!r.prog; me.pro = r.pro || null; me.proc = !!r.proc;
       noteAvatars([r.profile]);
+      proTake();
       progSync();
       if (a) { me.email = a.email || null; me.guest = a.guest; me.gname = a.gname || ''; }
       syncPrefs(); // after the account is known: the yes to emails given while saving goes with a saved account only
@@ -4363,7 +5069,7 @@
           location.hash = 'play'; location.reload();
         }, function (e) {
           y.disabled = n.disabled = false;
-          er.textContent = e && e.data && e.data.error === 'live_game' ? T('finishFirst') : T('netError');
+          er.textContent = e && e.data && e.data.error === 'live_game' ? T('finishFirst') : e && e.data && e.data.error === 'active_subscription' && PRO ? PX('delSub') : T('netError');
         });
       });
       row.appendChild(n); row.appendChild(y); card.appendChild(row); card.appendChild(er);
@@ -5132,14 +5838,25 @@
   // ---- avatars: a player's own picture (storage, 256×256 JPEG at <uid>.jpg) or, without one, the first letter of the name
   var avatarV = {}; // uid -> profiles.avatar_v as last seen (0: no picture)
   var xpOf = {};    // uid -> profiles.xp as last seen (the rank badge next to a name)
-  function noteAvatars(rows) { (rows || []).forEach(function (p) { if (p && p.id) { avatarV[p.id] = p.avatar_v || 0; if (p.xp != null) xpOf[p.id] = p.xp; } }); }
+  var proUid = {};  // uid -> 1 Pro, 2 Founder, 0 neither, as last seen (the gold name and the mark)
+  function noteAvatars(rows) {
+    (rows || []).forEach(function (p) {
+      if (!p || !p.id) return;
+      avatarV[p.id] = p.avatar_v || 0; if (p.xp != null) xpOf[p.id] = p.xp;
+      if ('pro_until' in p || 'pro_founder' in p) proUid[p.id] = p.pro_founder ? 2 : p.pro_until && Date.parse(p.pro_until) > Date.now() ? 1 : 0;
+      else if ('pro' in p) proUid[p.id] = p.founder ? 2 : p.pro ? 1 : 0;
+    });
+  }
   // the rank badge next to a name: the player's own from this device; another player's from their profile (none while
   // it isn't known, or before they have earned anything)
   function rankMini(uid) {
     var mine = !uid || (me && uid === me.uid), xp = mine ? prog.xp : xpOf[uid];
-    if (!mine && !(xp > 0)) return '';
+    // (Joker Pro) a Pro player's mark sits next to the badge, and the name beside it turns gold (CSS :has). Other
+    // players' marks show where Pro exists for the one who looks (sold here, or their own)
+    var mark = mine ? (isPro() ? proMark() : '') : (proUid[uid] && proAvail() ? proMark(proUid[uid] === 2) : '');
+    if (!mine && !(xp > 0)) return mark;
     var lv = Progress.levelOf(xp || 0).level, label = PT('level', { n: lv }) + ', ' + Progress.rankName(lang, lv);
-    return '<span class="rank-mini" role="img" title="' + esc(label) + '" aria-label="' + esc(label) + '">' + rankBadge(lv, 'mini') + '</span>';
+    return '<span class="rank-mini" role="img" title="' + esc(label) + '" aria-label="' + esc(label) + '">' + rankBadge(lv, 'mini') + '</span>' + mark;
   }
   function avatarUrl(uid, v) {
     if (!NETCFG) return '';
@@ -5289,7 +6006,7 @@
     game.paused = false; if (game.clock) game.clock.since = perf();
   }
   function kit() {
-    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ daily: function () { return dailyToday(); }, solveDaily: solveDaily, streakSheet: streakSheet, streakLine: function () { var st = streakNow(); return st.count >= 2 ? { n: st.count, html: FLAME_SVG + '<b>' + st.count + '</b>' } : null; }, newcomer: function () { return !returningPlayer(); }, dailyAuto: function () { var t = todayStr(); if (load('dailyAuto', '') === t) return false; save('dailyAuto', t); return true; }, track: function (n, p) { Track.event(n, p); if (n === 'puzzle_solved') { noteAct('learn'); noteDay('puzzle'); } }, coachFace: function () { return window.GCBots ? GCBots.castAvatar('oskar', lang) : ''; }, levelInfo: coachLevelInfo, puzzleDone: puzzleDone, T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
+    if (!learnKit && window.GCLearn) { learnKit = GCLearn.create({ daily: function () { return dailyToday(); }, solveDaily: solveDaily, streakSheet: streakSheet, streakLine: function () { var st = streakNow(); return st.count >= 2 ? { n: st.count, html: FLAME_SVG + '<b>' + st.count + '</b>' } : null; }, newcomer: function () { return !returningPlayer(); }, dailyAuto: function () { var t = todayStr(); if (load('dailyAuto', '') === t) return false; save('dailyAuto', t); return true; }, track: function (n, p) { Track.event(n, p); if (n === 'puzzle_solved') { noteAct('learn'); noteDay('puzzle'); } }, coachFace: function () { return window.GCBots ? GCBots.castAvatar('oskar', lang) : ''; }, levelInfo: coachLevelInfo, puzzleDone: puzzleDone, pro: !PRO ? null : { on: isPro, sells: proSells, sheet: function (why) { proSheet(why); }, t: PX, mark: function () { return '<span class="pro-mark">' + esc(PX('mark')) + '</span>'; }, variant: PRO.variant }, T: T, esc: esc, h: h, piece: jokerPiece, motionOK: motionOK, settings: settings, Sound: Sound, go: go, showBotSetup: showBotSetup, privacyUrl: privacyUrl }); if (curView) learnKit.active(curView); }
     return learnKit;
   }
 
@@ -5309,6 +6026,7 @@
     else if (a.kind === 'invite') { go('play'); startInvite(a.tc, a.rated); }
     else if (a.kind === 'join') joinGame(a.id);
     else if (a.kind === 'view') go(a.v);
+    else if (a.kind === 'pro') { if (curView === 'signin') go('play'); setTimeout(function () { if (isPro()) proStatus(); else proSheet(a.why || null, null, null, a.plan); }, 300); }
   }
   function afterSignin() { var a = takePending(); if (a) runPending(a); else go('play'); }
 
@@ -5324,7 +6042,7 @@
     head.appendChild(h('div', { class: 'brand' }, '<span class="wordmark">' + uniqIds(WORDMARK_SVG) + '</span>'));
     if (NETCFG) {
       var chip;
-      if (me && me.profile && signedIn()) chip = h('button', { type: 'button', class: 'acct-chip', id: 'acct-chip' }, avatarHtml(me.uid, me.profile.username, 'av') + '<span>' + esc(me.profile.username) + '</span>');
+      if (me && me.profile && signedIn()) chip = h('button', { type: 'button', class: 'acct-chip' + (isPro() ? ' pro' : ''), id: 'acct-chip' }, avatarHtml(me.uid, me.profile.username, 'av') + '<span>' + esc(me.profile.username) + '</span>');
       else chip = h('button', { type: 'button', class: 'acct-chip out', id: 'acct-chip' }, '<span>' + esc(T('signIn')) + '</span>');
       chip.addEventListener('click', function () { if (signedIn()) go('profile'); else { setPending({ kind: 'view', v: 'play' }); go('signin'); } });
       var hr = h('div', { class: 'head-r' }), fl = streakChip();
@@ -5368,6 +6086,9 @@
       acts.appendChild(row);
       // signed in: the rating line under the buttons; a guest gets no note — Play just works, sign-in is in the corner
       if (signedIn()) acts.appendChild(h('div', { class: 'play-meta', id: 'play-meta' }, esc(T('ratingIn', { pool: T(pool), r: ratingText(pool) }) + ', ' + (rated ? T('rated') : T('casual')).toLowerCase())));
+      // Joker Pro's quiet line (not every day, never for a newcomer: Pro.offerDue)
+      var pbn = !lobby && PRO ? proBanner() : null;
+      if (pbn) acts.appendChild(pbn);
     } else {
       acts.appendChild(bigBtn('start-btn', T('playBot'), 'btn-start', function () { go('bots'); }));
       acts.appendChild(bigBtn('second-btn', T('passPlayLong'), 'btn-pass', showLocalSetup));
@@ -5535,8 +6256,12 @@
         pick.appendChild(b);
       });
       foot.appendChild(pick); hero.appendChild(foot);
+      // (prototype, Joker Pro) the Joker: reached on the Road, or played at once with Pro
+      var lockedJ = b.who === 'golden' && jokerLocked();
+      if (lockedJ) hero.appendChild(h('div', { class: 'bot-locked', id: 'bot-locked' }, LOCK_SVG + '<span><b>' + esc(PX('jokerLockedT')) + '</b><span>' +
+        esc(PX('jokerLockedSub', { n: Progress.SEASONS[Progress.SEASONS.length - 1].need, have: Progress.careerStars(prog.career) })) + '</span></span>'));
       tiles.forEach(function (t, k) { t.setAttribute('aria-pressed', String(k === i)); });
-      if (pb) pb.textContent = GCBots.castPlay(b.who, lang);
+      if (pb) pb.textContent = lockedJ ? PX('jokerPro') : GCBots.castPlay(b.who, lang);
     }
     // the same sixteen as on the road, in its four seasons, every one of them open here
     Progress.SEASONS.forEach(function (sn, k) {
@@ -5544,8 +6269,9 @@
       var grid = h('div', { class: 'bot-grid' });
       Progress.BOTS.slice(k * Progress.PER_SEASON, (k + 1) * Progress.PER_SEASON).forEach(function (b, j) {
         var i = k * Progress.PER_SEASON + j, nm = GCBots.castName(b.who, lang);
-        var t = h('button', { type: 'button', class: 'bot-tile', id: 'bot-' + b.who, 'aria-pressed': 'false', 'aria-label': GCBots.castName(b.who, lang, true) + ', ' + b.elo },
-          '<span class="face">' + GCBots.castAvatar(b.who, lang) + '</span><span class="nm">' + esc(nm) + '</span><span class="el">' + b.elo + '</span>');
+        var lk = b.who === 'golden' && jokerLocked();
+        var t = h('button', { type: 'button', class: 'bot-tile' + (lk ? ' locked' : ''), id: 'bot-' + b.who, 'aria-pressed': 'false', 'aria-label': GCBots.castName(b.who, lang, true) + ', ' + b.elo },
+          '<span class="face">' + GCBots.castAvatar(b.who, lang) + (lk ? '<i class="bt-lock">' + LOCK_SVG + '</i>' : '') + '</span><span class="nm">' + esc(nm) + '</span><span class="el">' + b.elo + '</span>');
         t.addEventListener('click', function () { Sound.unlock(); botsUi.sel = i; lastSetup.level = b.level; lastSetup.bot = b.who; save('setup', lastSetup); paint(); });
         tiles[i] = t; grid.appendChild(t);
       });
@@ -5554,6 +6280,7 @@
     var bar = h('div', { class: 'cta-bar' });
     pb = bigBtn('start-btn', '', 'btn-play', function () {
       var b = Progress.BOTS[botsUi.sel], s = { mode: 'bot', level: b.level, bot: b.who, color: botsUi.color, tc: 'none' };
+      if (b.who === 'golden' && jokerLocked()) { proSheet('joker'); return; }
       lastSetup = Object.assign({}, lastSetup, { level: s.level, bot: s.bot, color: s.color }); save('setup', lastSetup);
       startGame(s);
     });
@@ -5621,7 +6348,7 @@
       if (!list.isConnected) return;
       var rows = b.rows || [];
       if (!rows.length) { list.innerHTML = emptyJoker(T('lbEmpty')); return; }
-      noteAvatars(rows.concat(b.me ? [b.me] : []).map(function (x) { return { id: x.uid, avatar_v: x.avatar_v, xp: x.xp }; }));
+      noteAvatars(rows.concat(b.me ? [b.me] : []).map(function (x) { var o = { id: x.uid, avatar_v: x.avatar_v, xp: x.xp }; if ('pro' in x) { o.pro = x.pro; o.founder = x.founder; } return o; }));
       var html = rows.map(function (x, i) { return rowHtml(x, i + 1, me && x.uid === me.uid); }).join('');
       // below the top: a gap, then my own row with my place
       if (b.me && b.rank) html += '<div class="lb-gap"><i></i><i></i><i></i></div>' + rowHtml(b.me, b.rank, true);
@@ -5656,11 +6383,12 @@
       hero.appendChild(avb);
       if (me) photoInput();
       var who = h('div', { class: 'prof-who' });
-      var nameEl = h('div', { class: 'prof-name', id: 'prof-name' }, '<span>' + esc(nm) + '</span>');
+      var nameEl = h('div', { class: 'prof-name' + (isPro() ? ' pro' : ''), id: 'prof-name' }, '<span>' + esc(nm) + '</span>' + (isPro() ? proMark() : ''));
       who.appendChild(nameEl);
       who.appendChild(h('div', { class: 'prof-sub', id: 'prof-sub' }, esc(signedIn() ? (me.email || '') : T('profileSignedOut'))));
       hero.appendChild(who); inn.appendChild(hero);
       inn.appendChild(statusCard());
+      var pe = proEntry(); if (pe) inn.appendChild(pe);
       if (!signedIn()) inn.appendChild(h('div', { class: 'dlg-note status-note', id: 'status-note' }, esc(T('statusGuest'))));
       if (signedIn()) {
         var ch = h('button', { type: 'button', class: 'sbtn name-btn', id: 'btn-rename' }, PENCIL_SVG + '<span>' + esc(T('changeName')) + '</span>');
@@ -5690,7 +6418,7 @@
         var row2 = h('div', { class: 'row-btns' }); row2.appendChild(si); inn.appendChild(row2);
       }
     }
-    if (!NETCFG) inn.appendChild(statusCard());
+    if (!NETCFG) { inn.appendChild(statusCard()); var pe0 = proEntry(); if (pe0) inn.appendChild(pe0); }
     profileGames(inn);
     if (NETCFG && me && me.admin && signedIn()) inn.appendChild(statsCard());
     var sc = h('div', { class: 'card', id: 'settings-card' });
@@ -5885,6 +6613,7 @@
   }
   function histRow(it, sums) {
     var rs = sums[it.key], acc = rs && rs.acc ? rs.acc[it.color] : null;
+    if (rs && rs.accB && PRO && jkLimited() && !PRO.checkOpen(proJk, it.key)) acc = rs.accB[it.color]; // (the Joker analysis of this game isn't open)
     var mark = it.res === 1 ? ['win', '+'] : it.res === -1 ? ['loss', '−'] : it.res === 0 ? ['draw', '='] : ['two', it.result === '1/2-1/2' ? '½' : it.result === '1-0' ? '1–0' : '0–1'];
     var sub = [];
     if (it.pool) sub.push('<span class="gh-tc ic-' + it.pool + '">' + POOL_ICON[it.pool] + esc(it.tc) + '</span>');
@@ -6230,7 +6959,15 @@
       Track.event('reminder_open', { kind: (x && x.kind) || '' });
       if (v && allowed(v) && !liveOnlineGame() && curView !== 'game') go(v);
     });
-    if (window.GC_PROTO) protoTour();
+    if (window.GC_PROTO) {
+      protoTour();
+      // the Pro prototype says what it is the first time it opens: the list of its screens
+      if (proAvail() && !load('protoSeen', false)) { save('protoSeen', true); setTimeout(function () { if (!currentDialog && curView !== 'game') protoSheet(); }, 700); }
+    }
+    if (PROTO_PRO && proState && !isPro()) proOff(); // (the prototype) Pro has run out: its looks go back in the box
+    // Pro never stands in the way of the game starting
+    if (PRO && !PROTO_PRO) { try { proOfferStart(); proPublicAsk(); proReturn(); } catch (e) { /* the game goes on without it */ } }
+    if (proFreezeCheck()) refreshView();
     Track.start();
     setTimeout(Track.ask, 2500);
   }
@@ -6247,6 +6984,9 @@
     get goldenArmed() { return goldenArmed; }, get selected() { return selected; }, get dialogOpen() { return !!currentDialog; }, closeDialog: closeDialog,
     startCareer: function (ch) { startCareer(ch); }, gameOver: function () { gameOver(); }, get prog() { return prog; }, progPush: function () { return progPush(); }, cancelBot: function () { cancelBot(); },
     get dialogKind() { return currentDialog ? currentDialog.dataset.kind || '' : null; },
+    get pro() { return { on: isPro(), sells: proSells(), avail: proAvail(), founder: proFounder(), jk: proJk, offer: proOf, tally: proTally, info: proInfo, blind: !!(review && review.blind) }; },
+    proSheet: function (why, vars) { proSheet(why, vars); }, proStatus: function () { proStatus(); }, proOfferSheet: function (id) { proOfferSheet(id); }, proOfferDue: function (plain) { return proOfferDue(plain); },
+    afterGameAsk: function () { afterGameAsk(); },
     get online() { return online; }, get me() { return me; }, get lobby() { return lobby; }, startSeek: startSeek, startInvite: startInvite,
     onlineAction: onlineAction, showNewGame: showNewGame, serverNow: serverNow, cancelPremoves: cancelPremoves,
     showAccount: showAccount, showSettings: showSettings, showOver: showOver, showReport: showReport,

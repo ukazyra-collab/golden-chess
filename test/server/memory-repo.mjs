@@ -53,7 +53,7 @@ export function createMemoryRepo(now) {
     async insertProfile(uid, name, guest = true) {
       if (db.profiles.has(uid)) return null;
       for (const p of db.profiles.values()) if (p.username.toLowerCase() === name.toLowerCase()) return null;
-      const p = { id: uid, username: name, is_guest: !!guest, name_chosen: false, avatar_v: 0, xp: 0, email_opt: null, created_at: iso(now()) };
+      const p = { id: uid, username: name, is_guest: !!guest, name_chosen: false, avatar_v: 0, xp: 0, email_opt: null, pro_until: null, pro_plan: null, pro_founder: false, created_at: iso(now()) };
       db.profiles.set(uid, p);
       return clone(p);
     },

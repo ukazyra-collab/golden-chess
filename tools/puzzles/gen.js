@@ -15,6 +15,9 @@ const isMate = (s) => Math.abs(s) > MATE_BOUND;
 const WIN = 300;       // after the Joker Move: at least this much (or mate)
 const GAIN = 300;      // over the best normal move
 const NORMAL_MAX = 400; // and without it the game is not already won
+// how long the first look at a position and a move of the game take (GEN_PROBE_MS, GEN_PROBE_DEPTH, GEN_MOVE_MS: a
+// quicker look finds the shallower puzzles faster; every find is checked in full either way)
+const PROBE_MS = +process.env.GEN_PROBE_MS || 140, PROBE_DEPTH = +process.env.GEN_PROBE_DEPTH || 9, MOVE_MS = +process.env.GEN_MOVE_MS || 40;
 
 function think(fen, o) { E.clear(); return E.think(Object.assign({ fen, analysis: true }, o)); }
 
@@ -57,9 +60,9 @@ for (let g = 0; g < GAMES; g++) {
     if (holds && ply >= 12 && ply - lastAt >= 6 && perGame < 3) {
       const fen = p.fen();
       tried++;
-      const q = think(fen, { timeMs: 140, maxDepth: 9 });
+      const q = think(fen, { timeMs: PROBE_MS, maxDepth: PROBE_DEPTH });
       if (q.uci && q.uci.endsWith('*')) {
-        const qn = think(fen, { timeMs: 120, maxDepth: 9, noGoldenRoot: true });
+        const qn = think(fen, { timeMs: Math.round(PROBE_MS * 0.85), maxDepth: PROBE_DEPTH, noGoldenRoot: true });
         if (q.score - qn.score >= GAIN * 0.7 && qn.score <= NORMAL_MAX + 150) {
           const v = verify(fen);
           if (v) { v.game = SEED + ':' + g; v.ply = ply; fs.appendFileSync(OUT, JSON.stringify(v) + '\n'); found++; lastAt = ply; perGame++; }
@@ -67,7 +70,7 @@ for (let g = 0; g < GAMES; g++) {
       }
     }
     E.clear();
-    const r = E.think({ fen: GC.START_FEN, moves, timeMs: 40, level: side === 0 ? lw : lb });
+    const r = E.think({ fen: GC.START_FEN, moves, timeMs: MOVE_MS, level: side === 0 ? lw : lb });
     const m = r.uci && p.moveFromUci(r.uci);
     if (!m) break;
     p.makeMove(m); moves.push(r.uci);

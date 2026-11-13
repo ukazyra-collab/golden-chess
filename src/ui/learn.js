@@ -60,6 +60,9 @@ var GCLearn = (function () {
         'g8b3*': ['a7b6', 'h5h6', 'b6b5', 'b3c1', 'b5c4', 'h6h7'] } }
   ];
   var MADE = typeof JOKER_PUZZLES !== 'undefined' ? JOKER_PUZZLES : [], REAL = typeof JOKER_REAL !== 'undefined' ? JOKER_REAL : [];
+  // Joker Pro's puzzle pack (src/pack.js, made the same way): with Pro the series goes on into it, and the marathon
+  // runs through everything
+  var PACK = typeof JOKER_PACK !== 'undefined' ? JOKER_PACK : [];
   var PUZZLES = INTRO.slice();
   [1, 2, 3].forEach(function (lv) {
     var of = function (list) { return list.filter(function (p) { return (p.lvl || 1) === lv; }); }, g = of(MADE), r = of(REAL), i = 0, j = 0;
@@ -273,6 +276,12 @@ var GCLearn = (function () {
   function create(ctx) {
     var T = ctx.T, esc = ctx.esc;
     var demos = [], playDemo = null, view = '', io = null, puzzle = null, pIndex = 0;
+    // Joker Pro (ctx.pro: { on(), sells(), sheet(why), t(key, vars), mark(), variant(p, k) }): the series with the pack
+    var pro = ctx.pro || null, ALL = PUZZLES.concat(PACK);
+    function proOn() { return !!(pro && pro.on()); }
+    function list() { return proOn() && PACK.length ? ALL : PUZZLES; }
+    var runBest = 0, runTimer = 0;
+    try { runBest = +localStorage.getItem('goldenchess.runBest') || 0; } catch (e) { runBest = 0; }
     var done = {};
     try { done = JSON.parse(localStorage.getItem('goldenchess.puzzles') || '{}') || {}; } catch (e) { done = {}; }
     // solved puzzles by id (the first version kept the three of then by their place: 0, 1, 2)
@@ -282,16 +291,19 @@ var GCLearn = (function () {
     // (and if the one the player was on is solved now, go on to the first one that is not)
     function reload() {
       try { done = JSON.parse(localStorage.getItem('goldenchess.puzzles') || '{}') || {}; } catch (e) { done = {}; }
-      if (done[PUZZLES[pIndex].id]) for (var j = 0; j < PUZZLES.length; j++) if (!done[PUZZLES[j].id]) { pIndex = j; savePlace(); break; }
+      var L = list();
+      if (pIndex >= L.length) pIndex = L.length - 1;
+      if (done[L[pIndex].id]) for (var j = 0; j < L.length; j++) if (!done[L[j].id]) { pIndex = j; savePlace(); break; }
     }
     // where the player is: the puzzle open last time, else the first one not solved yet
     (function () {
       var at = -1;
-      try { var id = localStorage.getItem('goldenchess.puzzleAt'); for (var k = 0; k < PUZZLES.length; k++) if (PUZZLES[k].id === id) at = k; } catch (e) { /* ignore */ }
-      if (at < 0) for (var j = 0; j < PUZZLES.length; j++) if (!done[PUZZLES[j].id]) { at = j; break; }
+      var L = list();
+      try { var id = localStorage.getItem('goldenchess.puzzleAt'); for (var k = 0; k < L.length; k++) if (L[k].id === id) at = k; } catch (e) { /* ignore */ }
+      if (at < 0) for (var j = 0; j < L.length; j++) if (!done[L[j].id]) { at = j; break; }
       pIndex = Math.max(0, at);
     })();
-    function savePlace() { try { localStorage.setItem('goldenchess.puzzleAt', PUZZLES[pIndex].id); } catch (e) { /* ignore */ } }
+    function savePlace() { try { localStorage.setItem('goldenchess.puzzleAt', list()[pIndex].id); } catch (e) { /* ignore */ } }
     function watch(d) {
       if (!io && typeof IntersectionObserver !== 'undefined') {
         io = new IntersectionObserver(function (entries) {
@@ -328,6 +340,7 @@ var GCLearn = (function () {
       demos.forEach(function (d) { d.stop(); if (io) io.unobserve(d.mb.wrap); });
       demos = [];
       if (puzzle) { puzzle.clearTimers(); puzzle = null; }
+      clearTimeout(runTimer);
       host.innerHTML = '';
       var inn = el('div', 'page-in learn');
       host.appendChild(inn);
@@ -374,23 +387,42 @@ var GCLearn = (function () {
       var xpRow = el('div', 'tutor-xp'), acts = el('div', 'try-actions');
       xpRow.id = 'tutor-xp';
       var rulesBtn = el('button', 'linkbtn rules-btn', esc(T('rulesOpen'))); rulesBtn.type = 'button'; rulesBtn.id = 'btn-rules'; rulesBtn.setAttribute('aria-expanded', 'false');
-      side.appendChild(xpRow); side.appendChild(acts); side.appendChild(rulesBtn);
+      // Joker Pro's pack: for a Pro player the way into the marathon; where Pro is sold, what the pack holds
+      var packBtn = el('button', 'pack-line'); packBtn.type = 'button'; packBtn.id = 'pack-line'; packBtn.hidden = true;
+      packBtn.addEventListener('click', function () {
+        if (proOn()) startRun();
+        else { if (ctx.track) ctx.track('pro_gate', { why: 'puzzles' }); pro.sheet('puzzles'); }
+      });
+      side.appendChild(xpRow); side.appendChild(acts); side.appendChild(packBtn); side.appendChild(rulesBtn);
       body.appendChild(bhost); body.appendChild(side); ts.appendChild(body);
       inn.appendChild(ts);
       function btn(label, cls, fn, id) { var b = el('button', 'sbtn' + (cls ? ' ' + cls : ''), esc(label)); b.type = 'button'; if (id) b.id = id; b.addEventListener('click', fn); return b; }
       var LVL = ['', 'lvlEasy', 'lvlMedium', 'lvlHard'];
-      function solvedCount() { return PUZZLES.filter(function (p) { return done[p.id]; }).length; }
+      function solvedCount() { return list().filter(function (p) { return done[p.id]; }).length; }
+      function drawPack() {
+        var on = proOn(), show = !!pro && PACK.length > 0 && !inRun && (on || pro.sells()) && solvedCount() >= INTRO.length;
+        packBtn.hidden = !show;
+        if (!show) return;
+        packBtn.className = 'pack-line' + (on ? ' on' : '');
+        packBtn.innerHTML = on ? '<b>' + esc(pro.t('packOpen')) + '</b><span>' + esc(pro.t('packSub')) + (runBest ? ' · ' + esc(pro.t('runBest', { n: runBest })) : '') + '</span>'
+          : pro.mark() + '<span>' + esc(pro.t('packLine', { n: PACK.length })) + '</span>';
+      }
       function drawHead() {
-        drawDailyLine();
-        dLine.hidden = inDaily;
+        drawDailyLine(); drawPack();
+        dLine.hidden = inDaily || inRun;
+        if (inRun) {
+          tTitle.innerHTML = esc(pro.t('runT')) + '<span class="try-lvl l' + (cur.lvl || 1) + '">' + esc(T(LVL[cur.lvl || 1])) + '</span>';
+          tCount.textContent = pro.t('runCount', { n: run.n }) + (runBest ? ' · ' + pro.t('runBest', { n: runBest }) : '');
+          return;
+        }
         if (inDaily) {
           tTitle.innerHTML = esc(T('dailyN', { n: dailyNow.n })) + '<span class="try-lvl l' + dailyNow.lvl + '">' + esc(T(['', 'lvlEasy', 'lvlMedium', 'lvlHard'][dailyNow.lvl])) + '</span>';
           var dt = new Date(); try { tCount.textContent = dt.toLocaleDateString(document.documentElement.lang === 'ru' ? 'ru-RU' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { tCount.textContent = ''; }
           return;
         }
-        var p = PUZZLES[pIndex];
+        var p = list()[pIndex];
         tTitle.innerHTML = esc(T('puzzleN', { n: pIndex + 1 })) + '<span class="try-lvl l' + (p.lvl || 1) + '">' + esc(T(LVL[p.lvl || 1])) + '</span>';
-        tCount.textContent = T('solvedOf', { n: solvedCount(), total: PUZZLES.length });
+        tCount.textContent = T('solvedOf', { n: solvedCount(), total: list().length });
       }
       // the player's level under the board: the rank, the bar to the next level, and what the last puzzle gave
       function drawXp(aw) {
@@ -416,8 +448,9 @@ var GCLearn = (function () {
         } else bar.style.width = pct(L) + '%';
       }
       function nextIndex() {
-        for (var k = 1; k <= PUZZLES.length; k++) { var j = (pIndex + k) % PUZZLES.length; if (!done[PUZZLES[j].id]) return j; }
-        return (pIndex + 1) % PUZZLES.length;
+        var L = list();
+        for (var k = 1; k <= L.length; k++) { var j = (pIndex + k) % L.length; if (!done[L[j].id]) return j; }
+        return (pIndex + 1) % L.length;
       }
       // ---- the coach's words
       // what a Joker Move does, the plainest first: starts a mate, blocks a check, forks, pins, takes a piece out of danger
@@ -470,15 +503,24 @@ var GCLearn = (function () {
           acts.appendChild(btn(T('morePuzzles'), 'hot', function () { inDaily = false; open(pIndex); }, 'try-next'));
           return;
         }
+        if (inRun) {
+          if (kind === 'solved') acts.appendChild(btn(pro.t('runSkip'), 'hot', function () { runShow(); }, 'try-next'));
+          else {
+            acts.appendChild(btn(T('puzzleHint'), '', function (e) { puzzle.hint(); setStatus(T('idea_' + (ideaOf(cur) || 'none')), ''); e.currentTarget.disabled = true; }, 'try-hint'));
+            acts.appendChild(btn(T('showAnswer'), '', function () { puzzle.answer(); }, 'try-answer'));
+          }
+          acts.appendChild(btn(pro.t('runExit'), '', function () { runExit(); }, 'run-exit'));
+          return;
+        }
         if (kind === 'solved') {
-          if (solvedCount() < PUZZLES.length) acts.appendChild(btn(T('nextPuzzle'), 'hot', function () { open(nextIndex()); }, 'try-next'));
-          else { status.textContent = ui.goodText(PUZZLES[pIndex]) + ' ' + T('allSolved'); acts.appendChild(btn(T('learnCta'), 'hot', function () { ctx.go('bots'); }, 'try-play')); }
+          if (solvedCount() < list().length) acts.appendChild(btn(T('nextPuzzle'), 'hot', function () { open(nextIndex()); }, 'try-next'));
+          else { status.textContent = ui.goodText(list()[pIndex]) + ' ' + T('allSolved'); acts.appendChild(btn(T('learnCta'), 'hot', function () { ctx.go('bots'); }, 'try-play')); }
           acts.appendChild(btn(T('tryAgain'), '', function () { open(pIndex); }, 'try-again'));
           return;
         }
         // the hint comes in two steps: the piece that jumps (ringed), then what to look for
         var asked = 0, hb = btn(T('puzzleHint'), '', function () {
-          var p = inDaily ? dailyNow.p : PUZZLES[pIndex];
+          var p = inDaily ? dailyNow.p : cur;
           if (!asked++) { puzzle.hint(); setStatus(p.hint ? T(p.hint) : T('pzHint'), ''); if (p.hint) hb.disabled = true; }
           else { puzzle.hints++; setStatus(T('idea_' + (ideaOf(p) || 'none')), ''); hb.disabled = true; }
         }, 'try-hint');
@@ -499,8 +541,22 @@ var GCLearn = (function () {
             drawHead(); actions('daily-solved'); drawXp();
             return;
           }
+          if (inRun) {
+            // the marathon: the count is of puzzles found in a row (an answer shown starts it again); a puzzle turned
+            // around is its original for the XP; the next one comes by itself
+            var base = cur.of || cur.id, mine = !how.shown, fresh = mine && done[base] !== 1;
+            done[base] = mine ? 1 : (done[base] || 2); saveDone();
+            if (mine) { run.n++; if (run.n > runBest) { runBest = run.n; try { localStorage.setItem('goldenchess.runBest', String(runBest)); } catch (e) { /* ignore */ } } } else run.n = 0;
+            drawHead(); actions('solved');
+            var ar = ctx.puzzleDone ? ctx.puzzleDone(cur, { first: fresh, shown: how.shown, hint: how.hint, wrong: how.wrong }) : null;
+            if (ar) drawXp(ar);
+            if (ctx.track) ctx.track('puzzle_solved', { puzzle: base, first: fresh, own: mine, run: run.n });
+            clearTimeout(runTimer);
+            runTimer = setTimeout(function () { if (inRun && puzzle && puzzle.solved && inn.isConnected) runShow(); }, 1700);
+            return;
+          }
           // found by the player: 1; the answer was shown: 2 (it counts as passed, and its XP can still be earned)
-          var p = PUZZLES[pIndex], first = !done[p.id], own = !how.shown, firstOwn = own && done[p.id] !== 1;
+          var p = list()[pIndex], first = !done[p.id], own = !how.shown, firstOwn = own && done[p.id] !== 1;
           done[p.id] = own ? 1 : (done[p.id] || 2); saveDone(); drawHead(); actions('solved');
           var aw = ctx.puzzleDone ? ctx.puzzleDone(p, { first: firstOwn, shown: how.shown, hint: how.hint, wrong: how.wrong }) : null;
           if (aw) {
@@ -524,8 +580,10 @@ var GCLearn = (function () {
           setTimeout(function () { f.remove(); }, cls === 'good' ? 1700 : 1100);
         }
       };
+      var cur = null; // the puzzle on the board
       function show(p, guided) {
         if (puzzle) puzzle.clearTimers();
+        cur = p;
         bhost.innerHTML = '';
         puzzle = new Puzzle(bhost, p, ctx, ui);
         puzzle.mb.wrap.classList.add('try-board'); puzzle.mb.wrap.id = 'try-board';
@@ -538,10 +596,32 @@ var GCLearn = (function () {
       function openDaily() { inDaily = true; show(dailyNow.p, false); }
       // the very first puzzle of a newcomer is led by the hand: the coach names the move and rings the piece
       function open(i) {
-        inDaily = false;
+        inDaily = false; inRun = false; clearTimeout(runTimer);
         pIndex = i; savePlace();
-        show(PUZZLES[i], !solvedCount());
+        show(list()[i], !solvedCount());
       }
+      // ---- the marathon (Joker Pro): every puzzle there is, one after another, the easy ones first, in an order of its
+      // own each time. Once all have been on the board in this run they come back turned around (the colours swapped,
+      // the board mirrored), so it never ends.
+      var inRun = false, run = null;
+      function runPick() {
+        var pool = ALL.filter(function (p) { return !p.prompt; }), left = pool.filter(function (p) { return !run.seen[p.id]; });
+        if (!left.length) { run.turn = run.turn % 3 + 1; run.seen = {}; left = pool; }
+        var lv = left.reduce(function (m, p) { return Math.min(m, p.lvl || 1); }, 9), from = left.filter(function (p) { return (p.lvl || 1) === lv; });
+        var fresh = from.filter(function (p) { return done[p.id] !== 1; });
+        if (fresh.length) from = fresh;
+        var p = from[Math.floor(Math.random() * from.length)];
+        run.seen[p.id] = 1;
+        return (run.turn && pro.variant ? pro.variant(p, run.turn) : null) || p;
+      }
+      function runShow() { clearTimeout(runTimer); if (!inRun) return; show(runPick(), false); }
+      function startRun() {
+        if (!proOn()) return;
+        inRun = true; inDaily = false; run = { n: 0, turn: 0, seen: {} };
+        if (ctx.track) ctx.track('run_start', {});
+        runShow();
+      }
+      function runExit() { if (ctx.track) ctx.track('run_end', { n: run ? run.n : 0 }); open(Math.min(pIndex, list().length - 1)); }
       // on a phone the first screen is the whole puzzle: the board takes the height the coach and the buttons leave
       function fitTry() {
         if (!inn.isConnected) return;
@@ -555,7 +635,7 @@ var GCLearn = (function () {
       // any time); a new player goes through the series undisturbed, and a reload keeps the place in it
       var asked = wantDaily; wantDaily = false;
       if (dailyNow && !dailyNow.solved && (asked || (ctx.newcomer && !ctx.newcomer() && (!ctx.dailyAuto || ctx.dailyAuto())))) openDaily();
-      else open(Math.min(pIndex, PUZZLES.length - 1));
+      else open(Math.min(pIndex, list().length - 1));
 
       // ---- behind the button: the rule, why it matters, every rule
       var more = el('div', 'learn-more'); more.id = 'learn-more'; more.hidden = true;
@@ -630,8 +710,9 @@ var GCLearn = (function () {
       demos.forEach(function (d) { d.wanted = v === 'learn'; d.update(); });
       if (playDemo) { playDemo.wanted = v === 'play' && playDemo.mb.wrap.isConnected; playDemo.update(); }
       if (puzzle && v !== 'learn') puzzle.clearTimers();
+      if (v !== 'learn') clearTimeout(runTimer);
     }
-    return { render: render, active: active, heroBoard: heroBoard, dailyBoard: dailyBoard, showDaily: showDaily, reload: reload, PUZZLES: PUZZLES };
+    return { render: render, active: active, heroBoard: heroBoard, dailyBoard: dailyBoard, showDaily: showDaily, reload: reload, PUZZLES: PUZZLES, PACK: PACK };
   }
-  return { create: create, DEMOS: DEMOS, PUZZLES: PUZZLES, REEL: REEL };
+  return { create: create, DEMOS: DEMOS, PUZZLES: PUZZLES, PACK: PACK, REEL: REEL };
 })();

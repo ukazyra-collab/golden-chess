@@ -51,7 +51,7 @@ if (/'/.test(PIECE)) throw new Error('piece.svg contains a single quote');
 // each copy put in the page gets its own ids (clip paths, masks)
 let uniqN = 0;
 const uniq = (svg) => { const n = 'b' + (++uniqN); return svg.replace(/id="([^"]+)"/g, 'id="$1' + n + '"').replace(/url\(#([^)]+)\)/g, 'url(#$1' + n + ')'); };
-const mainSrc = [core, engine, rd('src/book.js'), rd('src/review.js'), rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/puzzles.js'), (fs.existsSync(path.join(__dirname, 'src/realgames.js')) ? rd('src/realgames.js') : ''), (fs.existsSync(path.join(__dirname, 'src/daily.js')) ? rd('src/daily.js') : ''), rd('src/habits.js'), rd('src/progress.js'), rd('src/ui/learn.js'), rd('src/ui/bots.js'), rd('src/ui/app.js').replace("'__LOGO_SVG__'", () => "'" + LOGO + "'").replace("'__WORDMARK__'", () => "'" + WORDMARK + "'")].join('\n;\n').split("'__PIECE_SVG__'").join("'" + PIECE + "'").split("'__ICON_INNER__'").join("'" + ICON_INNER + "'");
+const mainSrc = [core, engine, rd('src/book.js'), rd('src/review.js'), rd('src/ui/sound.js'), rd('src/ui/board.js'), rd('src/puzzles.js'), (fs.existsSync(path.join(__dirname, 'src/realgames.js')) ? rd('src/realgames.js') : ''), (fs.existsSync(path.join(__dirname, 'src/daily.js')) ? rd('src/daily.js') : ''), rd('src/habits.js'), rd('src/progress.js'), rd('src/pro.js'), (fs.existsSync(path.join(__dirname, 'src/pack.js')) ? rd('src/pack.js') : ''), rd('src/ui/learn.js'), rd('src/ui/bots.js'), rd('src/ui/app.js').replace("'__LOGO_SVG__'", () => "'" + LOGO + "'").replace("'__WORDMARK__'", () => "'" + WORDMARK + "'")].join('\n;\n').split("'__PIECE_SVG__'").join("'" + PIECE + "'").split("'__ICON_INNER__'").join("'" + ICON_INNER + "'");
 const supa = rd('vendor/supabase-js-2.117.2.umd.js');
 for (const [name, src] of [['worker', workerSrc], ['main', mainSrc], ['supabase', supa]]) if (/<\/script/i.test(src)) throw new Error(name + ' contains </script');
 
@@ -85,6 +85,13 @@ const webBody = body.replace(/^<title>[^<]*<\/title>\n/, '').replace(/^<meta nam
 write('dist/golden-chess.html', artifactBody);
 // the retention prototype's preview (a tour of the new screens with made-up days), never deployed
 write('dist/proto.html', page('window.GC_SITE = ' + JSON.stringify(SITE) + ';\nwindow.GC_PROTO = true;\n'));
+// the Joker Pro prototype (src/pro.js; NOT released): the same page under its own name, for the owner's artifact, and
+// wrapped in a document so that it opens from a folder
+if (fs.existsSync(path.join(__dirname, 'src/pro.js'))) {
+  const proBody = page('window.GC_SITE = ' + JSON.stringify(SITE) + ';\nwindow.GC_PROTO = true;\n').replace(/^<title>[^<]*<\/title>/, '<title>Joker Pro prototype</title>');
+  write('dist/pro-artifact.html', proBody);
+  write('dist/joker-pro-prototype.html', doc('', proBody));
+}
 write('dist/preview.html', doc('', artifactBody));
 // the build's id: the app (which shows the live site) checks it when it opens or comes back and reloads when the site
 // has moved on, instead of waiting for the phone's cached copy to expire

@@ -4,7 +4,7 @@ self.onmessage = function (e) {
   if (d.type === 'clear') { Engine.clear(); return; }
   if (d.type === 'think') {
     var res = Engine.think({
-      fen: d.fen, moves: d.moves, timeMs: d.timeMs, level: d.level, lv: d.lv, analysis: !!d.analysis, maxDepth: d.maxDepth,
+      fen: d.fen, moves: d.moves, timeMs: d.timeMs, level: d.level, lv: d.lv, analysis: !!d.analysis, maxDepth: d.maxDepth, noGoldenRoot: !!d.noGoldenRoot,
       onInfo: d.analysis ? function (info) { self.postMessage({ type: 'info', id: d.id, info: info }); } : null
     });
     self.postMessage({ type: 'result', id: d.id, res: res });

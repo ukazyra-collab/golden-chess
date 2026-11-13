@@ -223,7 +223,7 @@ export function createLogic(opts) {
   // lifecycle emails (opts.mail; the database part: supabase/migrations/*_email_lifecycle.sql)
   const MAIL = !!opts.mail;
   // the game layer on the account (opts.prog; the database part: supabase/migrations/*_progress.sql)
-  const PROG = !!opts.prog, PROG_MAX = 24000; // a save as JSON, characters
+  const PROG = !!opts.prog, PROG_MAX = 64000; // a save as JSON, characters (the solved puzzles of Joker Pro's pack are in it)
   const REPORT_WHY = new Set(['engine', 'abuse', 'other']);
   const REPORTS_A_DAY = 20;
   const clampInt = (x, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(x) || 0)));

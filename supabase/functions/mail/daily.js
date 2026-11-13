@@ -164,25 +164,31 @@ var Habits = (function () {
   }
 
   // ---- the streak
-  function runs(days) {
-    var out = [], cur = null;
-    days.forEach(function (d) {
-      if (cur && diffDays(cur.last, d) <= 3) { cur.count++; cur.last = d; } else { cur = { first: d, last: d, count: 1 }; out.push(cur); }
+  // frozen: days a freeze covered (Joker Pro, a prototype): they carry a run across a break and don't count as days played
+  function runs(days, frozen) {
+    var out = [], cur = null, real = {}, all = days;
+    if (frozen && frozen.length) { days.forEach(function (d) { real[d] = 1; }); all = uniqSorted(days.concat(frozen)); }
+    all.forEach(function (d) {
+      var ice = frozen && frozen.length && !real[d];
+      if (cur && diffDays(cur.last, d) <= 3) { if (!ice) cur.count++; cur.last = d; }
+      else if (!ice) { cur = { first: d, last: d, count: 1 }; out.push(cur); }
     });
     return out;
   }
   // count: the streak now; state: 'done' (played today), 'due' (played yesterday, today keeps it), 'paused' (one or two
   // days missed, today brings it back), 'none'; best: the longest ever; week: Monday to Sunday of this week
-  function streak(days, today) {
+  function streak(days, today, frozen) {
     days = uniqSorted(days).filter(function (d) { return d <= today; });
-    var rs = runs(days), best = 0;
+    frozen = uniqSorted(frozen).filter(function (d) { return d < today; });
+    var rs = runs(days, frozen), best = 0, ice = {};
+    frozen.forEach(function (d) { ice[d] = 1; });
     rs.forEach(function (r) { best = Math.max(best, r.count); });
     var last = rs.length ? rs[rs.length - 1] : null, gap = last ? diffDays(last.last, today) : 99;
     var state = !last ? 'none' : gap === 0 ? 'done' : gap === 1 ? 'due' : gap <= 3 ? 'paused' : 'none';
     var count = state === 'none' ? 0 : last.count;
     var on = {}; days.forEach(function (d) { on[d] = 1; });
     var mon = addDays(today, 1 - weekday(today)), week = [];
-    for (var i = 0; i < 7; i++) { var d = addDays(mon, i); week.push({ d: d, on: !!on[d], today: d === today, future: d > today }); }
+    for (var i = 0; i < 7; i++) { var d = addDays(mon, i); week.push({ d: d, on: !!on[d], frozen: !on[d] && !!ice[d], today: d === today, future: d > today }); }
     return { count: count, best: best, state: state, missed: state === 'paused' ? gap - 1 : 0, last: last ? last.last : null, week: week, lost: !!last && state === 'none' && last.count >= 2 ? last.count : 0 };
   }
   // a player who has been here on an earlier day (the Play tab then shows the daily puzzle instead of the reel)

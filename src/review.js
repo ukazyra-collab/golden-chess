@@ -3,6 +3,13 @@
  * scale: brilliant, great, best, excellent, good, inaccuracy, mistake, miss, blunder, plus missed Joker Move), accuracy
  * and a rough game rating per side, accuracy by phase, the Joker Moves each side missed, and the coach's reason for a
  * move. Pure functions: the UI turns the keys into words. Shared by the page and the tests (Node).
+ *
+ * The same review "blind" (analyze's opt.blind; Joker Pro: the Joker analysis of a game is a thing of its own, see
+ * src/pro.js): the moves that were played are judged as fully as ever, but nothing is said of a Joker Move nobody
+ * played. A move is held against the best normal move, no line shows a Joker Move that wasn't played in the game,
+ * no Joker Move counts as missed, and the one a side did play gets no verdict (class 'joker'; its loss still counts in
+ * the accuracy). The blind review is whole in itself: its accuracy is the accuracy of the moves as it judges them, so
+ * the numbers move when the Joker analysis is opened.
  */
 var GCReview = (function (GC) {
   'use strict';
@@ -130,13 +137,18 @@ var GCReview = (function (GC) {
     return { points: pts };
   }
   // a line of play from `fen` (up to `max` plies) seen by `c`: the moves (SAN, golden ones marked), the first move's
-  // point (what it takes, what it hits, check), the material it wins or loses for `c`, a mate at the end
-  function story(fen, ucis, c, max) {
+  // point (what it takes, what it hits, check), the material it wins or loses for `c`, a mate at the end.
+  // opt.blind: the line stops before a Joker Move, unless the game itself went that way up to it (opt.game: the
+  // moves played from `fen` on)
+  function story(fen, ucis, c, max, opt) {
     var pos = new GC.Position(fen), n0 = counts(pos), m0 = material(pos, c) - material(pos, c ^ 1);
     var out = { fen: fen, ucis: [], sans: [], golden: [], swings: [], first: null, mate: -1, swing: 0, gain: null };
+    var blind = !!(opt && opt.blind), played = (opt && opt.game) || [], same = true;
     for (var i = 0; ucis && i < ucis.length && i < (max || 8); i++) {
       var m = pos.moveFromUci(ucis[i]);
       if (!m) break;
+      if (same && played[i] !== ucis[i]) same = false;
+      if (blind && (m & F_GOLDEN) && !same) { out.cut = true; break; }
       var san = pos.san(m, pos.legalMoves(true)), side = pos.side, to = (m >> 7) & 127;
       var took = (m & F_CAPTURE) ? (pos.board[to] & 7) || 1 : 0;
       pos.makeMove(m);
@@ -166,17 +178,26 @@ var GCReview = (function (GC) {
 
   // input: { fens: [fen before ply 0 .. after the last ply], records: [{ uci, san, golden, color }],
   //          scores: [{ score, mate, uci, pv, alt }] for each fen (side to move's view; missing ones are skipped) }
-  function analyze(input) {
+  // opt.blind: the review without the Joker analysis (see the top of the file)
+  function analyze(input, opt) {
     var fens = input.fens, recs = input.records, sc = input.scores, moves = [], i;
+    var blind = !!(opt && opt.blind), refs = [];
     var acc = [[], []], counts = [{}, {}], phases = [{}, {}], missed = [], golden = [null, null];
+    var gameFrom = function (k) { var out = []; for (var j = k; j < recs.length && out.length < 8; j++) out.push(recs[j].uci); return out; };
     for (i = 0; i < recs.length; i++) {
       var e = sc[i], e2 = sc[i + 1];
       if (!e || !e2 || !fens[i] || !fens[i + 1]) continue;
       var rec = recs[i], c = rec.color, played = rec.uci;
-      var before = winPct(cpOf(e)), after = winPct(-cpOf(e2)), drop = Math.max(0, before - after);
+      // what the move is held against: the engine's best, or, blind, the best normal move where the best was a Joker
+      // Move that wasn't played
+      var after = winPct(-cpOf(e2));
+      var gbest = !!(e.uci && e.uci.indexOf('*') >= 0), hide = blind && !!rec.golden;
+      var ref = blind && gbest && !rec.golden ? (e.alt || { score: -cpOf(e2), mate: 0, uci: null, pv: [] }) : e;
+      refs[i] = ref;
+      var before = winPct(cpOf(ref)), drop = Math.max(0, before - after);
       var pos = new GC.Position(fens[i]), m = pos.moveFromUci(played), posAfter = new GC.Position(fens[i + 1]);
       var prev = i > 0 ? moves[i - 1] : null, oppErred = prev && prev.drop >= INACCURACY;
-      var isBest = played === e.uci;
+      var isBest = played === ref.uci;
       var to = m ? (m >> 7) & 127 : -1, moved = m ? pos.board[m & 127] & 7 : 0, took = m && (m & F_CAPTURE) ? VAL[pos.board[to] & 7] || 1 : 0;
       var cls;
       if (isBest || drop < EXCELLENT) {
@@ -192,7 +213,7 @@ var GCReview = (function (GC) {
       else cls = 'mistake';
       // the best move was golden, worth clearly more than any normal move, and it wasn't played
       var gm = null;
-      if (e.alt && !rec.golden) {
+      if (!blind && e.alt && !rec.golden) {
         var normal = winPct(cpOf(e.alt)), gain = before - normal;
         if (gain >= INACCURACY && drop >= INACCURACY) {
           gm = { ply: i, color: c, uci: e.uci, san: sanOf(fens[i], e.uci), before: before, normal: normal, after: after, gain: gain };
@@ -202,21 +223,22 @@ var GCReview = (function (GC) {
       }
       var a = moveAccuracy(drop), ph = phaseOf(pos, i);
       acc[c].push(a);
-      counts[c][cls] = (counts[c][cls] || 0) + 1;
+      if (hide) cls = 'joker'; // (blind) the Joker Move that was played: no verdict
+      else counts[c][cls] = (counts[c][cls] || 0) + 1;
       (phases[c][ph] = phases[c][ph] || []).push(a);
-      if (rec.golden) golden[c] = { ply: i, cls: cls, san: rec.san };
-      var follow = story(fens[i + 1], e2.pv && e2.pv.length ? e2.pv : (e2.uci ? [e2.uci] : []), c, 8);
-      var line = story(fens[i], e.pv && e.pv.length ? e.pv : (e.uci ? [e.uci] : []), c, 8);
-      moves[i] = { ply: i, color: c, cls: cls, drop: drop, acc: a, before: before, after: after, best: e.uci, bestSan: isBest ? rec.san : sanOf(fens[i], e.uci),
+      if (rec.golden) golden[c] = hide ? { ply: i, san: rec.san, hide: true } : { ply: i, cls: cls, san: rec.san, best: isBest ? '' : sanOf(fens[i], e.uci) };
+      var follow = story(fens[i + 1], e2.pv && e2.pv.length ? e2.pv : (e2.uci ? [e2.uci] : []), c, 8, blind ? { blind: true, game: gameFrom(i + 1) } : null);
+      var line = story(fens[i], ref.pv && ref.pv.length ? ref.pv : (ref.uci ? [ref.uci] : []), c, 8, blind ? { blind: true, game: gameFrom(i) } : null);
+      moves[i] = { ply: i, color: c, cls: cls, drop: drop, acc: a, before: before, after: after, best: hide ? null : ref.uci, bestSan: hide || !ref.uci ? '' : isBest ? rec.san : sanOf(fens[i], ref.uci),
         golden: !!rec.golden, phase: ph, missedGolden: gm, follow: follow, line: line,
-        reason: isBest && cls !== 'brilliant' ? null : reason(i, cls, follow, line, before, after) };
+        reason: hide || (isBest && cls !== 'brilliant') ? null : reason(i, cls, follow, line, before, after) };
     }
     // the coach's reason for a move, worst news first. reply: what the opponent's best answer does (takes, a Joker Move,
     // hits pieces); lose: what the line after the move costs; win: what the best line would have won
     // before/after: the mover's winning chances before the move and after it. Material counted at the end of a line can
     // be in the middle of a trade, so it is only said when the engine's score agrees with it.
     function reason(k, cls, follow, line, before, after) {
-      var e = sc[k], e2 = sc[k + 1], rec = recs[k], c = rec.color;
+      var e = refs[k] || sc[k], e2 = sc[k + 1], rec = recs[k], c = rec.color;
       if (cls === 'brilliant') return { key: 'sacrifice' };
       if (e.mate > 0 && !(e2.mate < 0)) return { key: 'missedMate', n: e.mate };
       if (e2.mate > 0) return { key: 'allowsMate', n: e2.mate, reply: follow.first };

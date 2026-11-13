@@ -721,7 +721,7 @@ if (FAIR) { // (GC_FAIR=off: the release config, fair play off and its migration
   check('progress: one player\'s, not another\'s', (await ok(X1, { action: 'progress' })).data === null && ((await prof(X1)).xp || 0) === 0);
   r = await call(X2, { action: 'progress', data: [1, 2] });
   check('progress: a list is not a save', r.body.error === 'bad_data', r.body);
-  r = await call(X2, { action: 'progress', data: { v: 1, junk: 'x'.repeat(30000) } });
+  r = await call(X2, { action: 'progress', data: { v: 1, junk: 'x'.repeat(70000) } });
   check('progress: too big is refused, the old one stays', r.body.error === 'too_big' && (await ok(X2, { action: 'progress' })).data.prog.xp === 1234, r.body);
   r = await ok(X2, { action: 'progress', data: { v: 1, prog: { xp: 1e12 } } });
   check('progress: the XP has a ceiling', r.xp === 5000000 && (await prof(X2)).xp === 5000000, r.xp);

@@ -23,6 +23,9 @@ const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
 
 const { repo, db, addHouse } = createMemoryRepo(now);
 const avatars = new Map(); // uid -> JPEG bytes
+// Joker Pro's paying side in memory: what Stripe would hold about an account, the payment pages asked for
+const billing = new Map(), sessions = new Map(), portalVisits = [];
+let founderBase = 0;
 
 // ---- SSE "realtime"
 const subs = new Map(); // topic -> Set<{res, uid}>
@@ -162,6 +165,81 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify(out));
     return;
   }
+  // ---- Joker Pro's paying side (supabase/functions/pay), in memory: the same answers to the page, and two pages
+  // of its own in place of Stripe's (the payment page, the page that manages a subscription)
+  if (req.method === 'POST' && u.pathname === '/pay') {
+    const b = await readBody(req), uid = typeof b.token === 'string' ? b.token : '';
+    const send = (st, o) => { res.writeHead(st, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
+    const mode = db.proMode === undefined ? 'off' : db.proMode, founders = () => founderBase + [...db.profiles.values()].filter((p) => p.pro_founder).length;
+    if (b.action === 'public') return send(200, { on: mode === 'on', founders_left: Math.max(0, 1000 - founders()) });
+    const p = db.profiles.get(uid);
+    if (!uid || !p) return send(401, { error: 'auth' });
+    const admin = db.admins.has(uid), can = mode === 'on' || (mode === 'test' && admin), row = billing.get(uid) || null;
+    const state = () => {
+      const until = p.pro_until ? Date.parse(p.pro_until) : null, f = !!p.pro_founder;
+      return { pro: { on: f || (until !== null && until > now()), founder: f, until: f ? null : until, plan: p.pro_plan || null, status: (row && row.status) || null, cancel: !!(row && row.cancel),
+        trial: !!(row && row.trial), trialUsed: !!(row && row.trialUsed), sub: !!(row && row.sub) }, can, test: mode === 'test' || undefined, foundersLeft: Math.max(0, 1000 - founders()), now: now() };
+    };
+    const origin = 'http://' + req.headers.host, back = typeof b.back === 'string' && b.back.startsWith(origin) ? b.back.split('#')[0].split('?')[0] : origin + '/';
+    if (b.action === 'state') return send(200, state());
+    if (b.action === 'checkout') {
+      if (!['month', 'year', 'founder'].includes(b.plan)) return send(200, { error: 'bad_plan' });
+      if (!can) return send(200, { error: 'off' });
+      if (!accounts.emailOf.has(uid) || p.is_guest) return send(200, { error: 'guest' });
+      if (b.plan === 'founder') { if (p.pro_founder) return send(200, { error: 'already' }); if (founders() >= 1000) return send(200, { error: 'sold_out' }); }
+      else if (row && row.sub) return send(200, { already: true, url: origin + '/pay/portal?uid=' + encodeURIComponent(uid) + '&back=' + encodeURIComponent(back) });
+      const sid = 'cs_test_' + crypto.randomBytes(8).toString('hex');
+      sessions.set(sid, { sid, uid, plan: b.plan, back, lang: b.lang || '', status: 'open', trial: b.plan === 'year' && !(row && row.trialUsed) });
+      return send(200, { url: origin + '/pay/checkout?sid=' + sid });
+    }
+    if (b.action === 'confirm') {
+      const s = sessions.get(String(b.sid || ''));
+      if (!s) return send(200, { error: 'bad_session' });
+      if (s.uid !== uid) return send(200, { error: 'not_yours' });
+      return send(200, Object.assign(state(), { note: s.status === 'complete' ? 'applied' : 'not_complete' }));
+    }
+    if (b.action === 'portal') {
+      if (!row || !row.customer) return send(200, { error: 'no_customer' });
+      return send(200, { url: origin + '/pay/portal?uid=' + encodeURIComponent(uid) + '&back=' + encodeURIComponent(back) });
+    }
+    return send(200, { error: 'bad_action' });
+  }
+  // "Stripe's payment page": what is bought, Pay, Back
+  if (req.method === 'GET' && u.pathname === '/pay/checkout') {
+    const s = sessions.get(u.searchParams.get('sid') || '');
+    res.writeHead(s ? 200 : 404, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    if (!s) return res.end('no such session');
+    const price = { month: '$3.99 / month', year: s.trial ? '7 days free, then $29.99 / year' : '$29.99 / year', founder: '$79.99 once' }[s.plan];
+    return res.end('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Payment page (stand-in)</title>' +
+      '<body style="font:16px system-ui;max-width:420px;margin:40px auto;padding:0 16px"><h1 style="font-size:20px">Stand-in for Stripe\'s payment page</h1><p id="what">Joker Pro, ' + s.plan + ': <b id="price">' + price + '</b></p>' +
+      '<p><a id="pay" href="/pay/complete?sid=' + s.sid + '" style="display:inline-block;padding:12px 20px;background:#635bff;color:#fff;border-radius:8px;text-decoration:none">Pay</a> ' +
+      '<a id="back" href="' + s.back + '?pro=back" style="margin-left:14px">Back</a></p></body>');
+  }
+  // paid (or the trial started): what the webhook would do to the account, then back to the game
+  if (req.method === 'GET' && u.pathname === '/pay/complete') {
+    const s = sessions.get(u.searchParams.get('sid') || ''), p = s && db.profiles.get(s.uid);
+    if (!s || !p) { res.writeHead(404); return res.end('no such session'); }
+    if (s.status !== 'complete') {
+      s.status = 'complete';
+      const row = billing.get(s.uid) || { customer: true };
+      if (s.plan === 'founder') { p.pro_founder = true; p.pro_plan = 'founder'; row.sub = false; row.status = row.status ? 'canceled' : null; }
+      else {
+        p.pro_until = iso(now() + (s.trial ? 7 : s.plan === 'year' ? 365 : 30) * 86400000); if (!p.pro_founder) p.pro_plan = s.plan;
+        Object.assign(row, { sub: true, cancel: false, status: s.trial ? 'trialing' : 'active', trial: !!s.trial, trialUsed: !!(row.trialUsed || s.trial) });
+      }
+      billing.set(s.uid, row);
+    }
+    res.writeHead(302, { Location: s.back + '?pro=ok&sid=' + s.sid }); return res.end();
+  }
+  // "Stripe's page that manages a subscription": cancel (it then ends with the paid period), back to the game
+  if (req.method === 'GET' && u.pathname === '/pay/portal') {
+    const uid = u.searchParams.get('uid') || '', back = u.searchParams.get('back') || '/', row = billing.get(uid);
+    if (u.searchParams.get('cancel') && row) { row.cancel = true; res.writeHead(302, { Location: back }); return res.end(); }
+    portalVisits.push(uid);
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end('<!doctype html><meta charset="utf-8"><title>Subscription page (stand-in)</title><body style="font:16px system-ui;max-width:420px;margin:40px auto;padding:0 16px"><h1 style="font-size:20px">Stand-in for Stripe\'s subscription page</h1>' +
+      '<p><a id="cancel" href="/pay/portal?uid=' + encodeURIComponent(uid) + '&back=' + encodeURIComponent(back) + '&cancel=1">Cancel the subscription</a></p><p><a id="back" href="' + back + '">Back to the game</a></p></body>');
+  }
   // a player's finished games, newest first (the page reads them straight from the games table on Supabase)
   if (req.method === 'POST' && u.pathname === '/history') {
     const b = await readBody(req);
@@ -179,6 +257,7 @@ const server = http.createServer(async (req, res) => {
     const send = (st, o) => { res.writeHead(st, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
     if (!uid) return send(401, { error: 'not_signed_in' });
     if ([...db.games.values()].some((g) => g.status === 'playing' && (g.white_id === uid || g.black_id === uid))) return send(400, { error: 'live_game' });
+    { const bl = billing.get(uid); if (bl && bl.sub && !bl.cancel) return send(400, { error: 'active_subscription' }); }
     for (const g of db.games.values()) {
       if (g.status === 'waiting' && g.host_id === uid) Object.assign(g, { status: 'aborted', result: '*', reason: 'abort' });
       for (const k of ['white_id', 'black_id', 'host_id']) if (g[k] === uid) g[k] = null;
@@ -227,14 +306,14 @@ const server = http.createServer(async (req, res) => {
   // several players' names and pictures at once (profiles are public on Supabase)
   if (req.method === 'POST' && u.pathname === '/profiles') {
     const b = await readBody(req), rows = (Array.isArray(b.uids) ? b.uids : []).map((id) => db.profiles.get(id)).filter(Boolean)
-      .map((p) => ({ id: p.id, username: p.username, avatar_v: p.avatar_v || 0, xp: p.xp || 0 }));
+      .map((p) => ({ id: p.id, username: p.username, avatar_v: p.avatar_v || 0, xp: p.xp || 0, pro_until: p.pro_until || null, pro_founder: !!p.pro_founder }));
     res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ rows }));
     return;
   }
   // a player's page (profiles and ratings are public on Supabase)
   if (req.method === 'POST' && u.pathname === '/player') {
     const b = await readBody(req), p = db.profiles.get(b.uid) || null;
-    const profile = p ? { id: p.id, username: p.username, created_at: p.created_at, house: !!p.house, avatar_v: p.avatar_v || 0, xp: p.xp || 0 } : null;
+    const profile = p ? { id: p.id, username: p.username, created_at: p.created_at, house: !!p.house, avatar_v: p.avatar_v || 0, xp: p.xp || 0, pro_until: p.pro_until || null, pro_founder: !!p.pro_founder } : null;
     const ratings = [...db.ratings.values()].filter((r) => r.user_id === b.uid).map(({ pool, rating, rd, games, wins, draws, losses }) => ({ pool, rating, rd, games, wins, draws, losses }));
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ profile, ratings }));
@@ -272,6 +351,15 @@ const server = http.createServer(async (req, res) => {
     else if (b.op === 'profiles') out = [...db.profiles.values()].map(clone);
     else if (b.op === 'addhouse') out = { id: addHouse(b) };   // a house player: { name, level, target, style, online_from, online_hours }
     else if (b.op === 'addadmin') db.admins.add(b.uid);
+    else if (b.op === 'promode') db.proMode = b.mode;            // Joker Pro: 'off' | 'test' | 'on' (billing_config's mode)
+    else if (b.op === 'pro') {                                   // a player's Pro set straight: { uid, days (from now; negative: ended), founder, plan, sub, cancel, trialUsed, status }
+      const p = db.profiles.get(b.uid);
+      if (p) { p.pro_until = b.days == null ? null : iso(now() + b.days * 86400000); p.pro_founder = !!b.founder; p.pro_plan = b.founder ? 'founder' : b.plan || (b.days != null ? 'year' : null); }
+      billing.set(b.uid, { sub: !!b.sub, cancel: !!b.cancel, trialUsed: !!b.trialUsed, status: b.status || (b.sub ? 'active' : null), trial: !!b.trial, customer: true });
+      out = { profile: clone(p), billing: billing.get(b.uid) };
+    }
+    else if (b.op === 'founders') founderBase = +b.n || 0;        // Founder places already taken by others
+    else if (b.op === 'paylog') out = { sessions: [...sessions.values()].map(clone), portal: portalVisits.slice() };
     else if (b.op === 'forgetgames') { for (const g of db.games.values()) if (g.status === 'over') g.updated_at = iso(now() - 3600000); } // the finished games are an hour old (the search keeps just-met players apart)
     else if (b.op === 'rate') {                                  // a rating row for a player (tests of the leaderboard): { uid, pool, rating, games, wins, draws, losses }
       const t = new Date(now()).toISOString();
@@ -319,6 +407,7 @@ const server = http.createServer(async (req, res) => {
       await broadcast('g:' + g.id, 'state', Object.assign(clone(g), { now: now() }));
       out = clone(g);
     } else if (b.op === 'reset') {
+      delete db.proMode; billing.clear(); sessions.clear(); portalVisits.length = 0; founderBase = 0;
       for (const k of Object.keys(db)) db[k].clear();
       for (const k of ['emailOf', 'uidOf', 'pending', 'lastSent']) accounts[k].clear();
       accounts.outbox.length = 0;
