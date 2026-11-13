@@ -102,8 +102,11 @@ const fake = http.createServer((req, res) => {
     if ((x = m(/^POST webhook_endpoints\/(\w+)$/))) { const h = S.hooks.find((e) => e.id === x[1]); if (h && b.disabled === 'true') h.status = 'disabled'; return send(200, { id: x[1], status: h ? h.status : null }); }
     if (m(/^POST customers$/)) { const c = { id: id(S, 'cus'), email: b.email, name: b.name, metadata: b.metadata || {} }; S.customers.set(c.id, c); return send(200, c); }
     if ((x = m(/^POST customers\/(\w+)$/))) { const c = S.customers.get(x[1]); if (!c) return send(404, { error: { message: 'No such customer' } }); Object.assign(c, b); return send(200, c); }
+    if (m(/^GET account$/)) return send(200, { id: 'acct_standin', charges_enabled: !S.noCharges, payouts_enabled: true, details_submitted: true, country: 'AE', default_currency: 'aed' });
+    if ((x = m(/^GET webhook_endpoints\/(\w+)$/))) { const h = S.hooks.find((e) => e.id === x[1]); return h ? send(200, { id: h.id, url: h.url, status: h.status }) : send(404, { error: { message: 'No such webhook endpoint' } }); }
+    if ((x = m(/^GET billing_portal\/configurations\/(\w+)$/))) { const c = S.portals.find((e) => e.id === x[1]); return c ? send(200, { id: c.id, active: true }) : send(404, { error: { message: 'No such configuration' } }); }
     if (m(/^POST checkout\/sessions$/)) {
-      if (!S.customers.has(b.customer)) return send(400, { error: { type: 'invalid_request_error', code: 'resource_missing', message: 'No such customer' } });
+      if (b.customer !== undefined && !S.customers.has(b.customer)) return send(400, { error: { type: 'invalid_request_error', code: 'resource_missing', message: 'No such customer' } });
       const sid = 'cs_' + (S.livemode ? 'live' : 'test') + '_' + crypto.randomBytes(8).toString('hex');
       const s = { id: sid, object: 'checkout.session', mode: b.mode, customer: b.customer, client_reference_id: b.client_reference_id, metadata: b.metadata || {}, status: 'open', payment_status: 'unpaid',
         livemode: S.livemode, url: 'https://checkout.stripe.test/c/' + sid, subscription: null, payment_intent: null, params: b };
@@ -481,6 +484,26 @@ try {
   await q('select public.gc_merge_accounts($1::uuid, $2::uuid)', [CAT, BOB]);
   bl = await bill(BOB); p = await prof(BOB);
   check('a founder\'s seat moves to the kept account, which keeps its own subscription', p.pro_founder === true && p.pro_plan === 'founder' && bl.founder_payment === 'pi_cat' && bl.subscription === subL.id && bl.status === 'active' && bl.customer === annBill.customer, [bl, p]);
+
+  // ---- the live side asked whether it is ready: the account, each plan's payment page (closed again), the webhook, the portal
+  {
+    const Lv = sides.live, nCus = Lv.customers.size, nSes = Lv.sessions.size, nSub = Lv.subs.size, bills = JSON.stringify(await q('select * from public.billing order by user_id'));
+    check('the live check needs the owner\'s key', (await call(null, { action: 'livecheck', key: 'x'.repeat(40) })).status === 401);
+    r = await own('livecheck');
+    const made = Array.from(Lv.sessions.values()).slice(nSes);
+    check('the live side is ready: it may charge, the three pages open, the webhook and the portal are in place', r.status === 200 && r.body.ok === true && r.body.account.charges === true &&
+      r.body.pages.month === true && r.body.pages.year === true && r.body.pages.founder === true && r.body.hook === true && r.body.portal === true, r.body);
+    check('its pages were closed again, and held nobody: no customer, no account, no address', made.length === 3 && made.every((x) => x.status === 'expired' && x.customer === undefined && x.client_reference_id === undefined &&
+      x.metadata.livecheck === '1' && x.metadata.user_id === undefined && x.params.customer_email === undefined), made.map((x) => [x.status, x.customer, x.metadata]));
+    check('it made no customer and no subscription, and touched no account', Lv.customers.size === nCus && Lv.subs.size === nSub && JSON.stringify(await q('select * from public.billing order by user_id')) === bills);
+    Lv.noCharges = true;
+    r = await own('livecheck');
+    check('an account that may not charge yet: not ready, and it says so', r.body.ok === false && r.body.account.charges === false && r.body.pages.year === true, r.body);
+    Lv.noCharges = false; Lv.refuse = /^POST checkout\/sessions$/;
+    r = await own('livecheck');
+    check('a payment page that does not open: not ready, with Stripe\'s words', r.body.ok === false && /refused by the stand-in/.test(String(r.body.pages.month)), r.body);
+    Lv.refuse = null;
+  }
 
   // ---- nothing leaks into the function's log
   check('the log holds no key and no signing secret', !logs.includes(TEST_KEY) && !logs.includes(LIVE_KEY) && !/whsec_[0-9a-f]{8}/.test(logs));

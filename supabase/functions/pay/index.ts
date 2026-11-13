@@ -12,7 +12,8 @@
 // The owner's requests (POST with the one-time key kept in billing_config): setup (the product, the prices, the page
 // that manages a subscription, the webhook: made at Stripe once for each of its two modes), selftest (test mode only:
 // the pages a player would be sent to, then a subscription made and cancelled through Stripe's API to see the webhook
-// bring the account along; with a customer of its own, and the account put back as it was), admin_state.
+// bring the account along; with a customer of its own, and the account put back as it was), livecheck (the live side:
+// may the account take payments, do the payment pages open; nothing is charged), admin_state.
 //
 // Settings: STRIPE_SECRET_KEY and STRIPE_TEST_KEY (Stripe's live and test secret keys; the owner enters them in the
 // Supabase dashboard; which is which is read off the key itself), PAY_SITE (default https://joker-chess.com/),
@@ -405,6 +406,43 @@ async function selftest(b: any) {
   const pagesOk = Object.values(pages).every((v) => v === true);
   return { ok: started && proOn && ended && proOff && pagesOk, subscription: sub.status, webhookOnStart: started, proOn, webhookOnCancel: ended, proOff, pages, restored };
 }
+// the live side before it is opened to players (and whenever the owner wants to know): may the account take payments,
+// and do the pages open? Each plan's payment page is asked for with no customer and nobody's details in it, and closed
+// again at once: nothing is charged and nothing of a person goes to Stripe.
+async function livecheck() {
+  const S = SIDES.live;
+  if (!S) throw new Fail('no_live_key');
+  const tell = (e: unknown) => (e instanceof Fail && e.extra ? [e.extra.type, e.extra.code, e.extra.message].filter(Boolean).join(': ').slice(0, 240) : 'failed');
+  // deno-lint-ignore no-explicit-any
+  const out: any = { ok: false, mode: await modeNow() };
+  try {
+    const a = await stripe(S, 'GET', 'account');
+    out.account = { charges: !!a.charges_enabled, payouts: !!a.payouts_enabled, details: !!a.details_submitted, country: a.country || null, currency: a.default_currency || null };
+  } catch (e) { out.account = tell(e); }
+  let prices: Record<string, string> = {};
+  try { prices = await priceIds(S, true); } catch (e) { out.prices = tell(e); }
+  const pages: Record<string, true | string> = {};
+  for (const plan of Object.keys(PLANS)) {
+    try {
+      if (!prices[plan]) throw new Fail('stripe', { message: 'no price' });
+      const p = sessionParams(plan, prices[plan], '', '', SITE, 'auto', true);
+      delete p.customer; delete p.client_reference_id;
+      p.metadata = { app: 'joker-chess', livecheck: '1' };
+      if (p.subscription_data) p.subscription_data.metadata = p.metadata;
+      if (p.payment_intent_data) p.payment_intent_data.metadata = p.metadata;
+      const s = await stripe(S, 'POST', 'checkout/sessions', p);
+      if (!/^https:\/\//.test(String(s.url || ''))) throw new Fail('stripe', { message: 'no page address' });
+      await stripe(S, 'POST', 'checkout/sessions/' + s.id + '/expire');
+      pages[plan] = true;
+    } catch (e) { pages[plan] = tell(e); }
+  }
+  out.pages = pages;
+  const [hk, pc] = await Promise.all([config('hook:live'), config('portal:live')]);
+  try { const ep = hk && hk.id ? await stripe(S, 'GET', 'webhook_endpoints/' + hk.id) : null; out.hook = !!(ep && ep.status === 'enabled' && ep.url === HOOK_URL && hk.secret); } catch (e) { out.hook = tell(e); }
+  try { const c = pc && pc.id ? await stripe(S, 'GET', 'billing_portal/configurations/' + pc.id) : null; out.portal = !!(c && c.active !== false); } catch (e) { out.portal = tell(e); }
+  out.ok = !!(out.account && out.account.charges === true) && Object.values(pages).every((v) => v === true) && out.hook === true && out.portal === true;
+  return out;
+}
 async function adminState() {
   const [mode, hookT, hookL, portT, portL, n] = await Promise.all([modeNow(), config('hook:test'), config('hook:live'), config('portal:test'), config('portal:live'),
     sql`select count(*) filter (where status in ('trialing', 'active', 'past_due'))::int as subs, count(*) filter (where founder_at is not null)::int as founders, count(*)::int as rows from public.billing`]);
@@ -494,9 +532,9 @@ Deno.serve(async (req) => {
     try { b = JSON.parse(raw || '{}'); } catch { b = {}; }
     if (!b || typeof b !== 'object') b = {};
     const action = String(b.action || '');
-    if (['setup', 'selftest', 'admin_state'].includes(action)) {
+    if (['setup', 'selftest', 'livecheck', 'admin_state'].includes(action)) {
       if (!(await ownerKey(b.key))) return json({ error: 'auth' }, 401);
-      return json(action === 'setup' ? await setup(b) : action === 'selftest' ? await selftest(b) : await adminState());
+      return json(action === 'setup' ? await setup(b) : action === 'selftest' ? await selftest(b) : action === 'livecheck' ? await livecheck() : await adminState());
     }
     const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '') || (typeof b.token === 'string' ? b.token : '');
     const caller = await userId(token);
