@@ -14,6 +14,8 @@ altool looks too) or from ASC_KEY_PATH.
   python3 asc.py submit                      sends version 1.1 to App Review
   python3 asc.py cancel                      takes the version back from the review queue (then metadata / screenshots / submit again)
   python3 asc.py status                      where the version stands
+  python3 asc.py testflight [--wait]         the newest build of the version in TestFlight: its state (--wait until Apple has processed it), and that the
+                                             team's own TestFlight group gets it. Makes no version and sends nothing to review
   python3 asc.py products                    Joker Pro for sale in the app (iap.json): the subscription group, the yearly plan (with its free week) and
                                              the monthly one, the Founder purchase, their prices in every country, texts, review screenshots, and where
                                              Apple sends its notifications. Only adds what is missing: run it again after a hiccup. Nothing is deleted.
@@ -247,6 +249,48 @@ def cmd_status():
         b = api('GET', f"/v1/appStoreVersions/{v['id']}/build").get('data'); print('build attached:', b['attributes']['version'] if b else 'none')
     for s in api('GET', f"/v1/reviewSubmissions?filter[app]={a['id']}&limit=3").get('data') or []: print('submission', s['attributes']['state'], s['attributes'].get('submittedDate'))
 
+# ---- TestFlight: a build on the team's own phones, without a version of the app being made or sent to review
+# (a version cannot even be made while the one before it waits for review; a build can always be uploaded)
+def cmd_testflight(wait=False):
+    a = app(); aid = a['id']; b = None
+    while True:
+        bs = api('GET', f"/v1/builds?filter[app]={aid}&filter[preReleaseVersion.version]={VERSION}&sort=-uploadedDate&limit=5").get('data') or []
+        want = os.environ.get('GC_BUILD')
+        if want: bs = [x for x in bs if x['attributes']['version'] == want]
+        if bs:
+            b = bs[0]; st = b['attributes']['processingState']; print('build', VERSION, '(' + str(b['attributes']['version']) + ')', st, b['attributes'].get('uploadedDate'), flush=True)
+            if st == 'VALID': break
+            if st in ('FAILED', 'INVALID'): sys.exit('the build failed processing — look at the e-mail from App Store Connect')
+        else: print('no build of', VERSION, 'uploaded yet', flush=True)
+        if not wait: return
+        time.sleep(60)
+    if b['attributes'].get('usesNonExemptEncryption') is None:
+        ok, r = soft('PATCH', f"/v1/builds/{b['id']}", {'data': {'type': 'builds', 'id': b['id'], 'attributes': {'usesNonExemptEncryption': False}}})
+        print('export compliance: no encryption of our own' if ok else 'export compliance not set: ' + r[:300])
+    groups = get_all(f"/v1/apps/{aid}/betaGroups?limit=50"); internal = [g for g in groups if g['attributes'].get('isInternalGroup')]
+    for g in groups: print('TestFlight group', repr(g['attributes'].get('name')), '· internal' if g['attributes'].get('isInternalGroup') else '· external', '· every build' if g['attributes'].get('hasAccessToAllBuilds') else '· chosen builds')
+    if not internal:
+        g = api('POST', '/v1/betaGroups', {'data': {'type': 'betaGroups', 'attributes': {'name': 'Team', 'isInternalGroup': True, 'hasAccessToAllBuilds': True}, 'relationships': {'app': rel('apps', aid)}}})['data']
+        internal = [g]; print('TestFlight group "Team" made (internal, gets every build)')
+    for g in internal:
+        if not g['attributes'].get('hasAccessToAllBuilds'):
+            ok, r = soft('POST', f"/v1/builds/{b['id']}/relationships/betaGroups", {'data': [{'type': 'betaGroups', 'id': g['id']}]})
+            print('  the build added to', repr(g['attributes'].get('name')) if ok else 'the group refused: ' + r[:300])
+        testers = get_all(f"/v1/betaGroups/{g['id']}/betaTesters?limit=100")
+        print('  testers in', repr(g['attributes'].get('name')) + ':', len(testers), '·', ', '.join(sorted({str(t['attributes'].get('state')) for t in testers})) or 'none')
+        if not testers:
+            # nobody in the group yet: the account's holder is put in (and nobody else: an invitation is a letter)
+            ok, us = soft('GET', '/v1/users?limit=50')
+            added = 0
+            for u in (us.get('data') or []) if ok else []:
+                ua = u['attributes']
+                if not ua.get('username') or 'ACCOUNT_HOLDER' not in (ua.get('roles') or []): continue
+                ok2, r = soft('POST', '/v1/betaTesters', {'data': {'type': 'betaTesters', 'attributes': {'email': ua['username'], 'firstName': ua.get('firstName'), 'lastName': ua.get('lastName')}, 'relationships': {'betaGroups': {'data': [{'type': 'betaGroups', 'id': g['id']}]}}}})
+                if ok2: added += 1
+                else: print('  a team member could not be added:', r[:300].replace(ua['username'], '<e-mail>'))
+            print('  the account holder added to the group:', 'yes (TestFlight sends an invitation)' if added else 'no — add a tester in App Store Connect → TestFlight → Internal Testing')
+    print('TestFlight: build', b['attributes']['version'], 'of', VERSION, 'is ready for the team')
+
 # ---- Joker Pro for sale in the app: App Store Connect's side (the products themselves; iap.json says what they are)
 def soft(method, path, body=None):
     """api() that answers (ok, data | Apple's words) instead of stopping; waits and tries again when Apple is busy"""
@@ -432,4 +476,5 @@ if __name__ == '__main__':
     elif c == 'cancel': cmd_cancel()
     elif c == 'status': cmd_status()
     elif c == 'products': cmd_products(check='--check' in sys.argv)
+    elif c == 'testflight': cmd_testflight('--wait' in sys.argv)
     else: print(__doc__)
